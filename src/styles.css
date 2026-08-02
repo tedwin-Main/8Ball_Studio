@@ -10,6 +10,7 @@
   --felt: #0b5b3b;
   --ink: #070908;
   --paper: #f2f1e9;
+  --motion-ease-out: cubic-bezier(0.19, 1, 0.22, 1);
   --pointer-x: 50%;
   --pointer-y: 50%;
 }
@@ -20,8 +21,9 @@
 
 html {
   background: #07110d;
+  overscroll-behavior-y: none;
   scroll-behavior: smooth;
-  scroll-snap-type: y proximity;
+  scroll-snap-type: y mandatory;
   scrollbar-width: none;
 }
 
@@ -67,18 +69,19 @@ a:focus-visible {
 
 .story {
   position: relative;
-  height: 300svh;
+  height: 500svh;
 }
 
 .story-pages {
   position: absolute;
   z-index: 0;
   inset: 0;
+  display: grid;
+  grid-template-rows: repeat(5, 100svh);
   pointer-events: none;
 }
 
 .story-page {
-  height: 100svh;
   scroll-snap-align: start;
   scroll-snap-stop: always;
 }
@@ -314,10 +317,6 @@ a:focus-visible {
 .pocket-bottom-middle { bottom: -4%; left: 50%; transform: translateX(-50%); }
 .pocket-bottom-right { right: -1.5%; bottom: -2.6%; }
 
-.pocket-top-right {
-  transition: box-shadow 100ms linear;
-}
-
 .ball-rig {
   position: absolute;
   z-index: 6;
@@ -504,21 +503,15 @@ a:focus-visible {
 .wordmark {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  color: var(--paper);
-  font-weight: 700;
   text-decoration: none;
 }
 
-.wordmark-ball {
-  display: grid;
-  width: 26px;
+.brand-logo {
+  display: block;
+  width: 34px;
   aspect-ratio: 1;
-  place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.55);
   border-radius: 50%;
-  font-family: Georgia, serif;
-  font-size: 11px;
+  object-fit: cover;
 }
 
 .header-meta {
@@ -532,7 +525,6 @@ a:focus-visible {
 .top-link {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
   padding: 0;
   background: transparent;
   color: var(--paper);
@@ -542,18 +534,6 @@ a:focus-visible {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   white-space: nowrap;
-}
-
-.top-link::before {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--acid);
-  box-shadow: 0 0 12px var(--acid);
-  content: '';
 }
 
 .top-link:hover {
@@ -629,7 +609,7 @@ a:focus-visible {
   height: 7px;
   border-radius: 2px;
   background: var(--acid);
-  animation: wheel 1.7s ease-in-out infinite;
+  animation: wheel 2.3s ease-in-out infinite;
 }
 
 @keyframes wheel {
@@ -741,6 +721,123 @@ a:focus-visible {
   border-color: rgba(197, 255, 78, 0.08);
 }
 
+.projects-screen {
+  position: absolute;
+  z-index: 16;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 86% 16%, rgba(197, 255, 78, 0.1), transparent 22%),
+    linear-gradient(135deg, #07110d, #070908 64%);
+  visibility: hidden;
+  will-change: transform, opacity;
+}
+
+.projects-content {
+  position: relative;
+  z-index: 2;
+  width: min(90vw, 1320px);
+  margin: 14vh auto 0;
+}
+
+.projects-kicker {
+  display: flex;
+  margin: 0 0 3vh;
+  align-items: center;
+  gap: 12px;
+  color: rgba(242, 241, 233, 0.63);
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.projects-kicker span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--acid);
+  box-shadow: 0 0 16px rgba(197, 255, 78, 0.75);
+}
+
+.projects-title {
+  margin: 0;
+  color: var(--paper);
+  font-size: clamp(76px, 12.5vw, 190px);
+  font-weight: 900;
+  letter-spacing: -0.09em;
+  line-height: 0.72;
+  text-transform: uppercase;
+}
+
+.projects-title-line {
+  display: block;
+  overflow: hidden;
+  padding: 0 0.08em 0.1em 0;
+}
+
+.projects-title-line > span {
+  display: block;
+  will-change: transform;
+}
+
+.projects-title-indent {
+  padding-left: 15vw;
+  color: var(--acid);
+}
+
+.projects-marquee {
+  position: absolute;
+  right: 0;
+  bottom: 7vh;
+  left: 0;
+  overflow: hidden;
+  width: 100%;
+}
+
+.projects-track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  animation: projects-marquee 26s linear infinite;
+}
+
+.projects-group {
+  display: flex;
+  gap: clamp(16px, 2vw, 30px);
+  padding-right: clamp(16px, 2vw, 30px);
+}
+
+.project-card {
+  display: grid;
+  width: clamp(210px, 23vw, 350px);
+  height: clamp(150px, 17vw, 250px);
+  margin: 0;
+  flex: 0 0 auto;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+  background: #f2f1e9;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
+}
+
+.project-card img {
+  width: 100%;
+  height: 100%;
+  padding: 12%;
+  object-fit: contain;
+}
+
+.project-card.is-photo img {
+  padding: 0;
+  object-fit: cover;
+}
+
+@keyframes projects-marquee {
+  to { transform: translateX(-50%); }
+}
+
 .contact-screen {
   position: absolute;
   z-index: 16;
@@ -823,7 +920,7 @@ a:focus-visible {
   gap: clamp(14px, 1.6vw, 22px);
   grid-template-columns: auto 1fr;
   text-decoration: none;
-  transition: background 180ms ease, color 180ms ease;
+  transition: background 150ms var(--motion-ease-out), color 150ms var(--motion-ease-out);
 }
 
 .contact-item + .contact-item {
@@ -838,7 +935,7 @@ a:focus-visible {
   border: 1px solid rgba(197, 255, 78, 0.45);
   border-radius: 50%;
   color: var(--acid);
-  transition: background 180ms ease, box-shadow 180ms ease, color 180ms ease;
+  transition: background 300ms var(--motion-ease-out), box-shadow 300ms var(--motion-ease-out), color 300ms var(--motion-ease-out);
 }
 
 a.contact-item:hover,
@@ -951,7 +1048,7 @@ a.contact-item:focus-visible .contact-icon {
   border-radius: 50%;
   background: rgba(7, 17, 13, 0.38);
   content: '';
-  transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  transition: background 300ms var(--motion-ease-out), border-color 300ms var(--motion-ease-out), box-shadow 300ms var(--motion-ease-out), transform 300ms var(--motion-ease-out);
 }
 
 .page-dot span {
@@ -969,7 +1066,7 @@ a.contact-item:focus-visible .contact-icon {
   pointer-events: none;
   text-transform: uppercase;
   transform: translateX(5px);
-  transition: opacity 160ms ease, transform 160ms ease;
+  transition: opacity 200ms var(--motion-ease-out), transform 200ms var(--motion-ease-out);
   white-space: nowrap;
 }
 
