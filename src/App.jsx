@@ -1,8 +1,59 @@
-import { useLayoutEffect, useRef } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
 gsap.registerPlugin(ScrollTrigger)
+
+const STORY_PAGES = [
+  { id: 'page-intro', label: 'Intro' },
+  { id: 'page-table', label: 'Pool table' },
+  { id: 'page-studio', label: 'Studio' },
+  { id: 'page-contact', label: 'Contact' },
+]
+
+const CONTACT_ITEMS = [
+  {
+    icon: 'whatsapp',
+    title: 'WhatsApp',
+    description: '+60 12-783 7511',
+    href: 'https://wa.me/60127837511',
+  },
+  {
+    icon: 'instagram',
+    title: 'Instagram',
+    description: '@8ightball.studio',
+    href: 'https://www.instagram.com/8ightball.studio/',
+  },
+  { icon: 'location', title: 'Kuala Lumpur', description: 'Malaysia' },
+]
+
+function ContactIcon({ type }) {
+  if (type === 'whatsapp') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M5.2 18.8 6 16.1a7.7 7.7 0 1 1 2 2Z" />
+        <path d="M9 8.2c.2-.4.4-.4.7-.4h.4c.2 0 .4.1.5.5l.6 1.5c.1.3.1.5-.1.7l-.5.6c-.2.2-.1.4 0 .6.6 1 1.4 1.8 2.5 2.3.2.1.4.1.6-.1l.7-.8c.2-.2.4-.2.7-.1l1.5.7c.3.2.4.3.4.5 0 .3-.2 1.2-.8 1.6-.5.4-1.2.6-2 .4-1.3-.2-2.9-1-4.3-2.4-1.1-1.1-1.9-2.4-2.1-3.5-.2-.8.5-1.7 1.2-2.1Z" />
+      </svg>
+    )
+  }
+
+  if (type === 'instagram') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="4" y="4" width="16" height="16" rx="4" />
+        <circle cx="12" cy="12" r="3.5" />
+        <circle className="icon-fill" cx="17.3" cy="6.8" r="0.9" />
+      </svg>
+    )
+  }
+
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 21s6-5.4 6-11a6 6 0 1 0-12 0c0 5.6 6 11 6 11Z" />
+      <circle cx="12" cy="10" r="2.2" />
+    </svg>
+  )
+}
 
 function PoolTable() {
   const pockets = ['top-left', 'top-middle', 'top-right', 'bottom-left', 'bottom-middle', 'bottom-right']
@@ -48,11 +99,32 @@ function EightBall() {
 function App() {
   const rootRef = useRef(null)
   const storyRef = useRef(null)
+  const [activePage, setActivePage] = useState(0)
 
   useLayoutEffect(() => {
     const root = rootRef.current
+    const ballRig = root.querySelector('.ball-rig')
     let pointerFrame = 0
+    let ballLayerIsPromoted = false
     const hasFinePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches
+
+    const getPageIndex = (progress) => {
+      if (progress < 1 / 6) return 0
+      if (progress < 1 / 2) return 1
+      if (progress < 5 / 6) return 2
+      return 3
+    }
+
+    const updateActivePage = (progress) => {
+      const nextPage = getPageIndex(progress)
+      setActivePage((currentPage) => (currentPage === nextPage ? currentPage : nextPage))
+    }
+
+    const setBallLayerPromotion = (active) => {
+      if (active === ballLayerIsPromoted) return
+      ballLayerIsPromoted = active
+      ballRig.style.willChange = active ? 'transform, opacity' : 'auto'
+    }
 
     const movePointer = (event) => {
       if (pointerFrame) return
@@ -76,10 +148,63 @@ function App() {
       const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
       if (prefersReducedMotion) {
-        gsap.set('.pool-table', { xPercent: -50, yPercent: -50, scale: 1, rotationX: 5 })
-        gsap.set('.ball-rig', { xPercent: -50, yPercent: -50, x: '-5vw', y: '8vh', scale: 1 })
-        gsap.set('.ball-shadow', { xPercent: -50, yPercent: -50, x: '-5vw', y: '8vh', opacity: 0.55 })
-        gsap.set('.cue-stick', { opacity: 0 })
+        const showReducedPage = (progress) => {
+          const pageIndex = getPageIndex(progress)
+          const showIntro = pageIndex === 0
+          const showStudio = pageIndex === 2
+          const showContact = pageIndex === 3
+          const showEndScreen = showStudio || showContact
+
+          updateActivePage(progress)
+          gsap.set('.pool-table', {
+            xPercent: -50,
+            yPercent: -50,
+            scale: showIntro ? 2.5 : 1,
+            rotationX: showIntro ? 0 : 5,
+          })
+          gsap.set('.ball-rig', {
+            xPercent: -50,
+            yPercent: -50,
+            x: showIntro ? 0 : '-5vw',
+            y: showIntro ? 0 : '8vh',
+            scale: showIntro ? 6.25 : 1,
+            autoAlpha: showEndScreen ? 0 : 1,
+          })
+          gsap.set('.ball-shadow', {
+            xPercent: -50,
+            yPercent: -50,
+            x: '-5vw',
+            y: '8vh',
+            autoAlpha: showIntro || showEndScreen ? 0 : 0.55,
+          })
+          gsap.set(['.cue-stick', '.impact-ring', '.strike-flash', '.pocket-iris'], { autoAlpha: 0 })
+          gsap.set('.hero-copy', { autoAlpha: showIntro ? 1 : 0 })
+          gsap.set('.scroll-prompt', { autoAlpha: showIntro ? 1 : 0 })
+          gsap.set('.scene-interface', { autoAlpha: showEndScreen ? 0 : 1 })
+          gsap.set('.title-screen', { autoAlpha: showStudio ? 1 : 0 })
+          gsap.set(['.final-kicker', '.final-title-line > span', '.final-meta'], {
+            autoAlpha: showStudio ? 1 : 0,
+            y: 0,
+            yPercent: 0,
+          })
+          gsap.set('.contact-screen', { autoAlpha: showContact ? 1 : 0 })
+          gsap.set(['.contact-kicker', '.contact-title-line > span', '.contact-item'], {
+            autoAlpha: showContact ? 1 : 0,
+            y: 0,
+            yPercent: 0,
+          })
+        }
+
+        const reducedTrigger = ScrollTrigger.create({
+          trigger: storyRef.current,
+          start: 'top top',
+          end: 'bottom bottom',
+          invalidateOnRefresh: true,
+          onUpdate: ({ progress }) => showReducedPage(progress),
+          onRefresh: ({ progress }) => showReducedPage(progress),
+        })
+
+        showReducedPage(reducedTrigger.progress)
         return
       }
 
@@ -140,50 +265,60 @@ function App() {
           gsap.set('.title-screen', { autoAlpha: 0 })
           gsap.set('.final-title-line > span', { yPercent: 115 })
           gsap.set(['.final-kicker', '.final-meta'], { y: 20, autoAlpha: 0 })
+          gsap.set('.contact-screen', { autoAlpha: 0 })
+          gsap.set('.contact-title-line > span', { yPercent: 115 })
+          gsap.set(['.contact-kicker', '.contact-item'], { y: 20, autoAlpha: 0 })
 
           const timeline = gsap.timeline({
             defaults: { ease: 'none' },
             scrollTrigger: {
               trigger: storyRef.current,
               start: 'top top',
-              end: () => `+=${desktop ? window.innerHeight * 5.6 : Math.max(window.innerHeight * 5.1, 3000)}`,
-              pin: true,
-              scrub: 0.8,
-              anticipatePin: 1,
+              end: 'bottom bottom',
+              scrub: 0.65,
               invalidateOnRefresh: true,
+              onUpdate: ({ progress }) => {
+                setBallLayerPromotion(progress > 0.001 && progress < 0.999)
+                updateActivePage(progress)
+              },
             },
           })
 
           timeline
-            .to('.pool-table', { scale: 1, rotationX: desktop ? 8 : 4, duration: 2.35 }, 0)
-            .to('.ball-rig', { scale: 1, x: holdX, y: holdY, rotation: 0, duration: 2.35 }, 0)
-            .to('.hero-copy', { y: -36, autoAlpha: 0, duration: 0.85 }, 0.2)
-            .to('.scroll-prompt', { y: 20, autoAlpha: 0, duration: 0.6 }, 0.4)
-            .to('.camera-grid', { opacity: 0.38, duration: 1.7 }, 0)
-            .to('.ball-shadow', { opacity: 0.58, scale: 1, duration: 0.7 }, 1.35)
-            .to('.cue-stick', { x: 0, autoAlpha: 1, duration: 1.05, ease: 'power3.out' }, 2.3)
-            .to('.cue-stick', { x: desktop ? '3.1vw' : compactLandscape ? '3.8vw' : '5.8vw', duration: 0.22, ease: 'power4.in' }, 3.38)
-            .to('.impact-ring', { scale: 1, autoAlpha: 0.92, duration: 0.08 }, 3.54)
-            .to('.impact-ring', { scale: 3.3, autoAlpha: 0, duration: 0.52, ease: 'power2.out' }, 3.62)
-            .to('.strike-flash', { autoAlpha: 0.8, duration: 0.05 }, 3.54)
-            .to('.strike-flash', { autoAlpha: 0, duration: 0.3 }, 3.59)
-            .to('.cue-stick', { x: desktop ? '-7vw' : compactLandscape ? '-8vw' : '-12vw', autoAlpha: 0, duration: 0.48, ease: 'power2.out' }, 3.64)
-            .to('.ball-rig', { scaleX: 0.88, scaleY: 1.08, duration: 0.08 }, 3.5)
-            .to('.ball-rig', { scaleX: 1, scaleY: 1, duration: 0.1 }, 3.58)
-            .to('.ball-rig', { x: pocketX, y: pocketY, rotation: 910, duration: 1.42, ease: 'power2.in' }, 3.62)
-            .to('.ball-shadow', { x: pocketX, y: pocketY, scale: 0.66, opacity: 0.16, duration: 1.36, ease: 'power2.in' }, 3.62)
-            .to('.ball-rig', { scale: 0.35, autoAlpha: 0, duration: 0.3, ease: 'power2.in' }, 4.82)
-            .to('.ball-shadow', { autoAlpha: 0, duration: 0.2 }, 4.84)
-            .to('.target-pocket', { boxShadow: '0 0 0 2px rgba(197,255,78,.7), 0 0 44px 20px rgba(197,255,78,.18)', duration: 0.16 }, 4.72)
-            .to('.target-pocket', { boxShadow: '0 0 0 0 rgba(197,255,78,0), 0 0 0 0 rgba(197,255,78,0)', duration: 0.38 }, 4.94)
-            .to('.pocket-iris', { scale: desktop ? 38 : 42, duration: 1.25, ease: 'power3.inOut' }, 4.96)
-            .to('.scene-interface', { autoAlpha: 0, duration: 0.35 }, 5.24)
-            .to('.pool-table', { scale: 0.84, duration: 0.7 }, 5.05)
-            .to('.title-screen', { autoAlpha: 1, duration: 0.01 }, 5.74)
-            .to('.final-kicker', { y: 0, autoAlpha: 1, duration: 0.46, ease: 'power2.out' }, 5.77)
-            .to('.final-title-line > span', { yPercent: 0, duration: 0.72, stagger: 0.1, ease: 'power4.out' }, 5.78)
-            .to('.final-meta', { y: 0, autoAlpha: 1, duration: 0.48, ease: 'power2.out' }, 6.12)
-            .to({}, { duration: 0.6 })
+            .to('.pool-table', { scale: 1, rotationX: desktop ? 8 : 4, duration: 4.35 }, 0)
+            .to('.ball-rig', { scale: 1, x: holdX, y: holdY, rotation: 0, duration: 4.35 }, 0)
+            .to('.hero-copy', { y: -36, autoAlpha: 0, duration: 1.35 }, 0.3)
+            .to('.scroll-prompt', { y: 20, autoAlpha: 0, duration: 0.9 }, 0.55)
+            .to('.camera-grid', { opacity: 0.38, duration: 3.2 }, 0)
+            .to('.ball-shadow', { opacity: 0.58, scale: 1, duration: 0.85 }, 3.35)
+            .to('.cue-stick', { x: 0, autoAlpha: 1, duration: 0.95, ease: 'power3.out' }, 5.2)
+            .to('.cue-stick', { x: desktop ? '3.1vw' : compactLandscape ? '3.8vw' : '5.8vw', duration: 0.2, ease: 'power4.in' }, 6.15)
+            .to('.impact-ring', { scale: 1, autoAlpha: 0.92, duration: 0.08 }, 6.3)
+            .to('.impact-ring', { scale: 3.3, autoAlpha: 0, duration: 0.45, ease: 'power2.out' }, 6.38)
+            .to('.strike-flash', { autoAlpha: 0.8, duration: 0.05 }, 6.3)
+            .to('.strike-flash', { autoAlpha: 0, duration: 0.27 }, 6.35)
+            .to('.cue-stick', { x: desktop ? '-7vw' : compactLandscape ? '-8vw' : '-12vw', autoAlpha: 0, duration: 0.42, ease: 'power2.out' }, 6.4)
+            .to('.ball-rig', { scaleX: 0.88, scaleY: 1.08, duration: 0.08 }, 6.26)
+            .to('.ball-rig', { scaleX: 1, scaleY: 1, duration: 0.1 }, 6.34)
+            .to('.ball-rig', { x: pocketX, y: pocketY, rotation: 910, duration: 1.25, ease: 'power2.in' }, 6.38)
+            .to('.ball-shadow', { x: pocketX, y: pocketY, scale: 0.66, opacity: 0.16, duration: 1.2, ease: 'power2.in' }, 6.38)
+            .to('.ball-rig', { scale: 0.35, autoAlpha: 0, duration: 0.28, ease: 'power2.in' }, 7.45)
+            .to('.ball-shadow', { autoAlpha: 0, duration: 0.18 }, 7.47)
+            .to('.target-pocket', { boxShadow: '0 0 0 2px rgba(197,255,78,.7), 0 0 44px 20px rgba(197,255,78,.18)', duration: 0.14 }, 7.37)
+            .to('.target-pocket', { boxShadow: '0 0 0 0 rgba(197,255,78,0), 0 0 0 0 rgba(197,255,78,0)', duration: 0.34 }, 7.59)
+            .to('.pocket-iris', { scale: desktop ? 38 : 42, duration: 1.15, ease: 'power3.inOut' }, 7.68)
+            .to('.scene-interface', { autoAlpha: 0, duration: 0.32 }, 8.02)
+            .to('.pool-table', { scale: 0.84, duration: 0.65 }, 7.78)
+            .to('.title-screen', { autoAlpha: 1, duration: 0.01 }, 8.72)
+            .to('.final-kicker', { y: 0, autoAlpha: 1, duration: 0.42, ease: 'power2.out' }, 8.75)
+            .to('.final-title-line > span', { yPercent: 0, duration: 0.65, stagger: 0.08, ease: 'power4.out' }, 8.76)
+            .to('.final-meta', { y: 0, autoAlpha: 1, duration: 0.42, ease: 'power2.out' }, 9.25)
+            .to('.title-screen', { autoAlpha: 0, duration: 0.75, ease: 'power2.inOut' }, 11.15)
+            .to('.contact-screen', { autoAlpha: 1, duration: 0.01 }, 11.78)
+            .to('.contact-kicker', { y: 0, autoAlpha: 1, duration: 0.45, ease: 'power2.out' }, 11.82)
+            .to('.contact-title-line > span', { yPercent: 0, duration: 0.72, stagger: 0.08, ease: 'power4.out' }, 11.86)
+            .to('.contact-item', { y: 0, autoAlpha: 1, duration: 0.5, stagger: 0.12, ease: 'power2.out' }, 12.72)
+            .to({}, { duration: 0.2 }, 14.8)
         },
       )
 
@@ -193,15 +328,26 @@ function App() {
     return () => {
       if (pointerFrame) window.cancelAnimationFrame(pointerFrame)
       if (hasFinePointer) window.removeEventListener('pointermove', movePointer)
+      ballRig.style.removeProperty('will-change')
       animationContext.revert()
     }
   }, [])
 
-  const replay = () => window.scrollTo({ top: 0, behavior: 'smooth' })
+  const goToPage = (pageId) => {
+    const page = document.getElementById(pageId)
+    const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+    page?.scrollIntoView({ behavior, block: 'start' })
+  }
+
+  const replay = () => goToPage(STORY_PAGES[0].id)
 
   return (
     <main className="experience" ref={rootRef}>
       <section className="story" ref={storyRef} aria-label="Interactive 8 Ball Studio introduction">
+        <div className="story-pages" aria-hidden="true">
+          {STORY_PAGES.map((page) => <div className="story-page" id={page.id} key={page.id} />)}
+        </div>
+
         <div className="stage">
           <div className="camera-grid" aria-hidden="true" />
           <div className="ambient ambient-one" aria-hidden="true" />
@@ -254,10 +400,57 @@ function App() {
             </div>
           </section>
 
+          <section className="contact-screen" aria-labelledby="contact-title">
+            <div className="contact-orbit" aria-hidden="true" />
+            <div className="contact-content">
+              <p className="contact-kicker"><span /> Get in touch</p>
+              <h2 id="contact-title" className="contact-title">
+                <span className="contact-title-line"><span>Contact</span></span>
+                <span className="contact-title-line contact-title-indent"><span>Us</span></span>
+              </h2>
+              <div className="contact-list">
+                {CONTACT_ITEMS.map((item) => {
+                  const Item = item.href ? 'a' : 'div'
+
+                  return (
+                    <Item
+                      className="contact-item"
+                      href={item.href}
+                      target={item.href ? '_blank' : undefined}
+                      rel={item.href ? 'noreferrer' : undefined}
+                      key={item.title}
+                    >
+                      <span className="contact-icon"><ContactIcon type={item.icon} /></span>
+                      <span>
+                        <h3>{item.title}</h3>
+                        <p>{item.description}</p>
+                      </span>
+                    </Item>
+                  )
+                })}
+              </div>
+            </div>
+          </section>
+
           <div className="cursor-dot" aria-hidden="true" />
           <div className="cursor-ring" aria-hidden="true" />
         </div>
       </section>
+
+      <nav className="page-dots" aria-label="Story page navigation">
+        {STORY_PAGES.map((page, index) => (
+          <button
+            className={`page-dot${activePage === index ? ' is-active' : ''}`}
+            type="button"
+            aria-label={`Go to ${page.label} page`}
+            aria-current={activePage === index ? 'page' : undefined}
+            onClick={() => goToPage(page.id)}
+            key={page.id}
+          >
+            <span>{page.label}</span>
+          </button>
+        ))}
+      </nav>
     </main>
   )
 }
