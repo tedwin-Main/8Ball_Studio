@@ -6,7 +6,6 @@ gsap.registerPlugin(ScrollTrigger)
 
 const STORY_PAGES = [
   { id: 'page-intro', label: 'Intro' },
-  { id: 'page-table', label: 'Pool table' },
   { id: 'page-studio', label: 'Studio' },
   { id: 'page-contact', label: 'Contact' },
 ]
@@ -109,10 +108,9 @@ function App() {
     const hasFinePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches
 
     const getPageIndex = (progress) => {
-      if (progress < 1 / 6) return 0
-      if (progress < 1 / 2) return 1
-      if (progress < 5 / 6) return 2
-      return 3
+      if (progress < 0.25) return 0
+      if (progress < 0.75) return 1
+      return 2
     }
 
     const updateActivePage = (progress) => {
@@ -151,8 +149,8 @@ function App() {
         const showReducedPage = (progress) => {
           const pageIndex = getPageIndex(progress)
           const showIntro = pageIndex === 0
-          const showStudio = pageIndex === 2
-          const showContact = pageIndex === 3
+          const showStudio = pageIndex === 1
+          const showContact = pageIndex === 2
           const showEndScreen = showStudio || showContact
 
           updateActivePage(progress)
@@ -187,7 +185,10 @@ function App() {
             y: 0,
             yPercent: 0,
           })
-          gsap.set('.contact-screen', { autoAlpha: showContact ? 1 : 0 })
+          gsap.set('.contact-screen', {
+            autoAlpha: showContact ? 1 : 0,
+            yPercent: 0,
+          })
           gsap.set(['.contact-kicker', '.contact-title-line > span', '.contact-item'], {
             autoAlpha: showContact ? 1 : 0,
             y: 0,
@@ -262,11 +263,11 @@ function App() {
             autoAlpha: 0,
           })
           gsap.set('.pocket-iris', { xPercent: -50, yPercent: -50, scale: 0 })
-          gsap.set('.title-screen', { autoAlpha: 0 })
-          gsap.set('.final-title-line > span', { yPercent: 115 })
+          gsap.set('.title-screen', { autoAlpha: 0, scale: 1, yPercent: 0, force3D: true })
+          gsap.set('.final-title-line > span', { y: 0, yPercent: 115 })
           gsap.set(['.final-kicker', '.final-meta'], { y: 20, autoAlpha: 0 })
-          gsap.set('.contact-screen', { autoAlpha: 0 })
-          gsap.set('.contact-title-line > span', { yPercent: 115 })
+          gsap.set('.contact-screen', { autoAlpha: 0, yPercent: 8, force3D: true })
+          gsap.set('.contact-title-line > span', { y: 0, yPercent: 115 })
           gsap.set(['.contact-kicker', '.contact-item'], { y: 20, autoAlpha: 0 })
 
           const timeline = gsap.timeline({
@@ -275,7 +276,7 @@ function App() {
               trigger: storyRef.current,
               start: 'top top',
               end: 'bottom bottom',
-              scrub: 0.65,
+              scrub: 0.45,
               invalidateOnRefresh: true,
               onUpdate: ({ progress }) => {
                 setBallLayerPromotion(progress > 0.001 && progress < 0.999)
@@ -285,40 +286,40 @@ function App() {
           })
 
           timeline
-            .to('.pool-table', { scale: 1, rotationX: desktop ? 8 : 4, duration: 4.35 }, 0)
-            .to('.ball-rig', { scale: 1, x: holdX, y: holdY, rotation: 0, duration: 4.35 }, 0)
-            .to('.hero-copy', { y: -36, autoAlpha: 0, duration: 1.35 }, 0.3)
-            .to('.scroll-prompt', { y: 20, autoAlpha: 0, duration: 0.9 }, 0.55)
-            .to('.camera-grid', { opacity: 0.38, duration: 3.2 }, 0)
-            .to('.ball-shadow', { opacity: 0.58, scale: 1, duration: 0.85 }, 3.35)
-            .to('.cue-stick', { x: 0, autoAlpha: 1, duration: 0.95, ease: 'power3.out' }, 5.2)
-            .to('.cue-stick', { x: desktop ? '3.1vw' : compactLandscape ? '3.8vw' : '5.8vw', duration: 0.2, ease: 'power4.in' }, 6.15)
-            .to('.impact-ring', { scale: 1, autoAlpha: 0.92, duration: 0.08 }, 6.3)
-            .to('.impact-ring', { scale: 3.3, autoAlpha: 0, duration: 0.45, ease: 'power2.out' }, 6.38)
-            .to('.strike-flash', { autoAlpha: 0.8, duration: 0.05 }, 6.3)
-            .to('.strike-flash', { autoAlpha: 0, duration: 0.27 }, 6.35)
-            .to('.cue-stick', { x: desktop ? '-7vw' : compactLandscape ? '-8vw' : '-12vw', autoAlpha: 0, duration: 0.42, ease: 'power2.out' }, 6.4)
-            .to('.ball-rig', { scaleX: 0.88, scaleY: 1.08, duration: 0.08 }, 6.26)
-            .to('.ball-rig', { scaleX: 1, scaleY: 1, duration: 0.1 }, 6.34)
-            .to('.ball-rig', { x: pocketX, y: pocketY, rotation: 910, duration: 1.25, ease: 'power2.in' }, 6.38)
-            .to('.ball-shadow', { x: pocketX, y: pocketY, scale: 0.66, opacity: 0.16, duration: 1.2, ease: 'power2.in' }, 6.38)
-            .to('.ball-rig', { scale: 0.35, autoAlpha: 0, duration: 0.28, ease: 'power2.in' }, 7.45)
-            .to('.ball-shadow', { autoAlpha: 0, duration: 0.18 }, 7.47)
-            .to('.target-pocket', { boxShadow: '0 0 0 2px rgba(197,255,78,.7), 0 0 44px 20px rgba(197,255,78,.18)', duration: 0.14 }, 7.37)
-            .to('.target-pocket', { boxShadow: '0 0 0 0 rgba(197,255,78,0), 0 0 0 0 rgba(197,255,78,0)', duration: 0.34 }, 7.59)
-            .to('.pocket-iris', { scale: desktop ? 38 : 42, duration: 1.15, ease: 'power3.inOut' }, 7.68)
-            .to('.scene-interface', { autoAlpha: 0, duration: 0.32 }, 8.02)
-            .to('.pool-table', { scale: 0.84, duration: 0.65 }, 7.78)
-            .to('.title-screen', { autoAlpha: 1, duration: 0.01 }, 8.72)
-            .to('.final-kicker', { y: 0, autoAlpha: 1, duration: 0.42, ease: 'power2.out' }, 8.75)
-            .to('.final-title-line > span', { yPercent: 0, duration: 0.65, stagger: 0.08, ease: 'power4.out' }, 8.76)
-            .to('.final-meta', { y: 0, autoAlpha: 1, duration: 0.42, ease: 'power2.out' }, 9.25)
-            .to('.title-screen', { autoAlpha: 0, duration: 0.75, ease: 'power2.inOut' }, 11.15)
-            .to('.contact-screen', { autoAlpha: 1, duration: 0.01 }, 11.78)
-            .to('.contact-kicker', { y: 0, autoAlpha: 1, duration: 0.45, ease: 'power2.out' }, 11.82)
-            .to('.contact-title-line > span', { yPercent: 0, duration: 0.72, stagger: 0.08, ease: 'power4.out' }, 11.86)
-            .to('.contact-item', { y: 0, autoAlpha: 1, duration: 0.5, stagger: 0.12, ease: 'power2.out' }, 12.72)
-            .to({}, { duration: 0.2 }, 14.8)
+            .to('.pool-table', { scale: 1, rotationX: desktop ? 8 : 4, duration: 2.15 }, 0)
+            .to('.ball-rig', { scale: 1, x: holdX, y: holdY, rotation: 0, duration: 2.15 }, 0)
+            .to('.hero-copy', { y: -36, autoAlpha: 0, duration: 0.7 }, 0.15)
+            .to('.scroll-prompt', { y: 20, autoAlpha: 0, duration: 0.45 }, 0.28)
+            .to('.camera-grid', { opacity: 0.38, duration: 1.6 }, 0)
+            .to('.ball-shadow', { opacity: 0.58, scale: 1, duration: 0.42 }, 1.68)
+            .to('.cue-stick', { x: 0, autoAlpha: 1, duration: 0.48, ease: 'power3.out' }, 2.55)
+            .to('.cue-stick', { x: desktop ? '3.1vw' : compactLandscape ? '3.8vw' : '5.8vw', duration: 0.1, ease: 'power4.in' }, 3.03)
+            .to('.impact-ring', { scale: 1, autoAlpha: 0.92, duration: 0.04 }, 3.1)
+            .to('.impact-ring', { scale: 3.3, autoAlpha: 0, duration: 0.23, ease: 'power2.out' }, 3.14)
+            .to('.strike-flash', { autoAlpha: 0.8, duration: 0.03 }, 3.1)
+            .to('.strike-flash', { autoAlpha: 0, duration: 0.14 }, 3.13)
+            .to('.cue-stick', { x: desktop ? '-7vw' : compactLandscape ? '-8vw' : '-12vw', autoAlpha: 0, duration: 0.21, ease: 'power2.out' }, 3.15)
+            .to('.ball-rig', { scaleX: 0.88, scaleY: 1.08, duration: 0.04 }, 3.08)
+            .to('.ball-rig', { scaleX: 1, scaleY: 1, duration: 0.05 }, 3.12)
+            .to('.ball-rig', { x: pocketX, y: pocketY, rotation: 910, duration: 0.63, ease: 'power2.in' }, 3.14)
+            .to('.ball-shadow', { x: pocketX, y: pocketY, scale: 0.66, opacity: 0.16, duration: 0.6, ease: 'power2.in' }, 3.14)
+            .to('.ball-rig', { scale: 0.35, autoAlpha: 0, duration: 0.14, ease: 'power2.in' }, 3.68)
+            .to('.ball-shadow', { autoAlpha: 0, duration: 0.1 }, 3.7)
+            .to('.target-pocket', { boxShadow: '0 0 0 2px rgba(197,255,78,.7), 0 0 44px 20px rgba(197,255,78,.18)', duration: 0.07 }, 3.64)
+            .to('.target-pocket', { boxShadow: '0 0 0 0 rgba(197,255,78,0), 0 0 0 0 rgba(197,255,78,0)', duration: 0.17 }, 3.75)
+            .to('.pocket-iris', { scale: desktop ? 38 : 42, duration: 0.58, ease: 'power3.inOut' }, 3.78)
+            .to('.scene-interface', { autoAlpha: 0, duration: 0.16 }, 3.95)
+            .to('.pool-table', { scale: 0.84, duration: 0.33 }, 3.82)
+            .to('.title-screen', { autoAlpha: 1, duration: 0.01 }, 4.3)
+            .to('.final-kicker', { y: 0, autoAlpha: 1, duration: 0.21, ease: 'power2.out' }, 4.32)
+            .to('.final-title-line > span', { yPercent: 0, duration: 0.33, stagger: 0.04, ease: 'power4.out' }, 4.33)
+            .to('.final-meta', { y: 0, autoAlpha: 1, duration: 0.21, ease: 'power2.out' }, 4.62)
+            .to('.contact-screen', { yPercent: 0, autoAlpha: 1, duration: 1.1, ease: 'power2.inOut' }, 6.1)
+            .to('.title-screen', { scale: 0.965, yPercent: -2, autoAlpha: 0, duration: 0.8, ease: 'power2.inOut' }, 6.2)
+            .to('.contact-kicker', { y: 0, autoAlpha: 1, duration: 0.4, ease: 'power2.out' }, 6.75)
+            .to('.contact-title-line > span', { yPercent: 0, duration: 0.68, stagger: 0.08, ease: 'power4.out' }, 6.8)
+            .to('.contact-item', { y: 0, autoAlpha: 1, duration: 0.5, stagger: 0.12, ease: 'power2.out' }, 7.55)
+            .to({}, { duration: 0.2 }, 9.8)
         },
       )
 
@@ -361,19 +362,19 @@ function App() {
           <div className="strike-flash" aria-hidden="true" />
           <div className="pocket-iris" aria-hidden="true" />
 
-          <div className="scene-interface">
-            <header className="site-header">
-              <a className="wordmark" href="#top" onClick={(event) => { event.preventDefault(); replay() }} aria-label="8 Ball Studio — return to start">
-                <span className="wordmark-ball">8</span>
-                <span>Ball Studio</span>
-              </a>
-              <div className="header-meta">
-                <button className="top-link" onClick={replay} type="button" aria-label="Go back to top of page">
-                  Top
-                </button>
-              </div>
-            </header>
+          <header className="site-header">
+            <a className="wordmark" href="#top" onClick={(event) => { event.preventDefault(); replay() }} aria-label="8 Ball Studio — return to start">
+              <span className="wordmark-ball">8</span>
+              <span>Ball Studio</span>
+            </a>
+            <div className="header-meta">
+              <button className="top-link" onClick={replay} type="button" aria-label="Go back to top of page">
+                Top
+              </button>
+            </div>
+          </header>
 
+          <div className="scene-interface">
             <div className="hero-copy">
               <h1>Make the<br />first move.</h1>
               <p className="hero-note">A studio built for ideas<br />with somewhere to go.</p>

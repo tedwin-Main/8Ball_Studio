@@ -21,7 +21,7 @@
 html {
   background: #07110d;
   scroll-behavior: smooth;
-  scroll-snap-type: y mandatory;
+  scroll-snap-type: y proximity;
   scrollbar-width: none;
 }
 
@@ -67,7 +67,7 @@ a:focus-visible {
 
 .story {
   position: relative;
-  height: 400svh;
+  height: 300svh;
 }
 
 .story-pages {
@@ -487,6 +487,7 @@ a:focus-visible {
 
 .site-header {
   position: absolute;
+  z-index: 25;
   top: 0;
   left: 0;
   display: flex;
@@ -647,6 +648,7 @@ a:focus-visible {
     radial-gradient(circle at 74% 20%, rgba(197, 255, 78, 0.08), transparent 22%),
     #070908;
   visibility: hidden;
+  will-change: transform, opacity;
 }
 
 .final-content {
@@ -750,6 +752,7 @@ a:focus-visible {
     radial-gradient(circle at 12% 82%, rgba(197, 255, 78, 0.09), transparent 26%),
     linear-gradient(135deg, #09140f, #070908 62%);
   visibility: hidden;
+  will-change: transform, opacity;
 }
 
 .contact-content {
@@ -800,7 +803,7 @@ a:focus-visible {
 }
 
 .contact-title-indent {
-  padding-left: 21vw;
+  padding-left: 0;
   color: var(--acid);
 }
 
@@ -1083,7 +1086,7 @@ a.contact-item:focus-visible .contact-icon {
   }
 
   .contact-title-indent {
-    padding-left: 10vw;
+    padding-left: 0;
   }
 
   .contact-list {
@@ -1193,7 +1196,7 @@ a.contact-item:focus-visible .contact-icon {
   }
 
   .contact-title-indent {
-    padding-left: 16vw;
+    padding-left: 0;
   }
 
   .contact-list {
