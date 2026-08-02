@@ -983,6 +983,7 @@ a.contact-item:focus-visible .contact-icon {
   letter-spacing: 0.04em;
   line-height: 1.45;
   text-transform: uppercase;
+  overflow-wrap: anywhere;
 }
 
 .contact-orbit {
@@ -1117,7 +1118,8 @@ a.contact-item:focus-visible .contact-icon {
   }
 
   .hero-copy h1 {
-    font-size: clamp(48px, 17vw, 76px);
+    /* Keep the single-line hero heading inside narrow phone screens. */
+    font-size: clamp(42px, 12.5vw, 56px);
   }
 
   .hero-note {
@@ -1167,6 +1169,43 @@ a.contact-item:focus-visible .contact-icon {
     align-items: stretch;
     flex-direction: column;
     gap: 22px;
+  }
+
+  /* Keep the Projects page scale and marquee card size consistent on phones. */
+  .projects-content {
+    width: calc(100vw - 36px);
+    margin-top: 13vh;
+  }
+
+  .projects-kicker {
+    margin-bottom: 3vh;
+  }
+
+  .projects-title {
+    font-size: clamp(64px, 20vw, 102px);
+    line-height: 0.78;
+  }
+
+  .projects-title-indent {
+    padding-left: 7vw;
+  }
+
+  .projects-marquee {
+    bottom: max(6vh, env(safe-area-inset-bottom));
+  }
+
+  .projects-track {
+    animation-duration: 22s;
+  }
+
+  .projects-group {
+    gap: 12px;
+    padding-right: 12px;
+  }
+
+  .project-card {
+    width: clamp(190px, 62vw, 260px);
+    height: clamp(128px, 40vw, 168px);
   }
 
   .contact-content {
@@ -1277,6 +1316,34 @@ a.contact-item:focus-visible .contact-icon {
     margin-top: 4vh;
     padding-top: 10px;
     flex-direction: row;
+  }
+
+  /* Prevent the Projects marquee from covering the heading on short screens. */
+  .projects-content {
+    width: calc(100vw - 40px);
+    margin-top: 12vh;
+  }
+
+  .projects-kicker {
+    margin-bottom: 2vh;
+  }
+
+  .projects-title {
+    font-size: clamp(58px, 10vw, 90px);
+    line-height: 0.72;
+  }
+
+  .projects-title-indent {
+    padding-left: 13vw;
+  }
+
+  .projects-marquee {
+    bottom: 10vh;
+  }
+
+  .project-card {
+    width: clamp(190px, 22vw, 270px);
+    height: clamp(110px, 14vw, 160px);
   }
 
   .contact-content {
