@@ -52,6 +52,7 @@ function App() {
   useLayoutEffect(() => {
     const root = rootRef.current
     let pointerFrame = 0
+    const hasFinePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches
 
     const movePointer = (event) => {
       if (pointerFrame) return
@@ -67,7 +68,9 @@ function App() {
       })
     }
 
-    window.addEventListener('pointermove', movePointer, { passive: true })
+    if (hasFinePointer) {
+      window.addEventListener('pointermove', movePointer, { passive: true })
+    }
 
     const animationContext = gsap.context(() => {
       const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -84,34 +87,45 @@ function App() {
 
       media.add(
         {
-          desktop: '(min-width: 769px)',
-          mobile: '(max-width: 768px)',
+          desktop: '(min-width: 769px) and (min-height: 541px)',
+          compact: '(max-width: 768px), (max-height: 540px)',
+          portrait: '(orientation: portrait)',
+          landscape: '(orientation: landscape)',
         },
         (context) => {
           const desktop = context.conditions.desktop
-          const holdX = desktop ? '-5vw' : '-7vw'
-          const holdY = desktop ? '8vh' : '6vh'
-          const pocketX = desktop ? '37.5vw' : '40vw'
-          const pocketY = desktop ? '-23vh' : '-10vh'
+          const compactLandscape = context.conditions.compact && context.conditions.landscape
+          const holdX = desktop ? '-5vw' : compactLandscape ? '-3vw' : '-7vw'
+          const holdY = desktop ? '8vh' : compactLandscape ? '5vh' : '6vh'
+          const pocketX = () => {
+            if (desktop) return window.innerWidth * 0.375
+            if (compactLandscape) return window.innerWidth * 0.385 - 14
+            return window.innerWidth * 0.484 - 14
+          }
+          const pocketY = () => {
+            if (desktop) return window.innerHeight * -0.23
+            if (compactLandscape) return window.innerHeight * 0.05 - window.innerWidth * 0.2045
+            return window.innerHeight * 0.03 - window.innerWidth * 0.348 + 8
+          }
 
           gsap.set('.pool-table', {
             xPercent: -50,
             yPercent: -50,
-            scale: desktop ? 2.5 : 2.15,
+            scale: desktop ? 2.5 : compactLandscape ? 1.8 : 2.15,
             rotationX: 0,
           })
           gsap.set('.ball-rig', {
             xPercent: -50,
             yPercent: -50,
-            scale: desktop ? 6.25 : 4.25,
+            scale: desktop ? 6.25 : compactLandscape ? 3.35 : 4.25,
             x: 0,
             y: 0,
             rotation: 0,
           })
           gsap.set('.ball-shadow', { xPercent: -50, yPercent: -50, x: holdX, y: holdY, opacity: 0 })
           gsap.set('.cue-stick', {
-            x: desktop ? '-58vw' : '-96vw',
-            rotation: desktop ? -30 : -47,
+            x: desktop ? '-58vw' : compactLandscape ? '-68vw' : '-96vw',
+            rotation: desktop ? -30 : compactLandscape ? -25 : -47,
             autoAlpha: 0,
           })
           gsap.set('.impact-ring', {
@@ -132,7 +146,7 @@ function App() {
             scrollTrigger: {
               trigger: storyRef.current,
               start: 'top top',
-              end: () => `+=${window.innerHeight * (desktop ? 5.6 : 5.1)}`,
+              end: () => `+=${desktop ? window.innerHeight * 5.6 : Math.max(window.innerHeight * 5.1, 3000)}`,
               pin: true,
               scrub: 0.8,
               anticipatePin: 1,
@@ -148,12 +162,12 @@ function App() {
             .to('.camera-grid', { opacity: 0.38, duration: 1.7 }, 0)
             .to('.ball-shadow', { opacity: 0.58, scale: 1, duration: 0.7 }, 1.35)
             .to('.cue-stick', { x: 0, autoAlpha: 1, duration: 1.05, ease: 'power3.out' }, 2.3)
-            .to('.cue-stick', { x: desktop ? '3.1vw' : '5.8vw', duration: 0.22, ease: 'power4.in' }, 3.38)
+            .to('.cue-stick', { x: desktop ? '3.1vw' : compactLandscape ? '3.8vw' : '5.8vw', duration: 0.22, ease: 'power4.in' }, 3.38)
             .to('.impact-ring', { scale: 1, autoAlpha: 0.92, duration: 0.08 }, 3.54)
             .to('.impact-ring', { scale: 3.3, autoAlpha: 0, duration: 0.52, ease: 'power2.out' }, 3.62)
             .to('.strike-flash', { autoAlpha: 0.8, duration: 0.05 }, 3.54)
             .to('.strike-flash', { autoAlpha: 0, duration: 0.3 }, 3.59)
-            .to('.cue-stick', { x: desktop ? '-7vw' : '-12vw', autoAlpha: 0, duration: 0.48, ease: 'power2.out' }, 3.64)
+            .to('.cue-stick', { x: desktop ? '-7vw' : compactLandscape ? '-8vw' : '-12vw', autoAlpha: 0, duration: 0.48, ease: 'power2.out' }, 3.64)
             .to('.ball-rig', { scaleX: 0.88, scaleY: 1.08, duration: 0.08 }, 3.5)
             .to('.ball-rig', { scaleX: 1, scaleY: 1, duration: 0.1 }, 3.58)
             .to('.ball-rig', { x: pocketX, y: pocketY, rotation: 910, duration: 1.42, ease: 'power2.in' }, 3.62)
@@ -178,7 +192,7 @@ function App() {
 
     return () => {
       if (pointerFrame) window.cancelAnimationFrame(pointerFrame)
-      window.removeEventListener('pointermove', movePointer)
+      if (hasFinePointer) window.removeEventListener('pointermove', movePointer)
       animationContext.revert()
     }
   }, [])

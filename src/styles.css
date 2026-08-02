@@ -32,6 +32,7 @@ body,
 
 body {
   overflow-x: hidden;
+  overscroll-behavior-x: none;
 }
 
 button,
@@ -72,6 +73,7 @@ a:focus-visible {
     radial-gradient(circle at var(--pointer-x) var(--pointer-y), rgba(48, 145, 96, 0.28), transparent 31%),
     linear-gradient(128deg, #0d3f2c 0%, #0b2e21 38%, #071a12 100%);
   cursor: none;
+  touch-action: pan-y;
 }
 
 .stage::before {
@@ -738,10 +740,10 @@ a:focus-visible {
   border: 1px solid rgba(197, 255, 78, 0.48);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 768px), (max-height: 540px) {
   .story,
   .stage {
-    min-height: 580px;
+    min-height: 100svh;
   }
 
   .stage {
@@ -755,7 +757,16 @@ a:focus-visible {
   }
 
   .site-header {
-    padding: 17px 16px;
+    padding:
+      max(8px, env(safe-area-inset-top))
+      max(16px, env(safe-area-inset-right))
+      8px
+      max(16px, env(safe-area-inset-left));
+  }
+
+  .wordmark,
+  .top-link {
+    min-height: 44px;
   }
 
   .hero-copy {
@@ -772,8 +783,8 @@ a:focus-visible {
   }
 
   .scroll-prompt {
-    bottom: 17px;
-    left: 17px;
+    bottom: max(17px, env(safe-area-inset-bottom));
+    left: max(17px, env(safe-area-inset-left));
   }
 
   .cue-stick {
@@ -783,8 +794,8 @@ a:focus-visible {
   }
 
   .pocket-iris {
-    top: 40%;
-    left: 90%;
+    top: calc(53% - 34.8vw);
+    left: 94%;
     width: 11vmin;
   }
 
@@ -822,6 +833,66 @@ a:focus-visible {
   }
 }
 
+@media (max-height: 540px) and (orientation: landscape) {
+  .pool-table {
+    top: 55%;
+    width: 76vw;
+    aspect-ratio: 1.86;
+  }
+
+  .hero-copy {
+    top: 20vh;
+    left: max(18px, env(safe-area-inset-left));
+  }
+
+  .hero-copy h1 {
+    font-size: clamp(44px, 8vw, 68px);
+  }
+
+  .hero-note {
+    display: none;
+  }
+
+  .scroll-prompt {
+    bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  .cue-stick {
+    top: calc(50% + 5vh);
+    right: calc(50% + 2vw);
+    width: 70vw;
+  }
+
+  .pocket-iris {
+    top: calc(55% - 20.45vw);
+    left: 88%;
+    width: 9vmin;
+  }
+
+  .final-content {
+    width: calc(100vw - 40px);
+  }
+
+  .final-kicker {
+    margin-bottom: 2vh;
+  }
+
+  .final-title {
+    font-size: clamp(70px, 13vw, 112px);
+    line-height: 0.72;
+  }
+
+  .final-title-indent {
+    padding-left: 13vw;
+  }
+
+  .final-footer {
+    margin-top: 4vh;
+    padding-top: 10px;
+    flex-direction: row;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -850,5 +921,9 @@ a:focus-visible {
   .cursor-dot,
   .cursor-ring {
     display: none;
+  }
+
+  .ambient {
+    filter: blur(54px);
   }
 }
