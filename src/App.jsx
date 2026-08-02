@@ -123,10 +123,8 @@ function EightBall ()
 {
   return (
     <div className="ball-rig" aria-hidden="true">
-      <div className="eight-ball">
-        <div className="ball-gloss" />
-        <div className="ball-face"><span>8</span></div>
-      </div>
+      {/* Reuse the brand logo while ball-rig keeps the GSAP movement and rotation. */}
+      <img className="eight-ball-logo" src={ brandLogo } alt="" />
     </div>
   )
 }
