@@ -11,8 +11,6 @@
   --felt: #0b5b3b;
   --ink: #070908;
   --paper: #f2f1e9;
-  --pointer-x: 50%;
-  --pointer-y: 50%;
 }
 
 * {
@@ -103,7 +101,6 @@ a:focus-visible {
   overflow: hidden;
   perspective: 1450px;
   background:
-    radial-gradient(circle at var(--pointer-x) var(--pointer-y), rgba(48, 145, 96, 0.28), transparent 31%),
     linear-gradient(128deg, #0d3f2c 0%, #0b2e21 38%, #071a12 100%);
   cursor: none;
   touch-action: pan-y;
@@ -112,6 +109,21 @@ a:focus-visible {
 /* Single-touch movement is routed through useStoryPager to stop momentum skipping. */
 .story-pager-enabled .stage {
   touch-action: none;
+}
+
+/* A movable layer preserves the pointer glow without invalidating the whole stage. */
+.pointer-glow {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  left: 0;
+  width: min(58vw, 920px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(48, 145, 96, 0.28) 0, rgba(48, 145, 96, 0.12) 28%, transparent 68%);
+  transform: translate(-50%, -50%);
+  will-change: transform;
 }
 
 .stage::before {
@@ -227,7 +239,6 @@ a:focus-visible {
   border-radius: clamp(14px, 1.55vw, 25px);
   background:
     radial-gradient(circle at 42% 45%, rgba(70, 180, 124, 0.31), transparent 31%),
-    radial-gradient(circle at var(--pointer-x) var(--pointer-y), rgba(176, 255, 195, 0.12), transparent 28%),
     linear-gradient(126deg, #116344 0%, #0b4d34 52%, #073822 100%);
   box-shadow:
     inset 0 0 54px rgba(0, 0, 0, 0.52),
@@ -582,7 +593,6 @@ a:focus-visible {
     radial-gradient(circle at 74% 20%, rgba(183, 217, 91, 0.06), transparent 22%),
     #070908;
   visibility: hidden;
-  will-change: transform, opacity;
 }
 
 .final-content {
@@ -667,7 +677,6 @@ a:focus-visible {
     radial-gradient(circle at 86% 16%, rgba(183, 217, 91, 0.07), transparent 22%),
     linear-gradient(135deg, #07110d, #070908 64%);
   visibility: hidden;
-  will-change: transform, opacity;
 }
 
 .projects-content {
@@ -717,8 +726,15 @@ a:focus-visible {
 .projects-track {
   display: flex;
   width: max-content;
+  will-change: auto;
+  animation: projects-marquee 52s linear infinite;
+  animation-play-state: paused;
+}
+
+/* Animate and promote the marquee only while its page is visible. */
+.experience.is-projects-active .projects-track {
+  animation-play-state: running;
   will-change: transform;
-  animation: projects-marquee 26s linear infinite;
 }
 
 .projects-group {
@@ -788,7 +804,6 @@ a:focus-visible {
     radial-gradient(circle at 12% 82%, rgba(183, 217, 91, 0.07), transparent 26%),
     linear-gradient(135deg, #09140f, #070908 62%);
   visibility: hidden;
-  will-change: transform, opacity;
 }
 
 .contact-content {
@@ -842,7 +857,7 @@ a:focus-visible {
   gap: clamp(14px, 1.6vw, 22px);
   grid-template-columns: auto 1fr;
   text-decoration: none;
-  transition: background 150ms, color 150ms;
+  transition: background 300ms, color 300ms;
 }
 
 .contact-item + .contact-item {
@@ -857,7 +872,7 @@ a:focus-visible {
   border: 1px solid rgba(183, 217, 91, 0.52);
   border-radius: 50%;
   color: var(--acid);
-  transition: background 300ms, color 300ms;
+  transition: background 600ms, color 600ms;
 }
 
 a.contact-item:hover,
@@ -971,7 +986,7 @@ a.contact-item:focus-visible .contact-icon {
   border-radius: 50%;
   background: rgba(7, 17, 13, 0.38);
   content: '';
-  transition: background 300ms, border-color 300ms, transform 300ms;
+  transition: background 600ms, border-color 600ms, transform 600ms;
 }
 
 .page-dot span {
@@ -989,7 +1004,7 @@ a.contact-item:focus-visible .contact-icon {
   pointer-events: none;
   text-transform: uppercase;
   transform: translateX(5px);
-  transition: opacity 200ms, transform 200ms;
+  transition: opacity 400ms, transform 400ms;
   white-space: nowrap;
 }
 
@@ -1110,7 +1125,7 @@ a.contact-item:focus-visible .contact-icon {
   }
 
   .projects-track {
-    animation-duration: 22s;
+    animation-duration: 44s;
   }
 
   .projects-group {
@@ -1155,7 +1170,8 @@ a.contact-item:focus-visible .contact-icon {
   }
 
   .cursor-dot,
-  .cursor-ring {
+  .cursor-ring,
+  .pointer-glow {
     display: none;
   }
 
@@ -1299,7 +1315,8 @@ a.contact-item:focus-visible .contact-icon {
 
   .cursor-dot,
   .cursor-ring,
-  .scroll-prompt {
+  .scroll-prompt,
+  .pointer-glow {
     display: none;
   }
 }
@@ -1310,7 +1327,8 @@ a.contact-item:focus-visible .contact-icon {
   }
 
   .cursor-dot,
-  .cursor-ring {
+  .cursor-ring,
+  .pointer-glow {
     display: none;
   }
 

@@ -1,20 +1,20 @@
 import { useCallback, useEffect, useRef } from 'react'
 import gsap from 'gsap'
 
-// Adjacent pages use the full cinematic transition duration.
-export const PAGE_TRANSITION_SECONDS = 0.3
+// Double the page tween so each navigation transition has more visual weight.
+export const PAGE_TRANSITION_SECONDS = 0.6
 
-// Long pagination jumps stay readable but finish faster than adjacent moves.
-export const MIN_PAGE_TRANSITION_SECONDS = 0.3
+// Keep long jumps from becoming faster than the slower adjacent-page motion.
+export const MIN_PAGE_TRANSITION_SECONDS = 0.6
 
-// Remove this much time for every additional page crossed.
-export const PAGE_DISTANCE_SPEEDUP_SECONDS = 0.18
+// Scale the distance adjustment with the slower base transition.
+export const PAGE_DISTANCE_SPEEDUP_SECONDS = 0.36
 
 // Small trackpad events accumulate until they represent one intentional gesture.
 export const WHEEL_THRESHOLD_PX = 12
 
-// Inertial wheel events must stop for this long before another page can start.
-export const WHEEL_RELEASE_MS = 90
+// Keep only a short one-frame guard after a transition to prevent wheel inertia from double-firing.
+export const WHEEL_RELEASE_MS = 24
 
 // A mobile swipe must travel this far before it changes a page.
 export const TOUCH_THRESHOLD_PX = 52
@@ -183,24 +183,32 @@ export function useStoryPager ( {
     let touchIdentifier = null
     let touchStartY = null
     let touchLastY = null
+    let storyTop = 0
+    let storyHeight = 0
 
-    const isStoryActive = () =>
+    const refreshStoryMetrics = () =>
     {
       const bounds = story.getBoundingClientRect()
 
+      storyTop = window.scrollY + bounds.top
+      storyHeight = story.offsetHeight
+    }
+
+    const isStoryActive = () =>
+    {
+      const storyEnd = storyTop + storyHeight - window.innerHeight
+
       return (
-        bounds.top <= 2 &&
-        bounds.bottom >= window.innerHeight - 2
+        window.scrollY >= storyTop - 2 &&
+        window.scrollY <= storyEnd + 2
       )
     }
 
     const getNearestPageIndex = () =>
     {
-      const bounds = story.getBoundingClientRect()
-      const storyTop = window.scrollY + bounds.top
       const scrollRange = Math.max(
         1,
-        story.offsetHeight - window.innerHeight,
+        storyHeight - window.innerHeight,
       )
 
       const rawProgress = ( window.scrollY - storyTop ) / scrollRange
@@ -417,6 +425,7 @@ export function useStoryPager ( {
 
       resizeTimer = window.setTimeout( () =>
       {
+        refreshStoryMetrics()
         const pageIndex = targetPageRef.current
         const targetY = getTargetY( pageIndex )
 
@@ -440,6 +449,7 @@ export function useStoryPager ( {
     }
 
     html.classList.add( 'story-pager-enabled' )
+    refreshStoryMetrics()
 
     // Reloading in the middle of the document should land on a stable story page.
     const initialPageIndex = getNearestPageIndex()
@@ -458,7 +468,8 @@ export function useStoryPager ( {
       } )
     }
 
-    window.addEventListener( 'wheel', handleWheel, { passive: false } )
+    // Limit the non-passive listener to the story so unrelated page scrolling stays compositor-friendly.
+    story.addEventListener( 'wheel', handleWheel, { passive: false } )
     window.addEventListener( 'keydown', handleKeyDown )
     window.addEventListener( 'resize', settleAfterResize )
 
@@ -479,7 +490,7 @@ export function useStoryPager ( {
     {
       html.classList.remove( 'story-pager-enabled' )
 
-      window.removeEventListener( 'wheel', handleWheel )
+      story.removeEventListener( 'wheel', handleWheel )
       window.removeEventListener( 'keydown', handleKeyDown )
       window.removeEventListener( 'resize', settleAfterResize )
 

@@ -149,10 +149,10 @@ function App ()
     const ballRig = root.querySelector( '.ball-rig' )
     const cursorDot = root.querySelector( '.cursor-dot' )
     const cursorRing = root.querySelector( '.cursor-ring' )
+    const pointerGlow = root.querySelector( '.pointer-glow' )
     let pointerFrame = 0
     let pointerX = 0
     let pointerY = 0
-    let lastPointerPaint = 0
     let ballLayerIsPromoted = false
     const hasFinePointer = window.matchMedia( '(hover: hover) and (pointer: fine)' ).matches
     const moveCursorDotX = hasFinePointer
@@ -167,6 +167,21 @@ function App ()
     const moveCursorRingY = hasFinePointer
       ? gsap.quickTo( cursorRing, 'y', { duration: 0.12 } )
       : null
+    const movePointerGlowX = hasFinePointer
+      ? gsap.quickTo( pointerGlow, 'x', { duration: 0.14, ease: 'power2.out' } )
+      : null
+    const movePointerGlowY = hasFinePointer
+      ? gsap.quickTo( pointerGlow, 'y', { duration: 0.14, ease: 'power2.out' } )
+      : null
+
+    // Start the glow in the same centered position as the old CSS gradient.
+    if ( hasFinePointer )
+    {
+      gsap.set( pointerGlow, {
+        x: window.innerWidth * 0.5,
+        y: window.innerHeight * 0.5,
+      } )
+    }
 
     const getPageIndex = ( progress ) =>
       Math.min(
@@ -198,20 +213,15 @@ function App ()
 
       if ( pointerFrame ) return
 
-      pointerFrame = window.requestAnimationFrame( ( timestamp ) =>
+      pointerFrame = window.requestAnimationFrame( () =>
       {
         moveCursorDotX( pointerX )
         moveCursorDotY( pointerY )
         moveCursorRingX( pointerX )
         moveCursorRingY( pointerY )
-
-        // Repaint the large pointer-reactive gradients at 30fps instead of every frame.
-        if ( timestamp - lastPointerPaint >= 33 )
-        {
-          root.style.setProperty( '--pointer-x', `${( pointerX / window.innerWidth ) * 100}%` )
-          root.style.setProperty( '--pointer-y', `${( pointerY / window.innerHeight ) * 100}%` )
-          lastPointerPaint = timestamp
-        }
+        // Move one isolated layer; this avoids repainting the full stage on hover.
+        movePointerGlowX( pointerX )
+        movePointerGlowY( pointerY )
 
         pointerFrame = 0
       } )
@@ -592,7 +602,7 @@ function App ()
     {
       if ( pointerFrame ) window.cancelAnimationFrame( pointerFrame )
       if ( hasFinePointer ) window.removeEventListener( 'pointermove', movePointer )
-      gsap.killTweensOf( [ cursorDot, cursorRing ] )
+      gsap.killTweensOf( [ cursorDot, cursorRing, pointerGlow ] )
       ballRig.style.removeProperty( 'will-change' )
       animationContext.revert()
     }
@@ -602,13 +612,17 @@ function App ()
   const replay = () => goToPage( 0 )
 
   return (
-    <main className="experience" ref={ rootRef }>
+    <main
+      className={ `experience${activePage === 3 ? ' is-projects-active' : ''}` }
+      ref={ rootRef }
+    >
       <section className="story" ref={ storyRef } aria-label="Interactive 8 Ball Studio introduction">
         <div className="story-pages" aria-hidden="true">
           { STORY_PAGES.map( ( page ) => <div className="story-page" id={ page.id } key={ page.id } /> ) }
         </div>
 
         <div className="stage">
+          <div className="pointer-glow" aria-hidden="true" />
           <div className="camera-grid" aria-hidden="true" />
           <div className="ambient ambient-one" aria-hidden="true" />
           <div className="ambient ambient-two" aria-hidden="true" />
