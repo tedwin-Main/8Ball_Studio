@@ -109,15 +109,20 @@ export function useStoryPager ( {
 
     const getNearestPageIndex = () =>
     {
-      const scrollRange = Math.max(
-        1,
-        storyHeight - window.innerHeight,
-      )
+      let nearestPageIndex = 0
 
-      const rawProgress = ( window.scrollY - storyTop ) / scrollRange
-      const progress = Math.min( 1, Math.max( 0, rawProgress ) )
+      pageIds.forEach( ( pageId, index ) =>
+      {
+        const page = document.getElementById( pageId )
 
-      return Math.round( progress * ( pageIds.length - 1 ) )
+        if ( !page ) return
+
+        const pageTop = window.scrollY + page.getBoundingClientRect().top
+
+        if ( window.scrollY >= pageTop - 2 ) nearestPageIndex = index
+      } )
+
+      return nearestPageIndex
     }
 
     // Section markers keep keyboard navigation without adding a second page state machine.

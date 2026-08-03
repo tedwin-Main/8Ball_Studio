@@ -12,14 +12,14 @@ import shopeeLogo from './assets/shopee-logo.svg'
 gsap.registerPlugin( ScrollTrigger )
 
 const STORY_PAGES = [
-  { id: 'page-intro', label: 'Intro' },
-  { id: 'page-shot', label: 'Shot' },
-  { id: 'page-studio', label: 'Studio' },
-  { id: 'page-projects', label: 'Projects' },
-  { id: 'page-contact', label: 'Contact' },
+  // Intro and Shot share one navigation target; their internal animation still scrubs continuously.
+  { id: 'page-intro', label: 'Intro + Shot', progress: 0 },
+  { id: 'page-studio', label: 'Studio', progress: 0.5 },
+  { id: 'page-projects', label: 'Projects', progress: 0.75 },
+  { id: 'page-contact', label: 'Contact', progress: 1 },
 ]
 
-// Stable IDs prevent the paging hook from receiving a new array every render.
+// Stable IDs prevent the scroll hook from receiving a new array every render.
 const STORY_PAGE_IDS = STORY_PAGES.map( ( page ) => page.id )
 
 const PROJECT_ITEMS = [
@@ -157,12 +157,12 @@ function App ()
     let ballLayerIsPromoted = false
     const hasFinePointer = window.matchMedia( '(hover: hover) and (pointer: fine)' ).matches
 
-    // Match the reference site's Lenis physics: wheel input eases into a 1.2s vertical scroll.
+    // Use low input sensitivity and a short settle window for controlled scroll response.
     const lenis = new Lenis( {
-      wheelMultiplier: 0.8,
+      wheelMultiplier: 0.4,
       infinite: false,
       gestureOrientation: 'vertical',
-      duration: 1.2,
+      duration: 0.4,
       easing: ( value ) => Math.min( 1, 1.001 - Math.pow( 2, -10 * value ) ),
       autoRaf: false,
       autoResize: true,
@@ -235,12 +235,10 @@ function App ()
     }
 
     const getPageIndex = ( progress ) =>
-      Math.min(
-        STORY_PAGES.length - 1,
-        Math.max(
-          0,
-          Math.round( progress * ( STORY_PAGES.length - 1 ) ),
-        ),
+      STORY_PAGES.reduce(
+        ( currentIndex, page, index ) =>
+          progress >= page.progress ? index : currentIndex,
+        0,
       )
 
     const updateActivePage = ( progress ) =>
@@ -291,12 +289,12 @@ function App ()
       {
         const showReducedPage = ( progress ) =>
         {
-          const pageIndex = getPageIndex( progress )
-          const showIntro = pageIndex === 0
-          const showShot = pageIndex === 1
-          const showStudio = pageIndex === 2
-          const showProjects = pageIndex === 3
-          const showContact = pageIndex === 4
+          // Reduced motion still preserves the four visual beats inside one scroll page.
+          const showIntro = progress < 0.25
+          const showShot = progress >= 0.25 && progress < 0.5
+          const showStudio = progress >= 0.5 && progress < 0.75
+          const showProjects = progress >= 0.75 && progress < 1
+          const showContact = progress >= 1
           const showEndScreen = showStudio || showProjects || showContact
 
           updateActivePage( progress )
@@ -670,7 +668,7 @@ function App ()
 
   return (
     <main
-      className={ `experience${activePage === 3 ? ' is-projects-active' : ''}` }
+      className={ `experience${activePage === 2 ? ' is-projects-active' : ''}` }
       ref={ rootRef }
     >
       <section className="story" ref={ storyRef } aria-label="Interactive 8 Ball Studio introduction">
