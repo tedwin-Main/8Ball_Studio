@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import Lenis from 'lenis'
 import { useStoryPager } from './hooks/useStoryPager'
 import brandLogo from './assets/8ball-studio-logo.png'
 import artigustoGelato from './assets/artigusto-gelato-facebook-official.jpg'
@@ -155,6 +156,56 @@ function App ()
     let pointerY = 0
     let ballLayerIsPromoted = false
     const hasFinePointer = window.matchMedia( '(hover: hover) and (pointer: fine)' ).matches
+
+    // Match the reference site's Lenis physics: wheel input eases into a 1.2s vertical scroll.
+    const lenis = new Lenis( {
+      wheelMultiplier: 0.8,
+      infinite: false,
+      gestureOrientation: 'vertical',
+      duration: 1.2,
+      easing: ( value ) => Math.min( 1, 1.001 - Math.pow( 2, -10 * value ) ),
+      autoRaf: false,
+      autoResize: true,
+    } )
+
+    // Expose the one scroll controller so buttons and keyboard navigation use the same physics.
+    window.lenis = lenis
+
+    const handleLenisScroll = () =>
+    {
+      // ScrollTrigger reads the eased Lenis position and scrubs the scene on every frame.
+      ScrollTrigger.update()
+    }
+
+    const driveLenis = ( time ) =>
+    {
+      // GSAP ticker time is seconds; Lenis expects milliseconds.
+      lenis.raf( time * 1000 )
+    }
+
+    ScrollTrigger.scrollerProxy( document.body, {
+      scrollTop ( value )
+      {
+        if ( arguments.length ) lenis.scrollTo( value )
+        return window.scrollY
+      },
+      getBoundingClientRect ()
+      {
+        return {
+          top: 0,
+          left: 0,
+          width: window.innerWidth,
+          height: window.innerHeight,
+        }
+      },
+    } )
+    lenis.on( 'scroll', handleLenisScroll )
+    gsap.ticker.add( driveLenis )
+    // Disable GSAP's lag smoothing so scroll physics do not jump after a delayed frame.
+    gsap.ticker.lagSmoothing( 0 )
+    const refreshScroll = () => ScrollTrigger.refresh()
+    window.addEventListener( 'resize', refreshScroll )
+
     const moveCursorDotX = hasFinePointer
       ? gsap.quickTo( cursorDot, 'x', { duration: 0.05 } )
       : null
@@ -602,6 +653,12 @@ function App ()
     {
       if ( pointerFrame ) window.cancelAnimationFrame( pointerFrame )
       if ( hasFinePointer ) window.removeEventListener( 'pointermove', movePointer )
+      window.removeEventListener( 'resize', refreshScroll )
+      lenis.off( 'scroll', handleLenisScroll )
+      gsap.ticker.remove( driveLenis )
+      lenis.destroy()
+      ScrollTrigger.scrollerProxy( document.body, null )
+      if ( window.lenis === lenis ) delete window.lenis
       gsap.killTweensOf( [ cursorDot, cursorRing, pointerGlow ] )
       ballRig.style.removeProperty( 'will-change' )
       animationContext.revert()

@@ -19,16 +19,31 @@
 
 html {
   background: #07110d;
-  overscroll-behavior-y: none;
-  scroll-behavior: smooth;
-  scroll-snap-type: y mandatory;
+  overscroll-behavior: none;
+  scroll-behavior: auto;
   scrollbar-width: none;
 }
 
-/* JavaScript owns page timing after React mounts; native snap remains fallback only. */
-html.story-pager-enabled {
-  scroll-behavior: auto;
-  scroll-snap-type: none;
+/* Lenis owns scroll interpolation; native smooth scrolling would double-ease the same input. */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
 }
 
 html::-webkit-scrollbar,
@@ -86,11 +101,6 @@ a:focus-visible {
   pointer-events: none;
 }
 
-.story-page {
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
-}
-
 .stage {
   position: sticky;
   z-index: 1;
@@ -104,11 +114,6 @@ a:focus-visible {
     linear-gradient(128deg, #0d3f2c 0%, #0b2e21 38%, #071a12 100%);
   cursor: none;
   touch-action: pan-y;
-}
-
-/* Single-touch movement is routed through useStoryPager to stop momentum skipping. */
-.story-pager-enabled .stage {
-  touch-action: none;
 }
 
 /* A movable layer preserves the pointer glow without invalidating the whole stage. */
