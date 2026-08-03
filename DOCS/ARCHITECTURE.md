@@ -1,172 +1,138 @@
-# 8Ball Studio — QA Architecture Guide
+# 8Ball Studio — Simple QA Architecture Guide
 
-## What this site is
+## What this website is
 
-8Ball Studio is one scroll story, not a normal multi-page website.
+8Ball Studio is one long, animated story. It has five screen-sized stops:
 
-The visitor scrolls through five fixed story stops:
+1. Intro — close-up 8 ball and pool table.
+2. Shot — table zoomed out; cue waits behind the ball.
+3. Studio — cue hits ball; ball sinks; 8Ball Studio title appears.
+4. Projects — work images move in an infinite marquee loop.
+5. Contact — WhatsApp, Instagram, and email details.
 
-1. **Intro** — close-up 8 ball and pool table.
-2. **Shot** — table is zoomed out; cue stick is ready behind the 8 ball.
-3. **Studio** — ball is hit, goes into the pocket, then **8Ball Studio** appears.
-4. **Projects** — client work moves in an infinite marquee loop.
-5. **Contact** — contact details appear.
+It is one React page with animated sections, not five separate browser pages.
 
-## Main tools, in simple terms
+## Overall tech stack
 
-| Tool | Main job | QA meaning |
+This is the main stack used across the whole site:
+
+| Layer | Technology | Plain-English job |
 | --- | --- | --- |
-| **React 19** | Builds the page from small UI parts. | Text, buttons, pool table, 8 ball, and contact cards are React components. |
-| **Vite 7** | Runs the site locally and builds the production files. | Used when starting the local development site. It is not part of the visual animation. |
-| **GSAP** | JavaScript animation library. | Moves, fades, scales, rotates, and reveals visual elements smoothly. |
-| **GSAP ScrollTrigger** | Connects GSAP animation to page scroll position. | Scrolling forward plays the story; scrolling backward reverses it. |
-| **CSS** | Visual styling and browser-level behavior. | Creates the pool table look, responsive layout, fixed stage, scroll stops, hover states, and reduced-motion behavior. |
+| UI | **React 19** | Builds the page and reusable UI parts. |
+| Browser entry | **ReactDOM** | Mounts React into `index.html`. |
+| Local development and build | **Vite 7** | Starts the local server and creates production assets. |
+| Animation | **GSAP 3.13** | Moves, scales, rotates, fades, and reveals visual elements. |
+| Scroll animation link | **GSAP ScrollTrigger** | Maps document scroll progress to the GSAP story timeline. |
+| Page navigation | **Custom `useStoryPager` React hook** | Converts wheel, trackpad, touch, and keyboard input into one page step. |
+| Styling and responsive layout | **Plain CSS** | Draws the table, sets colors and typography, handles desktop/mobile layout. |
+| Browser APIs | **`window.scrollTo`, `requestAnimationFrame`, media queries** | Moves the scroll position, keeps cursor updates light, and detects screen/input type. |
+| Content assets | **Local PNG, JPG, and SVG files** | Supplies the logo and project images from `src/assets`. |
 
 ## Important files
 
-| File | Plain-English purpose |
+| File | What QA needs to know |
 | --- | --- |
-| `src/main.jsx` | Starts React and loads the app. |
-| `src/App.jsx` | Main story structure and all GSAP animation timing. |
-| `src/styles.css` | Visual design, responsive layout, sticky stage, and scroll-stop rules. |
-| `package.json` | List of JavaScript libraries and project commands. |
-| `index.html` | Basic browser page shell. |
+| [`src/main.jsx`](../src/main.jsx) | Starts React and loads `App`. |
+| [`src/App.jsx`](../src/App.jsx) | Defines the five stops, page text, assets, React markup, and GSAP story timing. |
+| [`src/hooks/useStoryPager.js`](../src/hooks/useStoryPager.js) | Owns one-step scrolling and input locking. |
+| [`src/styles.css`](../src/styles.css) | Owns colors, typography, responsive layout, sticky stage, dots, and marquee CSS. |
+| [`package.json`](../package.json) | Lists libraries and `dev`, `build`, and `preview` commands. |
+| [`index.html`](../index.html) | Basic browser HTML shell. |
 
-## How the page works
+## Page-by-page map and technology
+
+Each page uses the same React + CSS foundation. GSAP controls the cinematic transitions. The page-specific work is:
+
+| Page | Main content | React source | Animation / layout technology |
+| --- | --- | --- | --- |
+| **Intro** | Hero copy, pool table, large 8-ball logo, scroll prompt. | `App.jsx`: `PoolTable`, `EightBall`, hero markup. | GSAP timeline label `intro`; CSS `.stage`, `.pool-table`, `.hero-copy`. |
+| **Shot** | Full table view, ball hold position, cue behind ball. | `App.jsx`: pool scene markup. | GSAP timeline label `shot`; cue and ball transforms; CSS table geometry. |
+| **Studio** | Cue impact, ball roll/sink, impact effects, 8Ball Studio title. | `App.jsx`: `.title-screen` markup. | GSAP timeline label `studio`; ScrollTrigger follows scroll; CSS title and scene layers. |
+| **Projects** | “Our Projects” heading and project image cards. | `App.jsx`: `PROJECT_ITEMS`, `.projects-screen`. | CSS `@keyframes projects-marquee` runs the infinite loop; GSAP fades the page in/out. |
+| **Contact** | Contact heading and WhatsApp, Instagram, Email rows. | `App.jsx`: `CONTACT_ITEMS`, contact markup. | GSAP contact reveal; CSS responsive contact cards and SVG icons. |
+| **Shared controls** | Top link and five dot pagination controls. | `App.jsx` + `useStoryPager.js`. | JavaScript page controller; CSS dot states and fixed control layout. |
+
+## How the story runs
 
 ```text
-Browser opens page
-  → React loads App.jsx
-  → CSS builds the visual scene and five scroll stops
-  → GSAP prepares each animated element
-  → ScrollTrigger links scroll position to the GSAP story timeline
-  → Visitor scrolls forward or backward through the story
+Browser opens
+  → ReactDOM mounts App
+  → App renders all five screen stops
+  → CSS creates the sticky visual stage and responsive layout
+  → GSAP creates one timeline with five labels
+  → ScrollTrigger reads scroll progress and updates that timeline
+  → useStoryPager moves exactly one adjacent page per gesture
 ```
 
-### 1. Fixed visual stage
+### Fixed stage
 
-The pool table scene stays fixed on screen while the document scrolls behind it.
+`.stage` uses `position: sticky`. The stage stays in view while the five `.story-page` sections provide scroll distance. The visitor sees one cinematic canvas while the timeline changes.
 
-- CSS class: `.stage`
-- Behavior: `position: sticky`
-- Purpose: visitor sees one cinematic canvas while scrolling changes the animation state.
+### Scroll controller
 
-### 2. Scroll checkpoints
+[`useStoryPager.js`](../src/hooks/useStoryPager.js) is the main scroll controller:
 
-There are five equal story sections. Each is one screen tall (`100svh`).
+- A wheel or trackpad gesture must reach `12px` before it changes page.
+- An adjacent page tween lasts `0.3s` in either direction.
+- Direct pagination jumps use the `0.3s` minimum so farther targets never move slower: `1 page = 0.30s`, `2 pages = 0.30s`, `3 pages = 0.30s`, `4 pages = 0.30s`.
+- Wheel inertia is released after `90ms` of quiet input.
+- A fresh trackpad gesture can interrupt the current transition and retarget one adjacent page.
+- Continuing momentum from the same gesture is ignored, so fast flicks cannot skip the story.
+- New wheel gestures, touch, keyboard, and pagination input are not blocked while a page animation is running.
+- Touch needs a `52px` swipe. Keyboard arrows, PageUp/PageDown, Space, Home, and End use the same page controller.
+- At Intro and Contact, the page index is clamped so scrolling cannot leave the story range.
 
-- CSS uses `scroll-snap-type: y mandatory`.
-- Each section uses `scroll-snap-stop: always`.
-- Result: browser should stop at Intro, Shot, Studio, Projects, or Contact instead of leaving the story between scenes.
+### GSAP and ScrollTrigger
 
-The page dots on the right use the same five checkpoints.
-
-### 3. Full story motion scrub
-
-**Scrub** means animation follows scroll position instead of playing once on its own.
-
-Current setting:
+`App.jsx` creates one GSAP timeline with four equal segments:
 
 ```js
-const STORY_SCRUB_SECONDS = 4
+scrub: true
 ```
 
-This is in `src/App.jsx`.
+`scrub: true` means the timeline follows the current scroll position directly. The hook supplies the `0.3s` page movement. Do not add a numeric scrub value; that would add a second catch-up delay and make scrolling feel slow.
 
-Plain meaning:
+Scrolling up uses the same timeline and the same page controller in reverse. No separate reverse animation exists.
 
-- Scroll a little: animation moves a little.
-- Scroll backward: animation reverses.
-- Scroll very fast: visuals catch up smoothly instead of jumping instantly.
-- `4` means the visual animation eases toward the new scroll position over about four seconds.
+### Projects marquee
 
-Scrub changes animation feel. It does **not** create the scroll stops. CSS scroll snap creates the stops.
+The Projects page renders the same project list twice. CSS moves `.projects-track` from `translateX(0)` to `translateX(-50%)` with `@keyframes projects-marquee`. The duplicated list makes the loop continuous with no blank gap. GSAP only reveals and hides the Projects page; CSS owns the continuous loop.
 
-## Story animation flow
+## Responsive and accessibility rules
 
-### Stop 1 — Intro
+- GSAP uses different table, cue, and pocket positions for desktop, compact, portrait, and landscape screens.
+- CSS uses `clamp()`, viewport units, and container-aware sizing so headings do not overflow when browser zoom changes.
+- A fine pointer gets the cursor dot/ring. Touch devices do not run that cursor effect.
+- `prefers-reduced-motion: reduce` shows stable story states and hides decorative cursor/loop motion.
+- The visual pool scene is `aria-hidden`; contact links and page dots remain keyboard reachable.
 
-- Pool table and 8 ball start large and close to camera.
-- Hero text and scroll prompt are visible.
-- As scroll begins, table zooms out and the hero text fades away.
+## QA checks
 
-### Stop 2 — Shot
-
-- Table is fully visible.
-- 8 ball is in position.
-- Cue stick arrives and waits behind the ball.
-- This is the pause point before the hit.
-
-### Stop 3 — Studio
-
-- Cue strikes the ball.
-- Impact ring and flash appear.
-- Ball rolls to the top-right pocket and sinks.
-- Pocket iris expands slowly.
-- Pool scene fades away.
-- **8Ball Studio** title appears.
-
-### Stop 4 — Projects
-
-- Studio title exits slowly.
-- “Our Projects” heading appears.
-- Project images move continuously in an infinite marquee loop.
-
-### Stop 5 — Contact
-
-- Projects page exits slowly.
-- Contact screen fades in.
-- “Contact Us” heading appears.
-- WhatsApp, Instagram, and Kuala Lumpur cards reveal in sequence.
-
-## Animation ownership
-
-| Visual item | Controlled by |
-| --- | --- |
-| Pool table zoom, tilt, fade | GSAP timeline in `App.jsx` |
-| 8 ball position, roll, rotation, sink | GSAP timeline in `App.jsx` |
-| Cue stick, impact ring, flash, pocket iris | GSAP timeline in `App.jsx` |
-| Studio, Projects, and Contact screen reveals | GSAP timeline in `App.jsx` |
-| Projects marquee loop | CSS animation in `styles.css` |
-| Pool table design, colors, shadows, orbits | `styles.css` |
-| Scroll stops and sticky canvas | `styles.css` |
-| Cursor dot and ring | GSAP in `App.jsx` + CSS styling |
-
-## Responsive and accessibility behavior
-
-### Screen size
-
-GSAP checks screen size before placing the table, cue, and ball.
-
-- Desktop uses larger table scale and desktop pocket coordinates.
-- Compact, mobile, and landscape screens use alternate positions.
-
-### Reduced motion
-
-If visitor enables **Reduce Motion** in operating system settings:
-
-- The page shows stable story states instead of running the full animation.
-- Cursor decoration and looping scroll prompt are hidden.
-- This is expected behavior, not a bug.
-
-## QA quick checks
-
-1. Scroll one checkpoint at a time: Intro → Shot → Studio → Projects → Contact.
-2. Scroll back. Story should reverse without broken layout.
-3. At Shot, cue should be visible but ball should not be struck yet.
-4. At Studio, ball should already be sunk and title should be readable.
-5. At Projects, the marquee should loop with no blank gap.
-6. At Contact, title, heading, and all three contact cards should finish visible.
-7. Click every page dot. It should go to the matching story stop.
-8. Resize browser to desktop and mobile widths. Table, ball, cue, and text should remain on-screen.
-9. Test reduced-motion setting. Site should remain usable with minimal animation.
+1. Scroll forward one stop at a time: Intro → Shot → Studio → Projects → Contact.
+2. Scroll backward. The same stops must appear in reverse order.
+3. At Shot, cue is visible but has not hit the ball.
+4. At Studio, ball is sunk and the title is readable.
+5. Flick the trackpad hard. It may retarget one next page, never several pages.
+6. Start a new gesture during a transition. The current tween should interrupt and move toward the new target.
+7. Projects marquee loops without a blank gap or number labels.
+8. Contact shows all three contact rows and the email address.
+9. Click each dot. It selects the matching stop.
+10. Compare Intro → Shot with Intro → Projects. The adjacent move uses full speed; the longer jump finishes faster.
+11. Check desktop, mobile portrait, mobile landscape, and browser zoom.
+12. Enable reduced motion. The site remains usable with stable visual states.
 
 ## Where to change common things
 
-| Wanted change | File | What to look for |
+| Wanted change | Direct file link | Change |
 | --- | --- | --- |
-| Overall story speed | [src/App.jsx](../src/App.jsx#L12) | `STORY_SCRUB_SECONDS` |
-| Ball, cue, title, Projects, or Contact timing | [src/App.jsx](../src/App.jsx#L356) | `timeline.to(...)` entries |
-| Number or order of story stops | [src/App.jsx](../src/App.jsx#L14) | `STORY_PAGES` |
-| Scroll stop behavior | [src/styles.css](../src/styles.css#L70) | `.story`, `.story-pages`, `.story-page`, `scroll-snap-*` |
-| Colors, typography, layout | [src/styles.css](../src/styles.css#L3) | CSS variables and component classes |
+| Adjacent and long-jump speed | [`useStoryPager.js#L5`](../src/hooks/useStoryPager.js#L5) | `PAGE_TRANSITION_SECONDS`, `MIN_PAGE_TRANSITION_SECONDS`, `PAGE_DISTANCE_SPEEDUP_SECONDS` |
+| Trackpad sensitivity and release | [`useStoryPager.js#L14`](../src/hooks/useStoryPager.js#L14), [`useStoryPager.js#L17`](../src/hooks/useStoryPager.js#L17) | `WHEEL_THRESHOLD_PX`, `WHEEL_RELEASE_MS` |
+| Transition interruption and gesture boundary | [`useStoryPager.js#L95`](../src/hooks/useStoryPager.js#L95), [`useStoryPager.js#L249`](../src/hooks/useStoryPager.js#L249) | `goToPage`, wheel gesture detection, and retargeting |
+| Mobile swipe sensitivity | [`useStoryPager.js#L20`](../src/hooks/useStoryPager.js#L20) | `TOUCH_THRESHOLD_PX` |
+| Scene animation timing | [`App.jsx#L373`](../src/App.jsx#L373) | GSAP timeline labels and `.to(...)` entries |
+| Number/order of stops | [`App.jsx#L13`](../src/App.jsx#L13) | `STORY_PAGES` |
+| Input lock and overscroll behavior | [`useStoryPager.js#L264`](../src/hooks/useStoryPager.js#L264) | Wheel, touch, keyboard, boundary, and cleanup handlers |
+| Scroll-stop CSS fallback | [`styles.css#L78`](../src/styles.css#L78) | `.story`, `.story-pages`, `.story-page`, `scroll-snap-*` |
+| Colors, typography, layout | [`styles.css#L3`](../src/styles.css#L3) | CSS variables and component classes |
+| Project card content | [`App.jsx#L24`](../src/App.jsx#L24) | `PROJECT_ITEMS` |
+| Contact details | [`App.jsx#L31`](../src/App.jsx#L31) | `CONTACT_ITEMS` |
