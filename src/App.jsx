@@ -12,10 +12,9 @@ import shopeeLogo from './assets/shopee-logo.svg'
 gsap.registerPlugin( ScrollTrigger )
 
 const STORY_PAGES = [
-  // Intro and Shot share one navigation target; their internal animation still scrubs continuously.
-  { id: 'page-intro', label: 'Intro + Shot', progress: 0 },
-  { id: 'page-studio', label: 'Studio', progress: 0.5 },
-  { id: 'page-projects', label: 'Projects', progress: 0.75 },
+  { id: 'page-intro', label: 'Intro', progress: 0 },
+  { id: 'page-studio', label: 'Studio', progress: 1 / 3 },
+  { id: 'page-projects', label: 'Projects', progress: 2 / 3 },
   { id: 'page-contact', label: 'Contact', progress: 1 },
 ]
 
@@ -93,8 +92,6 @@ function ContactIcon ( { type } )
 
 function PoolTable ()
 {
-  const pockets = [ 'top-left', 'top-middle', 'top-right', 'bottom-left', 'bottom-middle', 'bottom-right' ]
-
   return (
     <div className="pool-table" aria-hidden="true">
       <div className="table-shadow" />
@@ -111,12 +108,6 @@ function PoolTable ()
           <span className="rail-sight sight-5" />
           <span className="rail-sight sight-6" />
         </div>
-        { pockets.map( ( pocket ) => (
-          <span
-            className={ `pocket pocket-${pocket}${pocket === 'top-right' ? ' target-pocket' : ''}` }
-            key={ pocket }
-          />
-        ) ) }
       </div>
     </div>
   )
@@ -289,11 +280,9 @@ function App ()
       {
         const showReducedPage = ( progress ) =>
         {
-          // Reduced motion still preserves the four visual beats inside one scroll page.
-          const showIntro = progress < 0.25
-          const showShot = progress >= 0.25 && progress < 0.5
-          const showStudio = progress >= 0.5 && progress < 0.75
-          const showProjects = progress >= 0.75 && progress < 1
+          const showIntro = progress < 1 / 3
+          const showStudio = progress >= 1 / 3 && progress < 2 / 3
+          const showProjects = progress >= 2 / 3 && progress < 1
           const showContact = progress >= 1
           const showEndScreen = showStudio || showProjects || showContact
 
@@ -312,15 +301,6 @@ function App ()
             scale: showIntro ? 6.25 : 1,
             autoAlpha: showEndScreen ? 0 : 1,
           } )
-          gsap.set( '.ball-shadow', {
-            xPercent: -50,
-            yPercent: -50,
-            x: '-5vw',
-            y: '8vh',
-            autoAlpha: showShot ? 0.55 : 0,
-          } )
-          gsap.set( '.cue-stick', { x: 0, rotation: -30, autoAlpha: showShot ? 1 : 0 } )
-          gsap.set( [ '.impact-ring', '.strike-flash', '.pocket-iris' ], { autoAlpha: 0 } )
           gsap.set( '.hero-copy', { autoAlpha: showIntro ? 1 : 0 } )
           gsap.set( '.scroll-prompt', { autoAlpha: showIntro ? 1 : 0 } )
           gsap.set( '.scene-interface', { autoAlpha: showEndScreen ? 0 : 1 } )
@@ -378,19 +358,6 @@ function App ()
           const compactLandscape = context.conditions.compact && context.conditions.landscape
           const holdX = desktop ? '-5vw' : compactLandscape ? '-3vw' : '-7vw'
           const holdY = desktop ? '8vh' : compactLandscape ? '5vh' : '6vh'
-          const pocketX = () =>
-          {
-            if ( desktop ) return window.innerWidth * 0.375
-            if ( compactLandscape ) return window.innerWidth * 0.385 - 14
-            return window.innerWidth * 0.484 - 14
-          }
-          const pocketY = () =>
-          {
-            if ( desktop ) return window.innerHeight * -0.23
-            if ( compactLandscape ) return window.innerHeight * 0.05 - window.innerWidth * 0.2045
-            return window.innerHeight * 0.03 - window.innerWidth * 0.348 + 8
-          }
-
           gsap.set( '.pool-table', {
             xPercent: -50,
             yPercent: -50,
@@ -405,21 +372,6 @@ function App ()
             y: 0,
             rotation: 0,
           } )
-          gsap.set( '.ball-shadow', { xPercent: -50, yPercent: -50, x: holdX, y: holdY, opacity: 0 } )
-          gsap.set( '.cue-stick', {
-            x: desktop ? '-58vw' : compactLandscape ? '-68vw' : '-96vw',
-            rotation: desktop ? -30 : compactLandscape ? -25 : -47,
-            autoAlpha: 0,
-          } )
-          gsap.set( '.impact-ring', {
-            xPercent: -50,
-            yPercent: -50,
-            x: holdX,
-            y: holdY,
-            scale: 0.25,
-            autoAlpha: 0,
-          } )
-          gsap.set( '.pocket-iris', { xPercent: -50, yPercent: -50, scale: 0 } )
           gsap.set( '.title-screen', { autoAlpha: 0, scale: 1, yPercent: 0, force3D: true } )
           gsap.set( '.final-title-line > span', { y: 0, yPercent: 115 } )
           gsap.set( '.final-meta', { y: 20, autoAlpha: 0 } )
@@ -449,11 +401,11 @@ function App ()
             },
           } )
 
-          // Four equal timeline segments match the four scroll distances between five pages.
+          // Three timeline segments match Intro, Studio, Projects, and Contact.
           timeline
             .addLabel( 'intro', 0 )
 
-            // Intro → Shot. Stop 2 ends with the cue visible and waiting.
+            // Intro → Studio. Fade the opening composition into the studio title.
             .to( '.pool-table', {
               scale: 1,
               rotationX: desktop ? 8 : 4,
@@ -480,167 +432,81 @@ function App ()
               opacity: 0.38,
               duration: 0.7,
             }, 0 )
-            .to( '.ball-shadow', {
-              opacity: 0.58,
-              scale: 1,
-              duration: 0.18,
-            }, 0.65 )
-            .to( '.cue-stick', {
-              x: 0,
-              autoAlpha: 1,
-              duration: 0.25,
-            }, 0.73 )
-            .addLabel( 'shot', 1 )
-
-            // Shot → Studio. Complete the hit, roll, sink, and title before Stop 3.
-            .to( '.cue-stick', {
-              x: desktop
-                ? '3.1vw'
-                : compactLandscape
-                  ? '3.8vw'
-                  : '5.8vw',
-              duration: 0.12,
-            }, 1.08 )
-            .to( '.ball-rig', {
-              scaleX: 0.88,
-              scaleY: 1.08,
-              duration: 0.05,
-            }, 1.17 )
-            .to( '.ball-rig', {
-              scaleX: 1,
-              scaleY: 1,
-              duration: 0.06,
-            }, 1.22 )
-            .to( '.impact-ring', {
-              scale: 1,
-              autoAlpha: 0.92,
-              duration: 0.04,
-            }, 1.19 )
-            .to( '.impact-ring', {
-              scale: 3.3,
-              autoAlpha: 0,
-              duration: 0.18,
-            }, 1.23 )
-            .to( '.strike-flash', {
-              autoAlpha: 0.8,
-              duration: 0.03,
-            }, 1.19 )
-            .to( '.strike-flash', {
-              autoAlpha: 0,
-              duration: 0.12,
-            }, 1.22 )
-            .to( '.cue-stick', {
-              x: desktop
-                ? '-7vw'
-                : compactLandscape
-                  ? '-8vw'
-                  : '-12vw',
-              autoAlpha: 0,
-              duration: 0.18,
-            }, 1.21 )
-            .to( '.ball-rig', {
-              x: pocketX,
-              y: pocketY,
-              rotation: 910,
-              duration: 0.42,
-            }, 1.21 )
-            .to( '.ball-shadow', {
-              x: pocketX,
-              y: pocketY,
-              scale: 0.66,
-              opacity: 0.16,
-              duration: 0.42,
-            }, 1.21 )
-            .to( '.ball-rig', {
-              scale: 0.35,
-              autoAlpha: 0,
-              duration: 0.15,
-            }, 1.58 )
-            .to( '.ball-shadow', {
-              autoAlpha: 0,
-              duration: 0.1,
-            }, 1.65 )
-            .to( '.target-pocket', {
-              boxShadow: '0 0 0 2px rgba(183,217,91,.56), 0 0 28px 12px rgba(183,217,91,.12)',
-              duration: 0.06,
-            }, 1.58 )
-            .to( '.target-pocket', {
-              boxShadow: '0 0 0 0 rgba(183,217,91,0), 0 0 0 0 rgba(183,217,91,0)',
-              duration: 0.12,
-            }, 1.64 )
-            .to( '.pocket-iris', {
-              scale: desktop ? 38 : 42,
-              duration: 0.36,
-            }, 1.62 )
             .to( '.pool-table', {
               scale: 0.84,
               duration: 0.34,
-            }, 1.58 )
+            }, 0.64 )
+            .to( '.ball-rig', {
+              scale: 0.35,
+              autoAlpha: 0,
+              duration: 0.25,
+            }, 0.68 )
             .to( '.scene-interface', {
               autoAlpha: 0,
               duration: 0.3,
-            }, 1.63 )
+            }, 0.7 )
             .to( '.title-screen', {
               autoAlpha: 1,
               duration: 0.18,
-            }, 1.78 )
+            }, 0.78 )
             .to( '.final-title-line > span', {
               yPercent: 0,
               duration: 0.12,
               stagger: 0.03,
-            }, 1.82 )
+            }, 0.82 )
             .to( '.final-meta', {
               y: 0,
               autoAlpha: 1,
               duration: 0.09,
-            }, 1.89 )
-            .addLabel( 'studio', 2 )
+            }, 0.89 )
+            .to( {}, { duration: 0.01 }, 0.99 )
+            .addLabel( 'studio', 1 )
 
-            // Studio → Projects. Stop 4 ends with the project heading fully revealed.
+            // Studio → Projects. Reveal the project heading.
             .to( '.projects-screen', {
               yPercent: 0,
               autoAlpha: 1,
               duration: 0.52,
-            }, 2.16 )
+            }, 1.16 )
             .to( '.title-screen', {
               scale: 0.965,
               yPercent: -2,
               autoAlpha: 0,
               duration: 0.46,
-            }, 2.2 )
+            }, 1.2 )
             .to( '.projects-title-line > span', {
               yPercent: 0,
               duration: 0.22,
               stagger: 0.04,
-            }, 2.57 )
-            .addLabel( 'projects', 3 )
+            }, 1.57 )
+            .addLabel( 'projects', 2 )
 
-            // Projects → Contact. Stop 5 ends with every contact item visible.
+            // Projects → Contact. Reveal every contact item.
             .to( '.contact-screen', {
               yPercent: 0,
               autoAlpha: 1,
               duration: 0.56,
-            }, 3.14 )
+            }, 2.14 )
             .to( '.projects-screen', {
               scale: 0.965,
               yPercent: -2,
               autoAlpha: 0,
               duration: 0.5,
-            }, 3.18 )
+            }, 2.18 )
             .to( '.contact-title-line > span', {
               yPercent: 0,
               duration: 0.24,
               stagger: 0.04,
-            }, 3.52 )
+            }, 2.52 )
             .to( '.contact-item', {
               y: 0,
               autoAlpha: 1,
               duration: 0.2,
               stagger: 0.05,
-            }, 3.67 )
-            // This empty tween makes the complete timeline exactly four units long.
-            .to( {}, { duration: 0.01 }, 3.99 )
-            .addLabel( 'contact', 4 )
+            }, 2.67 )
+            // This empty tween makes the complete timeline exactly three units long.
+            .to( {}, { duration: 0.01 }, 2.99 )
+            .addLabel( 'contact', 3 )
         },
       )
 
@@ -683,12 +549,7 @@ function App ()
           <div className="ambient ambient-two" aria-hidden="true" />
 
           <PoolTable />
-          <div className="ball-shadow" aria-hidden="true" />
-          <div className="cue-stick" aria-hidden="true"><span className="cue-mark">8BS</span></div>
           <EightBall />
-          <div className="impact-ring" aria-hidden="true" />
-          <div className="strike-flash" aria-hidden="true" />
-          <div className="pocket-iris" aria-hidden="true" />
 
           <header className="site-header">
             <a className="wordmark" href="#top" onClick={ ( event ) => { event.preventDefault(); replay() } } aria-label="8 Ball Studio — return to start">
