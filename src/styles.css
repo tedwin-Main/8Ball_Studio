@@ -727,7 +727,7 @@ a:focus-visible {
   display: flex;
   width: max-content;
   will-change: auto;
-  animation: projects-marquee 52s linear infinite;
+  animation: projects-marquee 26s linear infinite;
   animation-play-state: paused;
 }
 
@@ -857,7 +857,7 @@ a:focus-visible {
   gap: clamp(14px, 1.6vw, 22px);
   grid-template-columns: auto 1fr;
   text-decoration: none;
-  transition: background 300ms, color 300ms;
+  transition: background 150ms, color 150ms;
 }
 
 .contact-item + .contact-item {
@@ -872,7 +872,7 @@ a:focus-visible {
   border: 1px solid rgba(183, 217, 91, 0.52);
   border-radius: 50%;
   color: var(--acid);
-  transition: background 600ms, color 600ms;
+  transition: background 300ms, color 300ms;
 }
 
 a.contact-item:hover,
@@ -986,7 +986,7 @@ a.contact-item:focus-visible .contact-icon {
   border-radius: 50%;
   background: rgba(7, 17, 13, 0.38);
   content: '';
-  transition: background 600ms, border-color 600ms, transform 600ms;
+  transition: background 300ms, border-color 300ms, transform 300ms;
 }
 
 .page-dot span {
@@ -1004,7 +1004,7 @@ a.contact-item:focus-visible .contact-icon {
   pointer-events: none;
   text-transform: uppercase;
   transform: translateX(5px);
-  transition: opacity 400ms, transform 400ms;
+  transition: opacity 200ms, transform 200ms;
   white-space: nowrap;
 }
 
@@ -1125,7 +1125,7 @@ a.contact-item:focus-visible .contact-icon {
   }
 
   .projects-track {
-    animation-duration: 44s;
+    animation-duration: 22s;
   }
 
   .projects-group {
