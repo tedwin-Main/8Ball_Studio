@@ -1,5 +1,47 @@
 # Major Bug Fixes
 
+## Cue stick skipped the pre-hit stop during overscroll (06/08/2026, 01:20 AM)
+
+### Problem
+
+A large wheel scroll or touch swipe could skip the cue-ready position and immediately hit the 8-ball.
+
+### Fix
+
+- Added a cue-ready checkpoint at timeline progress `0.52 / 3`.
+- Added Lenis `virtualScroll` input handling for wheel and touch input.
+- Added reverse-scroll rearming below the checkpoint.
+- Added `syncTouch: true` so mobile touch input uses the same hard-stop path.
+
+### Files Changed
+
+- [src/App.jsx](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/App.jsx)
+  - Added — [line 25](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/App.jsx:25) defines `CUE_READY_PROGRESS`.
+  - Added — [line 188](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/App.jsx:188) adds `handleVirtualScroll` to stop oversized wheel/touch input.
+  - Added — [line 303](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/App.jsx:303) enables `syncTouch: true` for mobile touch control.
+  - Added — [line 310](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/App.jsx:310) connects Lenis `virtualScroll` to the hard-stop handler.
+
+## Lenis checkpoint lock delayed the next scroll (06/08/2026, 01:20 AM)
+
+### Problem
+
+After the cue reached the ball, the old gate kept the next scroll blocked behind a quiet-gap delay.
+
+### Fix
+
+- Kept Lenis locked only while it settles at the cue-ready checkpoint.
+- Removed the `180ms` quiet-gap timer.
+- Removed the post-checkpoint `latched` state.
+- Set the gate to `passed` immediately in the Lenis `scrollTo` completion callback.
+- The next wheel or touch input now continues without an extra wait.
+
+### Files Changed
+
+- [src/App.jsx](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/App.jsx)
+  - Modified — [line 286](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/App.jsx:286) uses `lenis.scrollTo(checkpointScroll, { lock: true })` only during checkpoint settling.
+  - Added — [line 292](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/App.jsx:292) sets `cueGateState = 'passed'` when Lenis finishes settling.
+  - Removed — the `180ms` quiet-gap timer and post-checkpoint latch state.
+
 ## Artigusto Gelato Logo not displaying correctly (05/08/2026, 11:50 PM)
 
 ### Problem
@@ -30,4 +72,4 @@ The Artigusto logo showed a checkerboard, appeared blank, or sat too low inside 
 
 Update `DOCS/MAJOR BUG FIX.md` using this format:
 
-Create one dated `##` subheading for the bug. Explain the problem and fix in plain English. Under `### Files Changed`, group entries by file. Use nested point-form bullets labeled `Added`, `Removed`, or `Modified`. Link each file and exact line number. Use inline code for changed selectors, imports, props, and values. Do not include code blocks or a separate files list.
+Create one dated `##` subheading for the bug. Keep all bug entries sorted by descending date and time, with the newest entry first. Explain the problem and fix in plain English. Under `### Files Changed`, group entries by file. Use nested point-form bullets labeled `Added`, `Removed`, or `Modified`. Link each file and exact line number. Use inline code for changed selectors, imports, props, and values. Do not include code blocks or a separate files list.

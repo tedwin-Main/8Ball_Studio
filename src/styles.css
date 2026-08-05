@@ -717,6 +717,24 @@ a:focus-visible {
   object-fit: contain;
 }
 
+/* Give the logo its own media area so grid sizing cannot collapse the image. */
+.project-card.is-artigusto img {
+  --artigusto-caption-space: 36px;
+  position: absolute;
+  top: calc(50% - (var(--artigusto-caption-space) / 2));
+  left: 50%;
+  width: auto;
+  height: min(72%, calc(100% - var(--artigusto-caption-space)));
+  padding: 0;
+  object-fit: contain;
+  object-position: center;
+  /* The source has a baked checkerboard, so keep only the inner logo circle. */
+  clip-path: circle(49% at 50% 50%);
+  /* Center the square image in the card area above the caption. */
+  transform: translate(-50%, -50%);
+  z-index: 1;
+}
+
 .project-card figcaption {
   position: absolute;
   right: 0;
@@ -734,6 +752,7 @@ a:focus-visible {
   letter-spacing: 0.02em;
   line-height: 1.1;
   text-transform: uppercase;
+  z-index: 2;
 }
 
 @keyframes projects-marquee {

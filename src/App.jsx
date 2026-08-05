@@ -3,8 +3,10 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Lenis from 'lenis'
 import { useStoryPager } from './hooks/useStoryPager'
-import brandLogo from './assets/8ball-studio-logo.png'
-import artigustoGelato from './assets/artigusto-gelato-facebook-official.jpg'
+// One V4 asset supplies both the header brand mark and animated 8-ball surface.
+import brandLogo from './assets/8BALL-V4.jpg'
+// The PNG has a baked checkerboard; CSS clips its square to the logo circle at render time.
+import artigustoGelato from './assets/Artigusto-Gelato_Clearned.png'
 import ersEnergyLogo from './assets/ers-energy-logo.png'
 import haruplateLogo from './assets/haruplate-logo.png'
 import shopeeLogo from './assets/shopee-logo.svg'
@@ -19,9 +21,13 @@ const STORY_PAGES = [
   { id: 'page-contact', label: 'Contact', startProgress: 2.14 / 3, targetProgress: 1 },
 ]
 
+// Stop the first forward gesture just before the cue-hit timeline segment.
+const CUE_READY_PROGRESS = 0.52 / 3
+const CUE_PROGRESS_EPSILON = 0.0005
+
 const PROJECT_ITEMS = [
-  // Keep the full circular Artigusto logo centered instead of treating it like a crop-first photo.
-  { src: artigustoGelato, alt: 'Artigusto Gelato' },
+  // Mark the baked-checkerboard logo so its card can use an isolated circular clip.
+  { src: artigustoGelato, alt: 'Artigusto Gelato', type: 'artigusto' },
   { src: ersEnergyLogo, alt: 'ERS Energy' },
   { src: haruplateLogo, alt: 'Haruplate' },
   { src: shopeeLogo, alt: 'Shopee' },
@@ -116,7 +122,7 @@ function EightBall ()
 {
   return (
     <div className="ball-rig" aria-hidden="true">
-      {/* Reuse the brand logo while ball-rig keeps the GSAP movement and rotation. */ }
+      {/* Reuse the V4 brand asset while ball-rig keeps its GSAP movement and rotation. */ }
       <img className="eight-ball-logo" src={ brandLogo } alt="" />
     </div>
   )
@@ -145,17 +151,163 @@ function App ()
     let pointerX = 0
     let pointerY = 0
     let ballLayerIsPromoted = false
+    let cueGateState = 'armed'
     const hasFinePointer = window.matchMedia( '(hover: hover) and (pointer: fine)' ).matches
+
+    const getStoryMetrics = () =>
+    {
+      const story = storyRef.current
+
+      if ( !story ) return null
+
+      const bounds = story.getBoundingClientRect()
+
+      return {
+        top: window.scrollY + bounds.top,
+        range: Math.max( 0, story.offsetHeight - window.innerHeight ),
+      }
+    }
+
+    const getStoryProgress = ( scrollValue, metrics ) =>
+    {
+      if ( !metrics || metrics.range === 0 ) return 0
+
+      return Math.min(
+        1,
+        Math.max( 0, ( scrollValue - metrics.top ) / metrics.range ),
+      )
+    }
+
+    const consumeCueInput = ( event ) =>
+    {
+      // Returning false skips Lenis; preventDefault also blocks native touch scrolling.
+      if ( event.cancelable ) event.preventDefault()
+      return false
+    }
+
+    const handleVirtualScroll = ( { deltaY, event } ) =>
+    {
+      const isWheel = event.type.includes( 'wheel' )
+      const isTouch = event.type.includes( 'touch' )
+
+      if ( !( isWheel || isTouch ) ) return true
+
+      const isTouchEnd = event.type === 'touchend'
+
+      if ( deltaY === 0 ) return true
+
+      const metrics = getStoryMetrics()
+
+      if ( !metrics || metrics.range === 0 ) return true
+
+      // Lenis replaces touchend delta with velocity-based inertia before scrolling.
+      const effectiveDeltaY = isTouchEnd
+        ? Math.sign( lenis.velocity ) * Math.pow(
+          Math.abs( lenis.velocity ),
+          lenis.options.touchInertiaExponent,
+        )
+        : deltaY
+
+      if ( effectiveDeltaY === 0 ) return true
+
+      const checkpointScroll = metrics.top + metrics.range * CUE_READY_PROGRESS
+      const currentScroll = lenis.scroll
+      const currentTarget = lenis.targetScroll
+      const candidateTarget = currentTarget + effectiveDeltaY
+      const currentProgress = getStoryProgress( currentScroll, metrics )
+      const candidateProgress = getStoryProgress( candidateTarget, metrics )
+      const isForward = effectiveDeltaY > 0
+
+      // Going back below the checkpoint fully rearms the next forward gesture.
+      if (
+        cueGateState !== 'settling' &&
+        currentProgress < CUE_READY_PROGRESS - CUE_PROGRESS_EPSILON
+      )
+      {
+        cueGateState = 'armed'
+      }
+
+      // Reloads and programmatic jumps above the checkpoint must not rewind on forward input.
+      if (
+        isForward &&
+        cueGateState !== 'settling' &&
+        currentProgress > CUE_READY_PROGRESS + CUE_PROGRESS_EPSILON
+      )
+      {
+        cueGateState = 'passed'
+      }
+
+      if ( !isForward )
+      {
+        if ( cueGateState === 'settling' )
+        {
+          // Break the temporary Lenis lock so reverse input works immediately.
+          const reverseScroll = Math.max(
+            0,
+            Math.min( lenis.limit, lenis.animatedScroll + effectiveDeltaY ),
+          )
+
+          lenis.scrollTo( reverseScroll, {
+            immediate: true,
+            force: true,
+            programmatic: false,
+          } )
+          cueGateState = getStoryProgress( reverseScroll, metrics ) < CUE_READY_PROGRESS - CUE_PROGRESS_EPSILON
+            ? 'armed'
+            : 'passed'
+          return consumeCueInput( event )
+        }
+
+        if ( candidateProgress < CUE_READY_PROGRESS - CUE_PROGRESS_EPSILON )
+        {
+          cueGateState = 'armed'
+        }
+
+        return true
+      }
+
+      if ( cueGateState === 'passed' ) return true
+
+      if ( cueGateState === 'settling' )
+      {
+        // Consume input only until the exact checkpoint finishes settling.
+        return consumeCueInput( event )
+      }
+
+      if ( candidateProgress <= CUE_READY_PROGRESS + CUE_PROGRESS_EPSILON )
+      {
+        return true
+      }
+
+      cueGateState = 'settling'
+      consumeCueInput( event )
+
+      // Lock Lenis only while this exact checkpoint settles; the next input can continue.
+      lenis.scrollTo( checkpointScroll, {
+        lock: true,
+        programmatic: false,
+        onComplete: () =>
+        {
+          // Settling is over, so forward input immediately passes the cue gate.
+          cueGateState = 'passed'
+        },
+      } )
+
+      return false
+    }
 
     // Use low input sensitivity and a short settle window for controlled scroll response.
     const lenis = new Lenis( {
       wheelMultiplier: 0.4,
+      // Route touch movement and touch-end inertia through the same virtual-scroll gate.
+      syncTouch: true,
       infinite: false,
       gestureOrientation: 'vertical',
       duration: 0.4,
       easing: ( value ) => Math.min( 1, 1.001 - Math.pow( 2, -10 * value ) ),
       autoRaf: false,
       autoResize: true,
+      virtualScroll: handleVirtualScroll,
     } )
 
     // Expose the one scroll controller so buttons and keyboard navigation use the same physics.
