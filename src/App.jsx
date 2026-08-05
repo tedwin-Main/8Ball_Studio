@@ -301,6 +301,15 @@ function App ()
             scale: showIntro ? 6.25 : 1,
             autoAlpha: showEndScreen ? 0 : 1,
           } )
+          // Reduced motion hides the cue because its hit timing is intentionally disabled.
+          gsap.set( '.cue-stick', { autoAlpha: 0 } )
+          // Reduced motion keeps the warp closed and invisible instead of leaving a black circle.
+          gsap.set( '.pocket-iris', {
+            xPercent: -50,
+            yPercent: -50,
+            scale: 0,
+            autoAlpha: 0,
+          } )
           gsap.set( '.hero-copy', { autoAlpha: showIntro ? 1 : 0 } )
           gsap.set( '.scroll-prompt', { autoAlpha: showIntro ? 1 : 0 } )
           gsap.set( '.scene-interface', { autoAlpha: showEndScreen ? 0 : 1 } )
@@ -358,6 +367,19 @@ function App ()
           const compactLandscape = context.conditions.compact && context.conditions.landscape
           const holdX = desktop ? '-5vw' : compactLandscape ? '-3vw' : '-7vw'
           const holdY = desktop ? '8vh' : compactLandscape ? '5vh' : '6vh'
+          // Keep the roll target aligned with the old top-right pocket path.
+          const pocketX = () =>
+          {
+            if ( desktop ) return window.innerWidth * 0.375
+            if ( compactLandscape ) return window.innerWidth * 0.385 - 14
+            return window.innerWidth * 0.484 - 14
+          }
+          const pocketY = () =>
+          {
+            if ( desktop ) return window.innerHeight * -0.23
+            if ( compactLandscape ) return window.innerHeight * 0.05 - window.innerWidth * 0.2045
+            return window.innerHeight * 0.03 - window.innerWidth * 0.348 + 8
+          }
           gsap.set( '.pool-table', {
             xPercent: -50,
             yPercent: -50,
@@ -371,6 +393,19 @@ function App ()
             x: 0,
             y: 0,
             rotation: 0,
+          } )
+          // Start the cue off-screen so scroll progress controls its approach.
+          gsap.set( '.cue-stick', {
+            x: desktop ? '-58vw' : compactLandscape ? '-68vw' : '-96vw',
+            rotation: desktop ? -30 : compactLandscape ? -25 : -47,
+            autoAlpha: 0,
+          } )
+          // Start the black-hole iris closed at the pocket; scroll progress opens it.
+          gsap.set( '.pocket-iris', {
+            xPercent: -50,
+            yPercent: -50,
+            scale: 0,
+            autoAlpha: 1,
           } )
           gsap.set( '.title-screen', { autoAlpha: 0, scale: 1, yPercent: 0, force3D: true } )
           gsap.set( '.final-title-line > span', { y: 0, yPercent: 115 } )
@@ -409,14 +444,14 @@ function App ()
             .to( '.pool-table', {
               scale: 1,
               rotationX: desktop ? 8 : 4,
-              duration: 0.82,
+              duration: 0.42,
             }, 0 )
             .to( '.ball-rig', {
               scale: 1,
               x: holdX,
               y: holdY,
               rotation: 0,
-              duration: 0.82,
+              duration: 0.52,
             }, 0 )
             .to( '.hero-copy', {
               y: -36,
@@ -432,33 +467,79 @@ function App ()
               opacity: 0.38,
               duration: 0.7,
             }, 0 )
+            // Approach: bring the cue in while the ball settles at its table position.
+            .to( '.cue-stick', {
+              x: 0,
+              autoAlpha: 1,
+              duration: 0.18,
+            }, 0.34 )
             .to( '.pool-table', {
               scale: 0.84,
-              duration: 0.34,
+              duration: 0.26,
+            }, 0.42 )
+            // Contact: push the cue tip into the ball, then compress the ball briefly.
+            .to( '.cue-stick', {
+              x: desktop
+                ? '3.1vw'
+                : compactLandscape
+                  ? '3.8vw'
+                  : '5.8vw',
+              duration: 0.08,
+            }, 0.54 )
+            .to( '.ball-rig', {
+              scaleX: 0.88,
+              scaleY: 1.08,
+              duration: 0.04,
+            }, 0.56 )
+            .to( '.ball-rig', {
+              scaleX: 1,
+              scaleY: 1,
+              duration: 0.05,
+            }, 0.6 )
+            // Recoil: pull the cue away as the ball rolls toward the pocket path.
+            .to( '.cue-stick', {
+              x: desktop
+                ? '-7vw'
+                : compactLandscape
+                  ? '-8vw'
+                  : '-12vw',
+              autoAlpha: 0,
+              duration: 0.14,
+            }, 0.62 )
+            .to( '.ball-rig', {
+              x: pocketX,
+              y: pocketY,
+              rotation: 910,
+              duration: 0.14,
             }, 0.64 )
             .to( '.ball-rig', {
               scale: 0.35,
               autoAlpha: 0,
-              duration: 0.25,
-            }, 0.68 )
+              duration: 0.04,
+            }, 0.78 )
+            // Open the black-hole iris only after the ball has fully vanished.
+            .to( '.pocket-iris', {
+              scale: desktop ? 38 : 42,
+              duration: 0.18,
+            }, 0.82 )
             .to( '.scene-interface', {
               autoAlpha: 0,
-              duration: 0.3,
+              duration: 0.2,
             }, 0.7 )
             .to( '.title-screen', {
               autoAlpha: 1,
-              duration: 0.18,
-            }, 0.78 )
+              duration: 0.04,
+            }, 0.9 )
             .to( '.final-title-line > span', {
               yPercent: 0,
-              duration: 0.12,
-              stagger: 0.03,
-            }, 0.82 )
+              duration: 0.05,
+              stagger: 0.008,
+            }, 0.93 )
             .to( '.final-meta', {
               y: 0,
               autoAlpha: 1,
-              duration: 0.09,
-            }, 0.89 )
+              duration: 0.03,
+            }, 0.97 )
             .to( {}, { duration: 0.01 }, 0.99 )
             .addLabel( 'studio', 1 )
 
@@ -545,7 +626,10 @@ function App ()
           <div className="ambient ambient-two" aria-hidden="true" />
 
           <PoolTable />
+          <div className="cue-stick" aria-hidden="true"><span className="cue-mark">8BS</span></div>
           <EightBall />
+          {/* Expands from the target pocket to mask the transition into Studio. */}
+          <div className="pocket-iris" aria-hidden="true" />
 
           <header className="site-header">
             <a className="wordmark" href="#top" onClick={ ( event ) => { event.preventDefault(); replay() } } aria-label="8 Ball Studio — return to start">
