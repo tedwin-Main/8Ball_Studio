@@ -12,17 +12,16 @@ import shopeeLogo from './assets/shopee-logo.svg'
 gsap.registerPlugin( ScrollTrigger )
 
 const STORY_PAGES = [
-  { id: 'page-intro', label: 'Intro', progress: 0 },
-  { id: 'page-studio', label: 'Studio', progress: 1 / 3 },
-  { id: 'page-projects', label: 'Projects', progress: 2 / 3 },
-  { id: 'page-contact', label: 'Contact', progress: 1 },
+  // Scene starts activate dots; stable targets land clicks after each transition finishes.
+  { id: 'page-intro', label: 'Intro', startProgress: 0, targetProgress: 0 },
+  { id: 'page-studio', label: 'Studio', startProgress: 0.78 / 3, targetProgress: 1 / 3 },
+  { id: 'page-projects', label: 'Projects', startProgress: 1.16 / 3, targetProgress: 2 / 3 },
+  { id: 'page-contact', label: 'Contact', startProgress: 2.14 / 3, targetProgress: 1 },
 ]
 
-// Stable IDs prevent the scroll hook from receiving a new array every render.
-const STORY_PAGE_IDS = STORY_PAGES.map( ( page ) => page.id )
-
 const PROJECT_ITEMS = [
-  { src: artigustoGelato, alt: 'Artigusto Gelato', type: 'photo' },
+  // Keep the full circular Artigusto logo centered instead of treating it like a crop-first photo.
+  { src: artigustoGelato, alt: 'Artigusto Gelato' },
   { src: ersEnergyLogo, alt: 'ERS Energy' },
   { src: haruplateLogo, alt: 'Haruplate' },
   { src: shopeeLogo, alt: 'Shopee' },
@@ -130,7 +129,7 @@ function App ()
   const [ activePage, setActivePage ] = useState( 0 )
   const { goToPage } = useStoryPager( {
     storyRef,
-    pageIds: STORY_PAGE_IDS,
+    pages: STORY_PAGES,
     activePage,
     onPageChange: setActivePage,
   } )
@@ -228,7 +227,7 @@ function App ()
     const getPageIndex = ( progress ) =>
       STORY_PAGES.reduce(
         ( currentIndex, page, index ) =>
-          progress >= page.progress ? index : currentIndex,
+          progress >= page.startProgress ? index : currentIndex,
         0,
       )
 
@@ -280,10 +279,11 @@ function App ()
       {
         const showReducedPage = ( progress ) =>
         {
-          const showIntro = progress < 1 / 3
-          const showStudio = progress >= 1 / 3 && progress < 2 / 3
-          const showProjects = progress >= 2 / 3 && progress < 1
-          const showContact = progress >= 1
+          // Reduced-motion scenes use the same entry points as their active pagination dots.
+          const showIntro = progress < STORY_PAGES[ 1 ].startProgress
+          const showStudio = progress >= STORY_PAGES[ 1 ].startProgress && progress < STORY_PAGES[ 2 ].startProgress
+          const showProjects = progress >= STORY_PAGES[ 2 ].startProgress && progress < STORY_PAGES[ 3 ].startProgress
+          const showContact = progress >= STORY_PAGES[ 3 ].startProgress
           const showEndScreen = showStudio || showProjects || showContact
 
           updateActivePage( progress )
@@ -538,10 +538,6 @@ function App ()
       ref={ rootRef }
     >
       <section className="story" ref={ storyRef } aria-label="Interactive 8 Ball Studio introduction">
-        <div className="story-pages" aria-hidden="true">
-          { STORY_PAGES.map( ( page ) => <div className="story-page" id={ page.id } key={ page.id } /> ) }
-        </div>
-
         <div className="stage">
           <div className="pointer-glow" aria-hidden="true" />
           <div className="camera-grid" aria-hidden="true" />
@@ -555,11 +551,35 @@ function App ()
             <a className="wordmark" href="#top" onClick={ ( event ) => { event.preventDefault(); replay() } } aria-label="8 Ball Studio — return to start">
               <img className="brand-logo" src={ brandLogo } alt="8 Ball Studio" />
             </a>
-            <div className="header-meta">
+            <nav className="header-meta" aria-label="Page navigation">
+              <a
+                className="header-link"
+                href="#projects"
+                onClick={ ( event ) =>
+                {
+                  // Stop the browser jump so the pager can land on the stable Projects target.
+                  event.preventDefault()
+                  goToPage( 2 )
+                } }
+              >
+                Our Projects
+              </a>
+              <a
+                className="header-link"
+                href="#contact"
+                onClick={ ( event ) =>
+                {
+                  // Use the same Lenis motion as pagination for the stable Contact target.
+                  event.preventDefault()
+                  goToPage( 3 )
+                } }
+              >
+                Contact Us
+              </a>
               <button className="top-link" onClick={ replay } type="button" aria-label="Go back to top of page">
                 Top
               </button>
-            </div>
+            </nav>
           </header>
 
           <div className="scene-interface">

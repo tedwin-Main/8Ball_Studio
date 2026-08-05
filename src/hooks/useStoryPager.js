@@ -18,7 +18,7 @@ const isEditableTarget = ( target ) =>
 
 export function useStoryPager ( {
   storyRef,
-  pageIds,
+  pages,
   activePage,
   onPageChange,
 } )
@@ -32,19 +32,22 @@ export function useStoryPager ( {
 
   const getTargetY = useCallback( ( pageIndex ) =>
   {
-    const pageId = pageIds[ pageIndex ]
-    const page = document.getElementById( pageId )
+    const story = storyRef.current
+    const page = pages[ pageIndex ]
 
-    if ( !page ) return null
+    if ( !story || !page ) return null
 
-    return Math.round(
-      window.scrollY + page.getBoundingClientRect().top,
-    )
-  }, [ pageIds ] )
+    const bounds = story.getBoundingClientRect()
+    const storyTop = window.scrollY + bounds.top
+    // Map the stable scene target onto the exact scroll range used by ScrollTrigger.
+    const scrollRange = Math.max( 0, story.offsetHeight - window.innerHeight )
+
+    return Math.round( storyTop + scrollRange * page.targetProgress )
+  }, [ pages, storyRef ] )
 
   const goToPage = useCallback( ( requestedIndex, options = {} ) =>
   {
-    const pageIndex = clampPageIndex( requestedIndex, pageIds.length )
+    const pageIndex = clampPageIndex( requestedIndex, pages.length )
     const targetY = getTargetY( pageIndex )
 
     if ( targetY === null ) return false
@@ -76,7 +79,7 @@ export function useStoryPager ( {
     onPageChange( pageIndex )
 
     return true
-  }, [ getTargetY, onPageChange, pageIds.length ] )
+  }, [ getTargetY, onPageChange, pages.length ] )
 
   useEffect( () =>
   {
@@ -87,19 +90,19 @@ export function useStoryPager ( {
     let resizeTimer = 0
 
     let storyTop = 0
-    let storyHeight = 0
+    let storyScrollRange = 0
 
     const refreshStoryMetrics = () =>
     {
       const bounds = story.getBoundingClientRect()
 
       storyTop = window.scrollY + bounds.top
-      storyHeight = story.offsetHeight
+      storyScrollRange = Math.max( 0, story.offsetHeight - window.innerHeight )
     }
 
     const isStoryActive = () =>
     {
-      const storyEnd = storyTop + storyHeight - window.innerHeight
+      const storyEnd = storyTop + storyScrollRange
 
       return (
         window.scrollY >= storyTop - 2 &&
@@ -109,23 +112,19 @@ export function useStoryPager ( {
 
     const getNearestPageIndex = () =>
     {
-      let nearestPageIndex = 0
+      // Convert scroll position to the normalized progress used by every page definition.
+      const progress = storyScrollRange === 0
+        ? 0
+        : Math.min( 1, Math.max( 0, ( window.scrollY - storyTop ) / storyScrollRange ) )
 
-      pageIds.forEach( ( pageId, index ) =>
-      {
-        const page = document.getElementById( pageId )
-
-        if ( !page ) return
-
-        const pageTop = window.scrollY + page.getBoundingClientRect().top
-
-        if ( window.scrollY >= pageTop - 2 ) nearestPageIndex = index
-      } )
-
-      return nearestPageIndex
+      return pages.reduce(
+        ( currentIndex, page, index ) =>
+          progress >= page.startProgress ? index : currentIndex,
+        0,
+      )
     }
 
-    // Section markers keep keyboard navigation without adding a second page state machine.
+    // Shared page definitions keep keyboard navigation on the same progress map.
     const getNavigationBasePage = () => activePageRef.current
 
     const handleKeyDown = ( event ) =>
@@ -162,7 +161,7 @@ export function useStoryPager ( {
       }
       else if ( event.key === 'End' )
       {
-        requestedIndex = pageIds.length - 1
+        requestedIndex = pages.length - 1
       }
 
       if ( requestedIndex === null ) return
@@ -199,7 +198,7 @@ export function useStoryPager ( {
     getTargetY,
     goToPage,
     onPageChange,
-    pageIds.length,
+    pages,
     storyRef,
   ] )
 
