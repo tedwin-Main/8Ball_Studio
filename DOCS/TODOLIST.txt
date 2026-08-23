@@ -1,9 +1,1 @@
-Fix overall website lagginess 
-Replace useless neon stuff
-Fix bluerry ball on mobile
-Fix Marquee Loop image for Artigusto to be center, remove border, 
 add gradient fades to the background where the image sits
-
-
-FIX pagination show incorrectly
-increase length for 2nd page (8ball studio title)

@@ -1307,3 +1307,246 @@ a.contact-item:focus-visible .contact-icon {
     filter: blur(54px);
   }
 }
+
+/* Draft layers share the stage but only the selected layer is visible and interactive. */
+.draft-layer {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  overflow: hidden;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 260ms ease, visibility 0s linear 260ms;
+}
+
+.draft-layer.is-active {
+  visibility: visible;
+  opacity: 1;
+  transition-delay: 0s;
+}
+
+/* Keep the cinematic 3D rack clear of the shared headline while preserving the same copy. */
+.experience.draft-cinematic .hero-copy {
+  top: 10vh;
+}
+
+/* The original intro remains mounted as Draft 3, but cannot cover the new scenes. */
+.experience:not(.draft-original) .pool-table,
+.experience:not(.draft-original) .cue-stick,
+.experience:not(.draft-original) .ball-rig,
+.experience:not(.draft-original) .pocket-iris,
+.experience:not(.draft-original) .camera-grid,
+.experience:not(.draft-original) .ambient {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.pool-pov-visual,
+.pool-pov-balls-canvas,
+.webgl-pool-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.pool-pov-balls-canvas {
+  z-index: 3;
+  display: block;
+  outline: none;
+  pointer-events: none;
+}
+
+.draft-layer-2d {
+  --draft-exit-opacity: 1;
+  background: #0a100d;
+  /* Scroll owns this opacity exactly, so a CSS transition cannot lag behind reverse sampling. */
+  transition: visibility 0s linear 260ms;
+}
+
+.draft-layer-2d.is-active {
+  opacity: var(--draft-exit-opacity);
+  transition-delay: 0s;
+}
+
+.draft-layer-2d::after {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  content: '';
+  background:
+    radial-gradient(circle at 50% 58%, transparent 0 23%, rgba(4, 11, 8, 0.12) 62%, rgba(2, 5, 4, 0.58) 100%),
+    linear-gradient(180deg, rgba(4, 7, 5, 0.08), rgba(4, 7, 5, 0.3));
+  mix-blend-mode: multiply;
+}
+
+.draft-layer-2d .pool-pov-visual {
+  z-index: 0;
+  display: block;
+  overflow: hidden;
+}
+
+.pool-pov-photo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transform: translate(-50%, -50%);
+}
+
+.pool-pov-vignette,
+.webgl-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.46), transparent 24%, transparent 76%, rgba(0, 0, 0, 0.44)),
+    linear-gradient(0deg, rgba(0, 0, 0, 0.5), transparent 31%, transparent 72%, rgba(0, 0, 0, 0.28));
+}
+
+.pool-pov-vignette {
+  /* Keep optical falloff above both the plate and the physically lit balls. */
+  z-index: 4;
+}
+
+.webgl-vignette {
+  z-index: 2;
+}
+
+.webgl-pool-canvas {
+  display: block;
+  outline: none;
+}
+
+/* Optical falloff stays restrained because the scene now supplies its own depth and shadows. */
+.draft-layer-webgl .webgl-vignette {
+  background:
+    radial-gradient(circle at 50% 54%, transparent 12%, rgba(0, 0, 0, 0.05) 48%, rgba(0, 0, 0, 0.52) 112%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.1), transparent 22%, transparent 74%, rgba(0, 0, 0, 0.26));
+}
+
+.webgl-fallback {
+  position: absolute;
+  z-index: 5;
+  top: 50%;
+  left: 50%;
+  display: none;
+  width: min(82vw, 420px);
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(242, 241, 233, 0.22);
+  background: rgba(7, 9, 8, 0.78);
+  color: rgba(242, 241, 233, 0.8);
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+  text-align: center;
+  text-transform: uppercase;
+  transform: translate(-50%, -50%);
+}
+
+.webgl-phase {
+  position: absolute;
+  z-index: 4;
+  right: max(28px, 4vw);
+  bottom: max(92px, 12vh);
+  margin: 0;
+  color: rgba(242, 241, 233, 0.48);
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.7);
+}
+
+.draft-layer-webgl[data-webgl-error='true'] .webgl-fallback {
+  display: block;
+}
+
+/* This control is separate from page dots so draft testing never changes story navigation. */
+.draft-switcher {
+  position: fixed;
+  z-index: 45;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 7px 6px 11px;
+  border: 1px solid rgba(242, 241, 233, 0.22);
+  border-radius: 999px;
+  background: rgba(7, 9, 8, 0.84);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.26);
+  font-family: 'DM Mono', monospace;
+  transform: translateX(-50%);
+  backdrop-filter: blur(14px);
+}
+
+.draft-switcher-options {
+  display: flex;
+  gap: 3px;
+}
+
+.draft-switcher-button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(242, 241, 233, 0.62);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 8px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  transition: color 160ms, background 160ms, border-color 160ms;
+}
+
+.draft-switcher-button:hover,
+.draft-switcher-button:focus-visible {
+  border-color: rgba(183, 217, 91, 0.5);
+  color: var(--paper);
+}
+
+.draft-switcher-button.is-active {
+  border-color: var(--acid);
+  background: var(--acid);
+  color: #07110d;
+}
+
+@media (max-width: 768px), (max-height: 540px) {
+  .experience.draft-cinematic .hero-copy {
+    top: max(68px, 10vh);
+  }
+
+  .draft-switcher {
+    bottom: max(68px, calc(env(safe-area-inset-bottom) + 62px));
+    max-width: calc(100vw - 24px);
+  }
+
+  .draft-switcher-button {
+    min-height: 36px;
+    padding: 0 8px;
+  }
+
+  .webgl-phase {
+    right: 18px;
+    bottom: max(136px, calc(env(safe-area-inset-bottom) + 126px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .draft-layer,
+  .draft-switcher-button {
+    transition: none;
+  }
+}

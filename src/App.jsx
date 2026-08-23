@@ -1,8 +1,16 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Lenis from 'lenis'
 import { useStoryPager } from './hooks/useStoryPager'
+import { DraftSwitcher } from './components/DraftSwitcher'
+import { PoolPovDraft } from './drafts/PoolPovDraft'
+import { WebglPoolDraft } from './drafts/WebglPoolDraft'
+import {
+  CINEMATIC_CUE_READY_PROGRESS,
+  CINEMATIC_EXIT_END,
+  CINEMATIC_EXIT_START,
+} from './drafts/poolBreakPhysics'
 // One V4 asset supplies both the header brand mark and animated 8-ball surface.
 import brandLogo from './assets/8BALL-V4.jpg'
 // The PNG has a baked checkerboard; CSS clips its square to the logo circle at render time.
@@ -16,14 +24,37 @@ gsap.registerPlugin( ScrollTrigger )
 const STORY_PAGES = [
   // Scene starts activate dots; stable targets land clicks after each transition finishes.
   { id: 'page-intro', label: 'Intro', startProgress: 0, targetProgress: 0 },
-  { id: 'page-studio', label: 'Studio', startProgress: 0.78 / 3, targetProgress: 1 / 3 },
+  { id: 'page-studio', label: 'Studio', startProgress: CINEMATIC_EXIT_START / 3, targetProgress: 1 / 3 },
   { id: 'page-projects', label: 'Projects', startProgress: 1.16 / 3, targetProgress: 2 / 3 },
   { id: 'page-contact', label: 'Contact', startProgress: 2.14 / 3, targetProgress: 1 },
 ]
 
-// Stop the first forward gesture just before the cue-hit timeline segment.
-const CUE_READY_PROGRESS = 0.52 / 3
+// Each cue draft stops its first gesture at the point where that scene finishes aiming.
+const CUE_READY_PROGRESS_BY_DRAFT = Object.freeze( {
+  cinematic: CINEMATIC_CUE_READY_PROGRESS / 3,
+  webgl: 0.52 / 3,
+} )
 const CUE_PROGRESS_EPSILON = 0.0005
+// Damp input during the pool-table sequence so the heavy ball cannot race ahead of the scroll.
+const INTRO_SCROLL_WEIGHT = 0.72
+// Give Draft 1 enough fixed time to show the strike, spread, and full cut into Studio.
+const CINEMATIC_BREAK_TRANSITION_DURATION = 1.8
+const easeCinematicBreakTransition = ( progress ) =>
+  progress * progress * ( 3 - 2 * progress )
+
+const DRAFT_IDS = [ 'cinematic', 'webgl', 'original' ]
+
+const getInitialDraft = () =>
+{
+  if ( typeof window === 'undefined' ) return 'cinematic'
+
+  const requestedDraft = new URLSearchParams( window.location.search ).get( 'draft' )
+  // Keep old shared links working while naming Draft 1 by what it is now: 3D cinematic.
+  const normalizedDraft = requestedDraft === 'photo' ? 'cinematic' : requestedDraft
+
+  // Invalid URLs use the cinematic 3D draft so the default page is always usable.
+  return DRAFT_IDS.includes( normalizedDraft ) ? normalizedDraft : 'cinematic'
+}
 
 const PROJECT_ITEMS = [
   // Mark the baked-checkerboard logo so its card can use an isolated circular clip.
@@ -132,7 +163,74 @@ function App ()
 {
   const rootRef = useRef( null )
   const storyRef = useRef( null )
+  const draftControllersRef = useRef( {} )
+  const storyProgressRef = useRef( 0 )
+  const activeDraftRef = useRef( getInitialDraft() )
+  const [ activeDraft, setActiveDraft ] = useState( getInitialDraft )
   const [ activePage, setActivePage ] = useState( 0 )
+
+  const registerDraftController = useCallback( ( draftId, controller ) =>
+  {
+    if ( controller )
+    {
+      draftControllersRef.current[ draftId ] = controller
+      controller.setProgress( Math.min( 1, storyProgressRef.current * 3 ) )
+      controller.setActive( activeDraftRef.current === draftId )
+      return
+    }
+
+    delete draftControllersRef.current[ draftId ]
+  }, [] )
+
+  const registerCinematicController = useCallback(
+    ( controller ) => registerDraftController( 'cinematic', controller ),
+    [ registerDraftController ],
+  )
+  const registerWebglController = useCallback(
+    ( controller ) => registerDraftController( 'webgl', controller ),
+    [ registerDraftController ],
+  )
+
+  const switchDraft = useCallback( ( nextDraft ) =>
+  {
+    if ( !DRAFT_IDS.includes( nextDraft ) ) return
+
+    const url = new URL( window.location.href )
+    url.searchParams.set( 'draft', nextDraft )
+    // Replace only the query so changing a draft never reloads or adds history entries.
+    window.history.replaceState( {}, '', `${url.pathname}${url.search}${url.hash}` )
+    activeDraftRef.current = nextDraft
+    setActiveDraft( nextDraft )
+  }, [] )
+
+  const handleWebglUnavailable = useCallback( ( draftId ) =>
+  {
+    // Draft 1 is the no-WebGL fallback so the opening still has a rendered pool scene.
+    if ( activeDraftRef.current === draftId ) switchDraft( 'cinematic' )
+  }, [ switchDraft ] )
+
+  useEffect( () =>
+  {
+    Object.entries( draftControllersRef.current ).forEach( ( [ draftId, controller ] ) =>
+    {
+      controller.setActive( draftId === activeDraft )
+    } )
+
+    // Seek the selected draft to the existing story position for a seamless switch.
+    draftControllersRef.current[ activeDraft ]?.setProgress(
+      Math.min( 1, storyProgressRef.current * 3 ),
+    )
+
+    // Reapply the shared GSAP playhead after a draft switch changes CSS visibility rules.
+    const refreshFrame = window.requestAnimationFrame( () =>
+    {
+      ScrollTrigger.refresh()
+      ScrollTrigger.update()
+    } )
+
+    return () => window.cancelAnimationFrame( refreshFrame )
+  }, [ activeDraft ] )
+
   const { goToPage } = useStoryPager( {
     storyRef,
     pages: STORY_PAGES,
@@ -153,6 +251,7 @@ function App ()
     let ballLayerIsPromoted = false
     let cueGateState = 'armed'
     const hasFinePointer = window.matchMedia( '(hover: hover) and (pointer: fine)' ).matches
+    const prefersReducedMotion = window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches
 
     const getStoryMetrics = () =>
     {
@@ -185,12 +284,30 @@ function App ()
       return false
     }
 
-    const handleVirtualScroll = ( { deltaY, event } ) =>
+    const handleVirtualScroll = ( scrollInput ) =>
     {
+      let { deltaY } = scrollInput
+      const { event } = scrollInput
       const isWheel = event.type.includes( 'wheel' )
       const isTouch = event.type.includes( 'touch' )
 
       if ( !( isWheel || isTouch ) ) return true
+
+      if ( storyProgressRef.current * 3 < CINEMATIC_EXIT_END )
+      {
+        // Reduce wheel and touch travel only while the 8-ball sequence is on screen.
+        scrollInput.deltaY *= INTRO_SCROLL_WEIGHT
+        deltaY = scrollInput.deltaY
+      }
+
+      const cueReadyProgress = CUE_READY_PROGRESS_BY_DRAFT[ activeDraftRef.current ]
+
+      // Draft 3 has no cue sequence, so it keeps the original continuous scroll.
+      if ( cueReadyProgress === undefined )
+      {
+        cueGateState = 'armed'
+        return true
+      }
 
       const isTouchEnd = event.type === 'touchend'
 
@@ -210,18 +327,19 @@ function App ()
 
       if ( effectiveDeltaY === 0 ) return true
 
-      const checkpointScroll = metrics.top + metrics.range * CUE_READY_PROGRESS
+      const checkpointScroll = metrics.top + metrics.range * cueReadyProgress
       const currentScroll = lenis.scroll
       const currentTarget = lenis.targetScroll
       const candidateTarget = currentTarget + effectiveDeltaY
       const currentProgress = getStoryProgress( currentScroll, metrics )
       const candidateProgress = getStoryProgress( candidateTarget, metrics )
       const isForward = effectiveDeltaY > 0
+      const cueGateIsMoving = cueGateState === 'settling' || cueGateState === 'transitioning'
 
       // Going back below the checkpoint fully rearms the next forward gesture.
       if (
-        cueGateState !== 'settling' &&
-        currentProgress < CUE_READY_PROGRESS - CUE_PROGRESS_EPSILON
+        !cueGateIsMoving &&
+        currentProgress < cueReadyProgress - CUE_PROGRESS_EPSILON
       )
       {
         cueGateState = 'armed'
@@ -230,8 +348,8 @@ function App ()
       // Reloads and programmatic jumps above the checkpoint must not rewind on forward input.
       if (
         isForward &&
-        cueGateState !== 'settling' &&
-        currentProgress > CUE_READY_PROGRESS + CUE_PROGRESS_EPSILON
+        !cueGateIsMoving &&
+        currentProgress > cueReadyProgress + CUE_PROGRESS_EPSILON
       )
       {
         cueGateState = 'passed'
@@ -239,9 +357,9 @@ function App ()
 
       if ( !isForward )
       {
-        if ( cueGateState === 'settling' )
+        if ( cueGateIsMoving )
         {
-          // Break the temporary Lenis lock so reverse input works immediately.
+          // Break either temporary Lenis lock so reverse input works immediately.
           const reverseScroll = Math.max(
             0,
             Math.min( lenis.limit, lenis.animatedScroll + effectiveDeltaY ),
@@ -252,13 +370,13 @@ function App ()
             force: true,
             programmatic: false,
           } )
-          cueGateState = getStoryProgress( reverseScroll, metrics ) < CUE_READY_PROGRESS - CUE_PROGRESS_EPSILON
+          cueGateState = getStoryProgress( reverseScroll, metrics ) < cueReadyProgress - CUE_PROGRESS_EPSILON
             ? 'armed'
             : 'passed'
           return consumeCueInput( event )
         }
 
-        if ( candidateProgress < CUE_READY_PROGRESS - CUE_PROGRESS_EPSILON )
+        if ( candidateProgress < cueReadyProgress - CUE_PROGRESS_EPSILON )
         {
           cueGateState = 'armed'
         }
@@ -266,7 +384,42 @@ function App ()
         return true
       }
 
-      if ( cueGateState === 'passed' ) return true
+      if ( cueGateState === 'transitioning' )
+      {
+        return consumeCueInput( event )
+      }
+
+      if ( cueGateState === 'passed' )
+      {
+        const studioProgress = STORY_PAGES[ 1 ].targetProgress
+
+        if (
+          activeDraftRef.current !== 'cinematic' ||
+          currentProgress >= studioProgress - CUE_PROGRESS_EPSILON
+        )
+        {
+          return true
+        }
+
+        const studioScroll = Math.round( metrics.top + metrics.range * studioProgress )
+        cueGateState = 'transitioning'
+        consumeCueInput( event )
+
+        // Any second downward input commits Draft 1 through the complete break and page cut.
+        lenis.scrollTo( studioScroll, {
+          duration: CINEMATIC_BREAK_TRANSITION_DURATION,
+          easing: easeCinematicBreakTransition,
+          immediate: prefersReducedMotion,
+          lock: true,
+          programmatic: false,
+          onComplete: () =>
+          {
+            cueGateState = 'passed'
+          },
+        } )
+
+        return false
+      }
 
       if ( cueGateState === 'settling' )
       {
@@ -274,7 +427,7 @@ function App ()
         return consumeCueInput( event )
       }
 
-      if ( candidateProgress <= CUE_READY_PROGRESS + CUE_PROGRESS_EPSILON )
+      if ( candidateProgress <= cueReadyProgress + CUE_PROGRESS_EPSILON )
       {
         return true
       }
@@ -296,15 +449,15 @@ function App ()
       return false
     }
 
-    // Use low input sensitivity and a short settle window for controlled scroll response.
+    // A low lerp value lets the page carry momentum and settle like a weighted camera move.
     const lenis = new Lenis( {
       wheelMultiplier: 0.4,
       // Route touch movement and touch-end inertia through the same virtual-scroll gate.
       syncTouch: true,
+      syncTouchLerp: 0.06,
       infinite: false,
       gestureOrientation: 'vertical',
-      duration: 0.4,
-      easing: ( value ) => Math.min( 1, 1.001 - Math.pow( 2, -10 * value ) ),
+      lerp: 0.085,
       autoRaf: false,
       autoResize: true,
       virtualScroll: handleVirtualScroll,
@@ -389,6 +542,15 @@ function App ()
       setActivePage( ( currentPage ) => ( currentPage === nextPage ? currentPage : nextPage ) )
     }
 
+    const updateDraftProgress = ( progress ) =>
+    {
+      storyProgressRef.current = progress
+      // Drive only the selected intro layer; inactive layers seek when selected later.
+      draftControllersRef.current[ activeDraftRef.current ]?.setProgress(
+        Math.min( 1, progress * 3 ),
+      )
+    }
+
     const setBallLayerPromotion = ( active ) =>
     {
       if ( active === ballLayerIsPromoted ) return
@@ -425,13 +587,12 @@ function App ()
 
     const animationContext = gsap.context( () =>
     {
-      const prefersReducedMotion = window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches
-
       if ( prefersReducedMotion )
       {
         const showReducedPage = ( progress ) =>
         {
           // Reduced-motion scenes use the same entry points as their active pagination dots.
+          updateDraftProgress( progress )
           const showIntro = progress < STORY_PAGES[ 1 ].startProgress
           const showStudio = progress >= STORY_PAGES[ 1 ].startProgress && progress < STORY_PAGES[ 2 ].startProgress
           const showProjects = progress >= STORY_PAGES[ 2 ].startProgress && progress < STORY_PAGES[ 3 ].startProgress
@@ -578,11 +739,13 @@ function App ()
               invalidateOnRefresh: true,
               onUpdate: ( { progress } ) =>
               {
+                updateDraftProgress( progress )
                 setBallLayerPromotion( progress > 0.001 && progress < 0.999 )
                 updateActivePage( progress )
               },
               onRefresh: ( { progress } ) =>
               {
+                updateDraftProgress( progress )
                 updateActivePage( progress )
               },
             },
@@ -676,23 +839,24 @@ function App ()
             }, 0.82 )
             .to( '.scene-interface', {
               autoAlpha: 0,
-              duration: 0.2,
-            }, 0.7 )
+              duration: CINEMATIC_EXIT_END - CINEMATIC_EXIT_START,
+            }, CINEMATIC_EXIT_START )
+            // Crossfade into Studio as soon as the colored balls reach the reference spread.
             .to( '.title-screen', {
               autoAlpha: 1,
-              duration: 0.04,
-            }, 0.9 )
+              duration: CINEMATIC_EXIT_END - CINEMATIC_EXIT_START,
+            }, CINEMATIC_EXIT_START )
             .to( '.final-title-line > span', {
               yPercent: 0,
-              duration: 0.05,
-              stagger: 0.008,
-            }, 0.93 )
+              duration: 0.1,
+              stagger: 0.012,
+            }, 0.82 )
             .to( '.final-meta', {
               y: 0,
               autoAlpha: 1,
-              duration: 0.03,
-            }, 0.97 )
-            .to( {}, { duration: 0.01 }, 0.99 )
+              duration: 0.06,
+            }, 0.88 )
+            .to( {}, { duration: 0.005 }, 0.995 )
             .addLabel( 'studio', 1 )
 
             // Studio → Projects. Reveal the project heading.
@@ -767,7 +931,7 @@ function App ()
 
   return (
     <main
-      className={ `experience${activePage === 2 ? ' is-projects-active' : ''}` }
+      className={ `experience draft-${activeDraft}${activePage === 2 ? ' is-projects-active' : ''}` }
       ref={ rootRef }
     >
       <section className="story" ref={ storyRef } aria-label="Interactive 8 Ball Studio introduction">
@@ -776,6 +940,17 @@ function App ()
           <div className="camera-grid" aria-hidden="true" />
           <div className="ambient ambient-one" aria-hidden="true" />
           <div className="ambient ambient-two" aria-hidden="true" />
+
+          <PoolPovDraft
+            active={ activeDraft === 'cinematic' }
+            onController={ registerCinematicController }
+          />
+          <WebglPoolDraft
+            active={ activeDraft === 'webgl' }
+            onController={ registerWebglController }
+            onUnavailable={ handleWebglUnavailable }
+            draftId="webgl"
+          />
 
           <PoolTable />
           <div className="cue-stick" aria-hidden="true"><span className="cue-mark">8BS</span></div>
@@ -906,6 +1081,8 @@ function App ()
           <div className="cursor-ring" aria-hidden="true" />
         </div>
       </section>
+
+      <DraftSwitcher activeDraft={ activeDraft } onChange={ switchDraft } />
 
       <nav className="page-dots" aria-label="Story page navigation">
         { STORY_PAGES.map( ( page, index ) => (

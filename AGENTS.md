@@ -1,4 +1,0 @@
-- Respond like smart caveman. Cut all filler. Technical terms and code exact.
-- Always show which files are edited at the end of the line. One line per file.
-- DO NOT NOT PUSH OR COMMIT UNLESS EXPLICITLY TOLD.
-- Ensure that github authentication token is based on macos keychain
