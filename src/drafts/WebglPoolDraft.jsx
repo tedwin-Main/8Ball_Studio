@@ -30,6 +30,10 @@ const DRAFT2_QUALITY_TIERS = Object.freeze( {
     shadowMapSize: 2048,
     useSsao: true,
     renderBudgetMs: 20,
+    ballWidthSegments: 48,
+    ballHeightSegments: 28,
+    ballTextureWidth: 1024,
+    ballTextureHeight: 512,
   } ),
   standard: Object.freeze( {
     id: 'standard',
@@ -37,6 +41,10 @@ const DRAFT2_QUALITY_TIERS = Object.freeze( {
     shadowMapSize: 1536,
     useSsao: true,
     renderBudgetMs: 24,
+    ballWidthSegments: 40,
+    ballHeightSegments: 24,
+    ballTextureWidth: 768,
+    ballTextureHeight: 384,
   } ),
   low: Object.freeze( {
     id: 'low',
@@ -44,6 +52,10 @@ const DRAFT2_QUALITY_TIERS = Object.freeze( {
     shadowMapSize: 1024,
     useSsao: false,
     renderBudgetMs: 32,
+    ballWidthSegments: 32,
+    ballHeightSegments: 20,
+    ballTextureWidth: 512,
+    ballTextureHeight: 256,
   } ),
 } )
 
@@ -198,15 +210,18 @@ const POCKET_POSITIONS = [
 ]
 
 /**
- * Creates high-resolution procedural textures for tournament pool balls with ivory base and stripe belts.
+ * Creates tier-sized procedural textures for tournament pool balls with ivory base and stripe belts.
  */
-const createPoolBallTexture = ( color, number, anisotropy = 16 ) =>
+const createPoolBallTexture = ( color, number, width, height, anisotropy = 16 ) =>
 {
   const canvas = document.createElement( 'canvas' )
-  canvas.width = 2048
-  canvas.height = 1024
+  canvas.width = width
+  canvas.height = height
   const context = canvas.getContext( '2d' )
   const isStripe = number > 8
+  // The original artwork was authored at 2048x1024. Scaling every mark together
+  // keeps number-disk proportions and stripe boundaries identical across tiers.
+  const scale = width / 2048
 
   // Rich ivory background for stripe balls; solid tournament color for solid balls
   context.fillStyle = isStripe ? '#f5f1e4' : color
@@ -214,31 +229,35 @@ const createPoolBallTexture = ( color, number, anisotropy = 16 ) =>
   if ( isStripe )
   {
     context.fillStyle = color
-    context.fillRect( 0, 318, canvas.width, 388 )
+    context.fillRect( 0, 318 * scale, canvas.width, 388 * scale )
   }
 
   // Dual opposing number disks stay legible through print contrast and physical lighting, without a painted contour.
-  ;[ 512, 1536 ].forEach( ( centerX ) =>
+  ;[ 512 * scale, 1536 * scale ].forEach( ( centerX ) =>
   {
     context.fillStyle = '#f7f4ec'
     context.beginPath()
-    context.arc( centerX, 512, 136, 0, Math.PI * 2 )
+    context.arc( centerX, 512 * scale, 136 * scale, 0, Math.PI * 2 )
     context.fill()
     context.fillStyle = '#0a0d0b'
-    context.font = '800 148px Arial, sans-serif'
+    context.font = "800 " + 148 * scale + "px Arial, sans-serif"
     context.textAlign = 'center'
     context.textBaseline = 'middle'
-    context.fillText( String( number ), centerX, 520 )
+    context.fillText( String( number ), centerX, 520 * scale )
 
     if ( number === 6 || number === 9 )
     {
-      context.fillRect( centerX - 42, 584, 84, 10 )
+      context.fillRect( centerX - 42 * scale, 584 * scale, 84 * scale, 10 * scale )
     }
   } )
 
   const texture = new THREE.CanvasTexture( canvas )
   texture.colorSpace = THREE.SRGBColorSpace
   texture.anisotropy = anisotropy
+  // Mipmaps and anisotropy keep the smaller tier textures stable as balls roll away.
+  texture.generateMipmaps = true
+  texture.minFilter = THREE.LinearMipmapLinearFilter
+  texture.magFilter = THREE.LinearFilter
   return texture
 }
 
@@ -428,7 +447,7 @@ const createFeltTextures = ( anisotropy = 16, repeatX = 38.4, repeatY = 76.8 ) =
 /**
  * Soft radial Gaussian gradient for ball contact shadows and ambient occlusion.
  */
-const createContactShadowTexture = () =>
+const createContactShadowTexture = ( anisotropy = 1 ) =>
 {
   const canvas = document.createElement( 'canvas' )
   canvas.width = 128
@@ -442,6 +461,10 @@ const createContactShadowTexture = () =>
   context.fillStyle = gradient
   context.fillRect( 0, 0, 128, 128 )
   const texture = new THREE.CanvasTexture( canvas )
+  texture.anisotropy = anisotropy
+  texture.generateMipmaps = true
+  texture.minFilter = THREE.LinearMipmapLinearFilter
+  texture.magFilter = THREE.LinearFilter
   return texture
 }
 
@@ -615,6 +638,10 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
   const initialHeight = canvas.clientHeight || window.innerHeight
   const initialQualitySignals = getDraft2QualitySignals( initialWidth, initialHeight )
   const initialQualityTier = selectDraft2QualityTier( initialQualitySignals )
+  // Every generated canvas texture is tracked independently because material.dispose()
+  // releases shader state but does not release the texture allocation.
+  const disposableTextures = new Set()
+  const ownTextures = ( ...textures ) => textures.forEach( ( texture ) => disposableTextures.add( texture ) )
   const environmentTarget = createWarmStudioEnvironment( renderer )
   scene.environment = environmentTarget.texture
   // Keep indirect studio reflections present without reintroducing the washed-out felt baseline.
@@ -655,6 +682,7 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
 
   // Slice 1: Simonis 860 worsted wool cloth with grazing sheen and micro-weave normal map.
   const feltTextures = createFeltTextures( maxAnisotropy, 64, 64 )
+  ownTextures( ...Object.values( feltTextures ) )
   const feltMaterial = new THREE.MeshPhysicalMaterial( {
     map: feltTextures.map,
     normalMap: feltTextures.normalMap,
@@ -731,6 +759,7 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
     envMapIntensity: 0.75,
   } )
   const cushionTextures = createFeltTextures( maxAnisotropy, 16, 16 )
+  ownTextures( ...Object.values( cushionTextures ) )
   const cushionMaterial = new THREE.MeshPhysicalMaterial( {
     map: cushionTextures.map,
     normalMap: cushionTextures.normalMap,
@@ -838,7 +867,8 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
   } )
 
   // Dynamic Contact Shadow and AO system
-  const contactShadowTexture = createContactShadowTexture()
+  const contactShadowTexture = createContactShadowTexture( maxAnisotropy )
+  ownTextures( contactShadowTexture )
   const contactShadowMaterial = new THREE.MeshBasicMaterial( {
     map: contactShadowTexture,
     transparent: true,
@@ -855,13 +885,21 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
   const ballShadows = []
 
   // Physics-driven Ball Mesh Generation (16 balls: 0 = striker, 1..15 = rack)
-  const ballGeometry = new THREE.SphereGeometry( BALL_RADIUS, 64, 40 )
+  // Geometry is shared by all 16 balls. It is selected once at mount so a settled
+  // screen-quality change never recreates meshes or causes a visual pop mid-break.
+  const ballQuality = DRAFT2_QUALITY_TIERS[ initialQualityTier ]
+  const ballGeometry = new THREE.SphereGeometry(
+    BALL_RADIUS,
+    ballQuality.ballWidthSegments,
+    ballQuality.ballHeightSegments,
+  )
   const ballMeshes = []
   const disposableMaterials = []
 
   // Cue / Striker 8-Ball with double-sided front and back brand decals
   // Texture readiness is a render invalidation, so the scheduler can repaint once the logo is available.
   const logoTexture = createLogoTexture( maxAnisotropy, onTextureReady )
+  ownTextures( logoTexture )
   const strikerGroup = new THREE.Group()
   const strikerMaterial = createBallMaterial( '#070807', null )
   disposableMaterials.push( strikerMaterial )
@@ -916,8 +954,11 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
     const texture = createPoolBallTexture(
       BALL_COLORS[ number - 1 ],
       number,
+      ballQuality.ballTextureWidth,
+      ballQuality.ballTextureHeight,
       maxAnisotropy,
     )
+    ownTextures( texture )
     const material = createBallMaterial( BALL_COLORS[ number - 1 ], texture )
     disposableMaterials.push( material )
     const mesh = new THREE.Mesh( ballGeometry, material )
@@ -1069,18 +1110,25 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
 
   const dispose = () =>
   {
+    // Shared ball and shadow assets occur on many meshes; dispose each GPU resource once.
+    const geometries = new Set()
+    const materials = new Set( disposableMaterials )
     scene.traverse( ( object ) =>
     {
-      if ( object.geometry ) object.geometry.dispose()
+      if ( object.geometry ) geometries.add( object.geometry )
       if ( object.material )
       {
-        if ( Array.isArray( object.material ) ) object.material.forEach( ( m ) => m.dispose() )
-        else object.material.dispose()
+        const objectMaterials = Array.isArray( object.material ) ? object.material : [ object.material ]
+        objectMaterials.forEach( ( material ) => materials.add( material ) )
       }
     } )
-    disposableMaterials.forEach( ( m ) => m.dispose() )
+    geometries.forEach( ( geometry ) => geometry.dispose() )
+    materials.forEach( ( material ) => material.dispose() )
+    disposableTextures.forEach( ( texture ) => texture.dispose() )
     composer?.dispose()
+    scene.environment = null
     environmentTarget.dispose()
+    renderer.renderLists.dispose()
     renderer.dispose()
   }
 
