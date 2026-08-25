@@ -39,6 +39,10 @@ const percentile = ( values, ratio ) =>
   return sorted[ Math.max( 0, index ) ]
 }
 
+const toIntervals = ( timestamps ) => timestamps.slice( 1 )
+  .map( ( timestamp, index ) => timestamp - timestamps[ index ] )
+  .filter( Number.isFinite )
+
 const installBenchmarkProbe = async ( page ) =>
 {
   await page.addInitScript( () =>
@@ -47,8 +51,10 @@ const installBenchmarkProbe = async ( page ) =>
       drawing: false,
       drawCalls: 0,
       renderFrames: 0,
-      frameTimes: [],
-      previousFrame: null,
+      pageFrameTimes: [],
+      pagePreviousFrame: null,
+      draftRenderTimes: [],
+      draftRenderObserver: null,
       frameHandle: 0,
       longTasks: [],
       observer: null,
@@ -89,9 +95,28 @@ const installBenchmarkProbe = async ( page ) =>
 
     const sampleFrame = ( timestamp ) =>
     {
-      if ( state.previousFrame !== null ) state.frameTimes.push( timestamp - state.previousFrame )
-      state.previousFrame = timestamp
+      if ( state.pagePreviousFrame !== null ) state.pageFrameTimes.push( timestamp - state.pagePreviousFrame )
+      state.pagePreviousFrame = timestamp
       state.frameHandle = window.requestAnimationFrame( sampleFrame )
+    }
+
+    const observeDraftTwoRenders = () =>
+    {
+      state.draftRenderObserver?.disconnect()
+      const root = document.querySelector( ".draft-layer-webgl" )
+      if ( !root ) return
+
+      // The component writes this attribute immediately after world.render(), keeping this
+      // test coupled only to its documented diagnostics instead of renderer internals.
+      state.draftRenderObserver = new MutationObserver( ( records ) =>
+      {
+        records.forEach( () =>
+        {
+          const timestamp = Number( root.dataset.webglRenderAt )
+          if ( Number.isFinite( timestamp ) ) state.draftRenderTimes.push( timestamp )
+        } )
+      } )
+      state.draftRenderObserver.observe( root, { attributes: true, attributeFilter: [ "data-webgl-render-at" ] } )
     }
 
     window.__draft2Benchmark = {
@@ -100,8 +125,12 @@ const installBenchmarkProbe = async ( page ) =>
         state.drawing = true
         state.drawCalls = 0
         state.renderFrames = 0
-        state.frameTimes = []
-        state.previousFrame = null
+        state.pageFrameTimes = []
+        state.pagePreviousFrame = null
+        state.draftRenderTimes = []
+        state.draftRenderObserver?.disconnect()
+        state.draftRenderObserver = null
+        observeDraftTwoRenders()
         state.longTasks = []
 
         if ( window.PerformanceObserver )
@@ -136,7 +165,8 @@ const installBenchmarkProbe = async ( page ) =>
         return {
           drawCalls: state.drawCalls,
           renderFrames: state.renderFrames,
-          frameTimes: [ ...state.frameTimes ],
+          pageFrameTimes: [ ...state.pageFrameTimes ],
+          draftRenderTimes: [ ...state.draftRenderTimes ],
           longTasks: [ ...state.longTasks ],
         }
       },
@@ -147,6 +177,8 @@ const installBenchmarkProbe = async ( page ) =>
         state.frameHandle = 0
         state.observer?.disconnect()
         state.observer = null
+        state.draftRenderObserver?.disconnect()
+        state.draftRenderObserver = null
       },
     }
   } )
@@ -195,6 +227,41 @@ const driveStoryProgress = async ( page, progress ) =>
   return target
 }
 
+const driveDraftTwoRenderBurst = ( page, sampleCount = 32 ) => page.evaluate( async ( count ) =>
+{
+  const story = document.querySelector( ".story" )
+  if ( !story || !window.lenis ) throw new Error( "Draft 2 scroll controller is not ready." )
+
+  const bounds = story.getBoundingClientRect()
+  const range = Math.max( 0, story.offsetHeight - window.innerHeight )
+  const storyTop = window.scrollY + bounds.top
+
+  // One public Lenis update per browser frame produces a measurable sequence of real Draft 2 paints.
+  await new Promise( ( resolve ) =>
+  {
+    let index = 0
+    const driveNext = () =>
+    {
+      const progress = 0.12 + 0.68 * ( index / Math.max( 1, count - 1 ) )
+      window.lenis.scrollTo( storyTop + range * progress, {
+        immediate: true,
+        force: true,
+        programmatic: true,
+      } )
+      index += 1
+      if ( index < count )
+      {
+        window.requestAnimationFrame( driveNext )
+        return
+      }
+
+      // Let the demand-driven renderer consume the final input before the test snapshots diagnostics.
+      window.requestAnimationFrame( () => window.requestAnimationFrame( resolve ) )
+    }
+    window.requestAnimationFrame( driveNext )
+  } )
+}, sampleCount )
+
 const readDraftDiagnostics = ( page ) => page.locator( '.draft-layer-webgl' ).evaluate( ( root ) => ( {
   progress: Number( root.dataset.webglProgress ),
   quality: root.dataset.webglQuality,
@@ -239,6 +306,8 @@ for ( const viewport of VIEWPORTS )
       // finish before frame intervals or long tasks enter the report.
       await page.waitForTimeout( 900 )
       await page.evaluate( () => window.__draft2Benchmark.start() )
+      await driveDraftTwoRenderBurst( page )
+      const performanceMeasured = await page.evaluate( () => window.__draft2Benchmark.snapshot() )
 
       const progressTrace = []
       for ( const state of BREAK_STATES )
@@ -256,8 +325,6 @@ for ( const viewport of VIEWPORTS )
           state.name,
         )
       }
-
-      const measured = await page.evaluate( () => window.__draft2Benchmark.snapshot() )
 
       // Switching drafts is the public lifecycle boundary. Three quiet/resume cycles
       // must leave no renderer work behind and must retain the same GPU allocations.
@@ -301,18 +368,26 @@ for ( const viewport of VIEWPORTS )
       resourcesBeforeLifecycle.quality )
       const restored = await readDraftDiagnostics( page )
 
-      const frameIntervals = measured.frameTimes.filter( Number.isFinite )
-      const longTasks = measured.longTasks.filter( ( entry ) => Number.isFinite( entry.duration ) )
+      const renderIntervals = toIntervals( performanceMeasured.draftRenderTimes )
+      const pageFrameIntervals = performanceMeasured.pageFrameTimes.filter( Number.isFinite )
+      const longTasks = performanceMeasured.longTasks.filter( ( entry ) => Number.isFinite( entry.duration ) )
       const budget = FRAME_BUDGETS[ viewport.name ]
       const report = {
         viewport,
         warmupMs: 900,
         progressTrace,
-        frameIntervals: {
-          samples: frameIntervals.length,
-          medianMs: median( frameIntervals ),
-          p95Ms: percentile( frameIntervals, 0.95 ),
-          maxMs: Math.max( 0, ...frameIntervals ),
+        renderIntervals: {
+          samples: renderIntervals.length,
+          medianMs: median( renderIntervals ),
+          p95Ms: percentile( renderIntervals, 0.95 ),
+          maxMs: Math.max( 0, ...renderIntervals ),
+          source: "data-webgl-render-at after world.render()",
+        },
+        pageFrameIntervals: {
+          samples: pageFrameIntervals.length,
+          medianMs: median( pageFrameIntervals ),
+          p95Ms: percentile( pageFrameIntervals, 0.95 ),
+          note: "page RAF timing is context only; assertions use Draft 2 paint intervals.",
         },
         longTasks: {
           samples: longTasks.length,
@@ -351,10 +426,10 @@ for ( const viewport of VIEWPORTS )
       } )
       console.log( `Draft 2 ${viewport.name}: ${JSON.stringify( report )}` )
 
-      expect( frameIntervals.length ).toBeGreaterThan( 20 )
-      expect( measured.drawCalls ).toBeGreaterThan( 0 )
-      expect( median( frameIntervals ) ).toBeLessThanOrEqual( budget.medianMs )
-      expect( percentile( frameIntervals, 0.95 ) ).toBeLessThanOrEqual( budget.p95Ms )
+      expect( renderIntervals.length ).toBeGreaterThanOrEqual( 20 )
+      expect( performanceMeasured.drawCalls ).toBeGreaterThan( 0 )
+      expect( median( renderIntervals ) ).toBeLessThanOrEqual( budget.medianMs )
+      expect( percentile( renderIntervals, 0.95 ) ).toBeLessThanOrEqual( budget.p95Ms )
       expect( Math.max( 0, ...longTasks.map( ( entry ) => entry.duration ) ) )
         .toBeLessThanOrEqual( MAX_LONG_TASK_MS )
 
@@ -379,6 +454,50 @@ for ( const viewport of VIEWPORTS )
     }
   } )
 }
+
+test( "Draft 2 remount disposal keeps GPU allocations stable", async ( { browser, baseURL } ) =>
+{
+  const context = await browser.newContext( { viewport: { width: 1280, height: 800 } } )
+  const remountSnapshots = []
+
+  try
+  {
+    for ( let cycle = 0; cycle < 3; cycle += 1 )
+    {
+      const page = await context.newPage()
+      try
+      {
+        await installBenchmarkProbe( page )
+        await page.goto( new URL( "/?draft=webgl&benchmark=draft2", baseURL ).toString(), { waitUntil: "domcontentloaded" } )
+        await waitForDraftTwo( page )
+        // Each fresh page warms a new WebGL scene; closing it below invokes the component cleanup.
+        await page.waitForTimeout( 900 )
+        const diagnostics = await readDraftDiagnostics( page )
+        expect( Number.isFinite( diagnostics.geometries ) ).toBe( true )
+        expect( Number.isFinite( diagnostics.textures ) ).toBe( true )
+        expect( Number.isFinite( diagnostics.programs ) ).toBe( true )
+        remountSnapshots.push( diagnostics )
+      }
+      finally
+      {
+        // A browser-page close is the real unmount boundary, not an active/inactive toggle.
+        await page.close()
+      }
+    }
+
+    const baseline = remountSnapshots[ 0 ]
+    remountSnapshots.slice( 1 ).forEach( ( snapshot ) =>
+    {
+      expect( snapshot.geometries ).toBe( baseline.geometries )
+      expect( snapshot.textures ).toBe( baseline.textures )
+      expect( snapshot.programs ).toBe( baseline.programs )
+    } )
+  }
+  finally
+  {
+    await context.close()
+  }
+} )
 
 test( "Draft 2 forced WebGL failure preserves fallback status and keyboard focus", async ( { browser, baseURL } ) =>
 {

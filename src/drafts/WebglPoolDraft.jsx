@@ -152,6 +152,8 @@ const createQualityMonitor = ( initialTier, signals, applyTier ) =>
 
     const tier = DRAFT2_QUALITY_TIERS[ currentTier ]
     const average = renderDurations.reduce( ( total, duration ) => total + duration, 0 ) / renderDurations.length
+    // Hysteresis avoids tier thrash: sustained 18% over-budget cost drops after 6 samples,
+    // while a much quieter 38% headroom must hold for 24 samples before quality can rise.
     if ( average > tier.renderBudgetMs * 1.18 && getQualityRank( currentTier ) > getQualityRank( 'low' ) )
     {
       slowSamples += 1
@@ -1349,6 +1351,8 @@ export function WebglPoolDraft ( {
       const renderStartedAt = performance.now()
       renderScene()
       world.render()
+      // This timestamp is a narrow browser-test seam: it changes only after Draft 2 paints.
+      root.dataset.webglRenderAt = performance.now().toFixed( 3 )
       const resources = world.getResourceSnapshot()
       root.dataset.webglGeometries = String( resources.geometries )
       root.dataset.webglTextures = String( resources.textures )
