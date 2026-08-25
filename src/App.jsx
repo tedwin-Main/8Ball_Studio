@@ -498,7 +498,30 @@ function App ()
     gsap.ticker.add( driveLenis )
     // Disable GSAP's lag smoothing so scroll physics do not jump after a delayed frame.
     gsap.ticker.lagSmoothing( 0 )
-    const refreshScroll = () => ScrollTrigger.refresh()
+    let resizeFrame = 0
+    const refreshScroll = () =>
+    {
+      const preservedProgress = storyProgressRef.current
+      if ( resizeFrame ) window.cancelAnimationFrame( resizeFrame )
+      resizeFrame = window.requestAnimationFrame( () =>
+      {
+        resizeFrame = 0
+        ScrollTrigger.refresh()
+        const story = storyRef.current
+        if ( !story ) return
+
+        // A refresh changes the pixel scroll range. Seek the same normalized chapter
+        // position afterward so camera, cue phase, and Draft 2 progress do not jump.
+        const storyTop = window.scrollY + story.getBoundingClientRect().top
+        const range = Math.max( 0, story.offsetHeight - window.innerHeight )
+        lenis.scrollTo( storyTop + range * preservedProgress, {
+          immediate: true,
+          force: true,
+          programmatic: true,
+        } )
+        ScrollTrigger.update()
+      } )
+    }
     window.addEventListener( 'resize', refreshScroll )
 
     const moveCursorDotX = hasFinePointer
@@ -913,6 +936,7 @@ function App ()
     return () =>
     {
       if ( pointerFrame ) window.cancelAnimationFrame( pointerFrame )
+      if ( resizeFrame ) window.cancelAnimationFrame( resizeFrame )
       if ( hasFinePointer ) window.removeEventListener( 'pointermove', movePointer )
       window.removeEventListener( 'resize', refreshScroll )
       lenis.off( 'scroll', handleLenisScroll )

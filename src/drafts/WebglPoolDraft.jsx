@@ -1148,6 +1148,16 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
     {
       return qualityMonitor.pending
     },
+    getResourceSnapshot ()
+    {
+      // Publish renderer-owned counts only for diagnostics. This does not retain
+      // Three.js objects, so certification can compare lifecycle stability safely.
+      return {
+        geometries: renderer.info.memory.geometries,
+        textures: renderer.info.memory.textures,
+        programs: renderer.info.programs?.length ?? 0,
+      }
+    },
     dispose,
   }
 }
@@ -1300,6 +1310,8 @@ export function WebglPoolDraft ( {
     const updateScene = ( nextProgress ) =>
     {
       progress = clamp( nextProgress )
+      // Keep the source-of-truth scroll playhead observable across resize checks.
+      root.dataset.webglProgress = progress.toFixed( 4 )
       requestRender()
     }
 
@@ -1337,6 +1349,10 @@ export function WebglPoolDraft ( {
       const renderStartedAt = performance.now()
       renderScene()
       world.render()
+      const resources = world.getResourceSnapshot()
+      root.dataset.webglGeometries = String( resources.geometries )
+      root.dataset.webglTextures = String( resources.textures )
+      root.dataset.webglPrograms = String( resources.programs )
       const renderDurationMs = performance.now() - renderStartedAt
       lastRenderedProgress = progress
 
@@ -1362,8 +1378,11 @@ export function WebglPoolDraft ( {
       setActive ( nextActive )
       {
         isActive = nextActive
-        root.classList.toggle( 'is-active', nextActive )
-        root.setAttribute( 'aria-hidden', String( !nextActive ) )
+        // Keep the declared status above the 2.5D fallback if WebGL setup failed.
+        // It remains readable even after App switches the active visual to Draft 1.
+        const showFallback = failed
+        root.classList.toggle( 'is-active', nextActive || showFallback )
+        root.setAttribute( 'aria-hidden', String( !nextActive && !showFallback ) )
         if ( !nextActive )
         {
           if ( frame ) window.cancelAnimationFrame( frame )

@@ -7,6 +7,13 @@ const VIEWPORTS = [
   { name: 'portrait', width: 390, height: 844 },
 ]
 
+const FRAME_BUDGETS = Object.freeze( {
+  desktop: Object.freeze( { medianMs: 20, p95Ms: 33 } ),
+  portrait: Object.freeze( { medianMs: 25, p95Ms: 40 } ),
+} )
+const MAX_LONG_TASK_MS = 100
+const INACTIVE_RENDER_FRAME_BUDGET = 0
+
 const BREAK_STATES = [
   { name: 'start', progress: 0, settleMs: 220 },
   { name: 'impact', progress: 0.52, settleMs: 80 },
@@ -188,6 +195,17 @@ const driveStoryProgress = async ( page, progress ) =>
   return target
 }
 
+const readDraftDiagnostics = ( page ) => page.locator( '.draft-layer-webgl' ).evaluate( ( root ) => ( {
+  progress: Number( root.dataset.webglProgress ),
+  quality: root.dataset.webglQuality,
+  dprCap: Number( root.dataset.webglDprCap ),
+  ssao: root.dataset.webglSsao,
+  shadowMapSize: Number( root.dataset.webglShadowMap ),
+  geometries: Number( root.dataset.webglGeometries ),
+  textures: Number( root.dataset.webglTextures ),
+  programs: Number( root.dataset.webglPrograms ),
+} ) )
+
 const captureState = async ( page, testInfo, viewportName, stateName ) =>
 {
   const screenshotPath = testInfo.outputPath( `screenshots/${viewportName}/${stateName}.png` )
@@ -241,21 +259,51 @@ for ( const viewport of VIEWPORTS )
 
       const measured = await page.evaluate( () => window.__draft2Benchmark.snapshot() )
 
-      // Switching drafts is the public activation boundary. A short quiet window
-      // proves Draft 2 stops drawing, then the inverse switch proves it can resume.
-      await page.evaluate( () => window.__draft2Benchmark.resetLifecycle() )
-      await page.getByRole( 'button', { name: '01 3D POV' } ).click()
-      await expect( page.locator( '.draft-layer-webgl' ) ).not.toHaveClass( /is-active/ )
-      await page.waitForTimeout( 450 )
-      const inactive = await page.evaluate( () => window.__draft2Benchmark.snapshot().renderFrames )
+      // Switching drafts is the public lifecycle boundary. Three quiet/resume cycles
+      // must leave no renderer work behind and must retain the same GPU allocations.
+      const resourcesBeforeLifecycle = await readDraftDiagnostics( page )
+      expect( Number.isFinite( resourcesBeforeLifecycle.progress ) ).toBe( true )
+      expect( Number.isFinite( resourcesBeforeLifecycle.geometries ) ).toBe( true )
+      expect( Number.isFinite( resourcesBeforeLifecycle.textures ) ).toBe( true )
+      expect( Number.isFinite( resourcesBeforeLifecycle.programs ) ).toBe( true )
+      const lifecycleCycles = []
+      for ( let cycle = 0; cycle < 3; cycle += 1 )
+      {
+        await page.getByRole( 'button', { name: '01 3D POV' } ).click()
+        await expect( page.locator( '.draft-layer-webgl' ) ).not.toHaveClass( /is-active/ )
+        // Ignore the switch event itself; the contract is zero continued draws once
+        // the cancellation boundary has settled.
+        await page.waitForTimeout( 100 )
+        await page.evaluate( () => window.__draft2Benchmark.resetLifecycle() )
+        await page.waitForTimeout( 350 )
+        const inactiveRenderFrames = await page.evaluate( () => window.__draft2Benchmark.snapshot().renderFrames )
 
-      await page.getByRole( 'button', { name: '02 3D Break' } ).click()
-      await expect( page.locator( '.draft-layer-webgl' ) ).toHaveClass( /is-active/ )
-      await page.waitForTimeout( 450 )
-      const reactivated = await page.evaluate( () => window.__draft2Benchmark.snapshot().renderFrames )
+        await page.getByRole( 'button', { name: '02 3D Break' } ).click()
+        await expect( page.locator( '.draft-layer-webgl' ) ).toHaveClass( /is-active/ )
+        await page.waitForFunction( () => window.__draft2Benchmark.snapshot().renderFrames > 0 )
+        const resumed = await readDraftDiagnostics( page )
+        lifecycleCycles.push( { inactiveRenderFrames, resumed } )
+      }
+
+      // Restore a settled source playhead, then rotate. Resize must not restart it.
+      await driveStoryProgress( page, 0.76 )
+      await page.waitForTimeout( 350 )
+      const beforeResize = await readDraftDiagnostics( page )
+
+      // Browser resize emits a real viewport event. The retained playhead and restored
+      // device-selected tier prove the scheduler never restarts the story on rotation.
+      await page.setViewportSize( { width: viewport.height, height: viewport.width } )
+      await page.waitForTimeout( 500 )
+      const rotated = await readDraftDiagnostics( page )
+      await page.setViewportSize( { width: viewport.width, height: viewport.height } )
+      await page.waitForFunction( ( expectedQuality ) =>
+        document.querySelector( ".draft-layer-webgl" )?.dataset.webglQuality === expectedQuality,
+      resourcesBeforeLifecycle.quality )
+      const restored = await readDraftDiagnostics( page )
 
       const frameIntervals = measured.frameTimes.filter( Number.isFinite )
       const longTasks = measured.longTasks.filter( ( entry ) => Number.isFinite( entry.duration ) )
+      const budget = FRAME_BUDGETS[ viewport.name ]
       const report = {
         viewport,
         warmupMs: 900,
@@ -272,10 +320,21 @@ for ( const viewport of VIEWPORTS )
           entries: longTasks,
         },
         lifecycle: {
-          inactiveRenderFrames: inactive,
-          reactivatedRenderFrames: reactivated,
-          stoppedAfterDeactivate: inactive <= 2,
-          reactivatedAfterActivate: reactivated > 0,
+          cycles: lifecycleCycles,
+          inactiveRenderFrameBudget: INACTIVE_RENDER_FRAME_BUDGET,
+          stoppedAfterDeactivate: lifecycleCycles.every( ( cycle ) =>
+            cycle.inactiveRenderFrames <= INACTIVE_RENDER_FRAME_BUDGET,
+          ),
+          reactivatedAfterActivate: lifecycleCycles.every( ( cycle ) =>
+            cycle.resumed.geometries === resourcesBeforeLifecycle.geometries &&
+            cycle.resumed.textures === resourcesBeforeLifecycle.textures &&
+            cycle.resumed.programs === resourcesBeforeLifecycle.programs,
+          ),
+        },
+        resize: {
+          before: beforeResize,
+          rotated,
+          restored,
         },
         visualBaseline: {
           numberDiskBorder: 'captured in state screenshots for outline-removal comparison',
@@ -294,10 +353,24 @@ for ( const viewport of VIEWPORTS )
 
       expect( frameIntervals.length ).toBeGreaterThan( 20 )
       expect( measured.drawCalls ).toBeGreaterThan( 0 )
-      // Record the current lifecycle result for the optimization tickets; the
-      // certification ticket turns this baseline into an enforced stop budget.
-      expect( Number.isFinite( inactive ) ).toBe( true )
-      expect( reactivated ).toBeGreaterThan( 0 )
+      expect( median( frameIntervals ) ).toBeLessThanOrEqual( budget.medianMs )
+      expect( percentile( frameIntervals, 0.95 ) ).toBeLessThanOrEqual( budget.p95Ms )
+      expect( Math.max( 0, ...longTasks.map( ( entry ) => entry.duration ) ) )
+        .toBeLessThanOrEqual( MAX_LONG_TASK_MS )
+
+      lifecycleCycles.forEach( ( cycle ) =>
+      {
+        expect( cycle.inactiveRenderFrames ).toBeLessThanOrEqual( INACTIVE_RENDER_FRAME_BUDGET )
+        expect( cycle.resumed.geometries ).toBe( resourcesBeforeLifecycle.geometries )
+        expect( cycle.resumed.textures ).toBe( resourcesBeforeLifecycle.textures )
+        expect( cycle.resumed.programs ).toBe( resourcesBeforeLifecycle.programs )
+      } )
+      expect( rotated.progress ).toBeCloseTo( beforeResize.progress, 3 )
+      expect( restored.progress ).toBeCloseTo( beforeResize.progress, 3 )
+      expect( Number.isFinite( rotated.dprCap ) ).toBe( true )
+      expect( Number.isFinite( rotated.shadowMapSize ) ).toBe( true )
+      expect( restored.quality ).toBe( resourcesBeforeLifecycle.quality )
+      expect( restored.dprCap ).toBe( resourcesBeforeLifecycle.dprCap )
     }
     finally
     {
@@ -306,3 +379,41 @@ for ( const viewport of VIEWPORTS )
     }
   } )
 }
+
+test( "Draft 2 forced WebGL failure preserves fallback status and keyboard focus", async ( { browser, baseURL } ) =>
+{
+  const context = await browser.newContext( { viewport: { width: 1280, height: 800 } } )
+  const page = await context.newPage()
+
+  try
+  {
+    await page.addInitScript( () =>
+    {
+      const originalGetContext = HTMLCanvasElement.prototype.getContext
+      HTMLCanvasElement.prototype.getContext = function getContextWithoutWebgl ( contextType, ...args )
+      {
+        if ( [ "webgl", "webgl2", "experimental-webgl" ].includes( contextType ) ) return null
+        return originalGetContext.call( this, contextType, ...args )
+      }
+    } )
+    await page.goto( `${baseURL}/?draft=webgl&benchmark=draft2`, { waitUntil: "domcontentloaded" } )
+
+    const layer = page.locator( ".draft-layer-webgl" )
+    const status = page.getByRole( "status" )
+    await expect( layer ).toHaveAttribute( "data-webgl-error", "true" )
+    await expect( layer ).toHaveAttribute( "aria-hidden", "false" )
+    await expect( status ).toContainText( "3D draft unavailable on this device" )
+    await expect( status ).toBeVisible()
+
+    // The switcher stays outside the artwork and remains reachable when Draft 2 falls back.
+    const povButton = page.getByRole( "button", { name: "01 3D POV" } )
+    await page.keyboard.press( "Tab" )
+    await povButton.focus()
+    await expect( povButton ).toBeFocused()
+    await expect( povButton ).toHaveCSS( "outline-style", "solid" )
+  }
+  finally
+  {
+    await context.close()
+  }
+} )
