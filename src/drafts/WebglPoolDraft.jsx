@@ -442,7 +442,7 @@ const createRoomFloorGeometry = () =>
   return new THREE.ShapeGeometry( shape, 32 )
 }
 
-const buildScene = ( canvas, simulation ) =>
+const buildScene = ( canvas, simulation, onTextureReady ) =>
 {
   const scene = new THREE.Scene()
   scene.background = new THREE.Color( '#040605' )
@@ -712,7 +712,8 @@ const buildScene = ( canvas, simulation ) =>
   const disposableMaterials = []
 
   // Cue / Striker 8-Ball with double-sided front and back brand decals
-  const logoTexture = createLogoTexture( maxAnisotropy )
+  // Texture readiness is a render invalidation, so the scheduler can repaint once the logo is available.
+  const logoTexture = createLogoTexture( maxAnisotropy, onTextureReady )
   const strikerGroup = new THREE.Group()
   const strikerMaterial = createBallMaterial( '#070807', null )
   disposableMaterials.push( strikerMaterial )
@@ -922,10 +923,20 @@ export function WebglPoolDraft ( {
     let pointerY = 0
     let pointerTargetX = 0
     let pointerTargetY = 0
+    let resizePending = true
+    let destroyed = false
+    let renderFrame = () => {}
+
+    // One RAF owns every WebGL repaint; callers only mark the latest state dirty.
+    const requestRender = () =>
+    {
+      if ( destroyed || failed || !world || !isActive || frame ) return
+      frame = window.requestAnimationFrame( renderFrame )
+    }
 
     try
     {
-      world = buildScene( canvas, simulation )
+      world = buildScene( canvas, simulation, requestRender )
       root.dataset.webglError = 'false'
     }
     catch ( error )
@@ -1017,27 +1028,10 @@ export function WebglPoolDraft ( {
       canvas.style.opacity = String( 1 - exitProgress )
     }
 
-    const loop = () =>
-    {
-      if ( !isActive || failed )
-      {
-        frame = 0
-        return
-      }
-
-      pointerX += ( pointerTargetX - pointerX ) * 0.045
-      pointerY += ( pointerTargetY - pointerY ) * 0.045
-      renderScene()
-      world.render()
-      frame = window.requestAnimationFrame( loop )
-    }
-
     const updateScene = ( nextProgress ) =>
     {
       progress = clamp( nextProgress )
-      if ( failed || !world ) return
-      renderScene()
-      world.render()
+      requestRender()
     }
 
     const handlePointerMove = ( event ) =>
@@ -1045,19 +1039,37 @@ export function WebglPoolDraft ( {
       if ( !isActive ) return
       pointerTargetX = ( event.clientX / window.innerWidth - 0.5 ) * 2
       pointerTargetY = ( event.clientY / window.innerHeight - 0.5 ) * -2
+      requestRender()
     }
 
     const handleResize = () =>
     {
-      world?.resize()
-      renderScene()
-      world?.render()
+      resizePending = true
+      requestRender()
     }
 
-    const startLoop = () =>
+    // Stop requesting frames when parallax is visually settled; the tolerance avoids sub-pixel churn.
+    const pointerSettleTolerance = 0.0015
+    renderFrame = () =>
     {
-      if ( !isActive || failed || frame ) return
-      frame = window.requestAnimationFrame( loop )
+      frame = 0
+      if ( destroyed || !isActive || failed || !world ) return
+
+      if ( resizePending )
+      {
+        world.resize()
+        resizePending = false
+      }
+
+      pointerX += ( pointerTargetX - pointerX ) * 0.045
+      pointerY += ( pointerTargetY - pointerY ) * 0.045
+      renderScene()
+      world.render()
+
+      const pointerSettled =
+        Math.abs( pointerTargetX - pointerX ) <= pointerSettleTolerance &&
+        Math.abs( pointerTargetY - pointerY ) <= pointerSettleTolerance
+      if ( !pointerSettled ) requestRender()
     }
 
     const controller = {
@@ -1070,17 +1082,17 @@ export function WebglPoolDraft ( {
         isActive = nextActive
         root.classList.toggle( 'is-active', nextActive )
         root.setAttribute( 'aria-hidden', String( !nextActive ) )
-        if ( nextActive )
+        if ( !nextActive )
         {
-          startLoop()
-        }
-        else if ( frame )
-        {
-          window.cancelAnimationFrame( frame )
+          if ( frame ) window.cancelAnimationFrame( frame )
           frame = 0
           pointerTargetX = 0
           pointerTargetY = 0
+          return
         }
+
+        // Activation paints the latest progress on the next frame, then idles again when settled.
+        requestRender()
       },
     }
 
@@ -1093,12 +1105,12 @@ export function WebglPoolDraft ( {
       window.addEventListener( 'resize', handleResize )
       window.addEventListener( 'pointermove', handlePointerMove, { passive: true } )
     }
-    world?.resize()
-    updateScene( progress )
 
     return () =>
     {
+      destroyed = true
       if ( frame ) window.cancelAnimationFrame( frame )
+      frame = 0
       if ( world )
       {
         window.removeEventListener( 'resize', handleResize )
