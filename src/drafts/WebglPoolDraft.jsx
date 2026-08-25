@@ -6,7 +6,6 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
 import { SSAOPass } from 'three/addons/postprocessing/SSAOPass.js'
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js'
 import brandLogo from '../assets/8BALL-V4.jpg'
 
@@ -21,6 +20,154 @@ import {
 
 const clamp = ( value, min = 0, max = 1 ) => Math.min( max, Math.max( min, value ) )
 const lerp = ( start, end, progress ) => start + ( end - start ) * progress
+
+// Three measured tiers spend pixels and full-screen effects according to the device budget.
+// These caps only change internal render targets; the CSS canvas and camera framing stay fixed.
+const DRAFT2_QUALITY_TIERS = Object.freeze( {
+  high: Object.freeze( {
+    id: 'high',
+    pixelRatioCap: 1.5,
+    shadowMapSize: 2048,
+    useSsao: true,
+    renderBudgetMs: 20,
+  } ),
+  standard: Object.freeze( {
+    id: 'standard',
+    pixelRatioCap: 1.25,
+    shadowMapSize: 1536,
+    useSsao: true,
+    renderBudgetMs: 24,
+  } ),
+  low: Object.freeze( {
+    id: 'low',
+    pixelRatioCap: 1,
+    shadowMapSize: 1024,
+    useSsao: false,
+    renderBudgetMs: 32,
+  } ),
+} )
+
+const QUALITY_ORDER = [ 'low', 'standard', 'high' ]
+
+const getQualityRank = ( tierId ) => QUALITY_ORDER.indexOf( tierId )
+
+const getDraft2QualitySignals = ( width, height ) =>
+{
+  const coarsePointer = window.matchMedia( '(pointer: coarse)' ).matches
+  const deviceMemory = Number.isFinite( navigator.deviceMemory ) ? navigator.deviceMemory : null
+  const hardwareConcurrency = Number.isFinite( navigator.hardwareConcurrency )
+    ? navigator.hardwareConcurrency
+    : null
+  const saveData = Boolean( navigator.connection?.saveData )
+  const isSmallViewport = width <= 768 || Math.min( width, height ) <= 640
+  const lowPower = saveData || deviceMemory !== null && deviceMemory <= 4 || hardwareConcurrency !== null && hardwareConcurrency <= 4
+
+  return {
+    width,
+    height,
+    devicePixelRatio: window.devicePixelRatio || 1,
+    coarsePointer,
+    deviceMemory,
+    hardwareConcurrency,
+    saveData,
+    isSmallViewport,
+    lowPower,
+  }
+}
+
+// Pick an initial tier from observable signals, then let measured render time refine it.
+// Browser names are deliberately absent: viewport, density, input mode, and power hints are portable.
+const selectDraft2QualityTier = ( signals ) =>
+{
+  if ( signals.coarsePointer || signals.isSmallViewport || signals.lowPower ) return 'low'
+  if (
+    signals.width >= 1200 &&
+    signals.devicePixelRatio <= 1.5 &&
+    ( signals.deviceMemory === null || signals.deviceMemory >= 8 ) &&
+    ( signals.hardwareConcurrency === null || signals.hardwareConcurrency >= 8 )
+  ) return 'high'
+  return 'standard'
+}
+
+const createQualityMonitor = ( initialTier, signals, applyTier ) =>
+{
+  let currentTier = initialTier
+  let pendingTier = null
+  let slowSamples = 0
+  let healthySamples = 0
+  const renderDurations = []
+  const upgradesLocked = signals.coarsePointer || signals.isSmallViewport || signals.lowPower
+
+  const setPendingTier = ( nextTier ) =>
+  {
+    if ( nextTier === currentTier )
+    {
+      pendingTier = null
+      return
+    }
+    pendingTier = nextTier
+  }
+
+  const suggestFromSignals = ( nextSignals ) =>
+  {
+    const suggestedTier = selectDraft2QualityTier( nextSignals )
+    const currentRank = getQualityRank( currentTier )
+    const suggestedRank = getQualityRank( suggestedTier )
+
+    // A resize can lower quality immediately at the next settled frame, but never raises
+    // a mobile/low-power device into an SSAO tier just because a single frame was quick.
+    if ( suggestedRank < currentRank || !upgradesLocked ) setPendingTier( suggestedTier )
+  }
+
+  const commitPending = ( sceneSettled ) =>
+  {
+    if ( !pendingTier || !sceneSettled ) return false
+    currentTier = pendingTier
+    pendingTier = null
+    slowSamples = 0
+    healthySamples = 0
+    renderDurations.length = 0
+    applyTier( currentTier )
+    return true
+  }
+
+  const observe = ( durationMs, sceneSettled ) =>
+  {
+    if ( !Number.isFinite( durationMs ) ) return commitPending( sceneSettled )
+    renderDurations.push( durationMs )
+    if ( renderDurations.length > 12 ) renderDurations.shift()
+    if ( renderDurations.length < 8 ) return commitPending( sceneSettled )
+
+    const tier = DRAFT2_QUALITY_TIERS[ currentTier ]
+    const average = renderDurations.reduce( ( total, duration ) => total + duration, 0 ) / renderDurations.length
+    if ( average > tier.renderBudgetMs * 1.18 && getQualityRank( currentTier ) > getQualityRank( 'low' ) )
+    {
+      slowSamples += 1
+      healthySamples = 0
+      if ( slowSamples >= 6 ) setPendingTier( QUALITY_ORDER[ getQualityRank( currentTier ) - 1 ] )
+    }
+    else if ( average < tier.renderBudgetMs * 0.62 && getQualityRank( currentTier ) < getQualityRank( 'high' ) && !upgradesLocked )
+    {
+      healthySamples += 1
+      slowSamples = 0
+      if ( healthySamples >= 24 ) setPendingTier( QUALITY_ORDER[ getQualityRank( currentTier ) + 1 ] )
+    }
+    else
+    {
+      slowSamples = 0
+      healthySamples = 0
+    }
+
+    return commitPending( sceneSettled )
+  }
+
+  return {
+    get current () { return currentTier },
+    get pending () { return Boolean( pendingTier ) },
+    observe,
+    suggestFromSignals,
+  }
+}
 
 const BALL_COLORS = [
   '#f5b818', '#1b46a2', '#cb242a', '#59287a', '#e76317',
@@ -439,7 +586,7 @@ const createRoomFloorGeometry = () =>
   return new THREE.ShapeGeometry( shape, 32 )
 }
 
-const buildScene = ( canvas, simulation, onTextureReady ) =>
+const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
 {
   const scene = new THREE.Scene()
   scene.background = new THREE.Color( '#040605' )
@@ -464,6 +611,10 @@ const buildScene = ( canvas, simulation, onTextureReady ) =>
   renderer.shadowMap.type = THREE.PCFShadowMap
 
   const maxAnisotropy = Math.min( 16, renderer.capabilities.getMaxAnisotropy() )
+  const initialWidth = canvas.clientWidth || window.innerWidth
+  const initialHeight = canvas.clientHeight || window.innerHeight
+  const initialQualitySignals = getDraft2QualitySignals( initialWidth, initialHeight )
+  const initialQualityTier = selectDraft2QualityTier( initialQualitySignals )
   const environmentTarget = createWarmStudioEnvironment( renderer )
   scene.environment = environmentTarget.texture
   // Keep indirect studio reflections present without reintroducing the washed-out felt baseline.
@@ -826,29 +977,79 @@ const buildScene = ( canvas, simulation, onTextureReady ) =>
   rimLight.target.position.set( 0, 0, -3 )
   scene.add( rimLight, rimLight.target )
 
-  // Post-Processing Pipeline: SSAO + Bloom + Output
-  const composer = new EffectComposer( renderer )
-  const renderPass = new RenderPass( scene, camera )
-  const ssaoPass = new SSAOPass( scene, camera, 1, 1, 32 )
-  ssaoPass.kernelRadius = 14
-  ssaoPass.minDistance = 0.001
-  ssaoPass.maxDistance = 0.18
-  const bloomPass = new UnrealBloomPass( new THREE.Vector2( 1, 1 ), 0.025, 0.22, 0.98 )
-  const outputPass = new OutputPass()
-  composer.addPass( renderPass )
-  composer.addPass( ssaoPass )
-  composer.addPass( bloomPass )
-  composer.addPass( outputPass )
+  // Bloom was near-zero but still paid for a full-screen pass. Removing it keeps the
+  // existing exposure and lighting balance while preserving the physically grounded image.
+  const createComposer = () =>
+  {
+    const nextComposer = new EffectComposer( renderer )
+    const renderPass = new RenderPass( scene, camera )
+    const nextSsaoPass = new SSAOPass( scene, camera, 1, 1, 32 )
+    nextSsaoPass.kernelRadius = 14
+    nextSsaoPass.minDistance = 0.001
+    nextSsaoPass.maxDistance = 0.18
+    const outputPass = new OutputPass()
+    nextComposer.addPass( renderPass )
+    nextComposer.addPass( nextSsaoPass )
+    nextComposer.addPass( outputPass )
+    return { composer: nextComposer, ssaoPass: nextSsaoPass }
+  }
+
+  let composer = null
+  let ssaoPass = null
+  let qualityTierId = initialQualityTier
+
+  const applyQualityTier = ( nextTierId ) =>
+  {
+    const tier = DRAFT2_QUALITY_TIERS[ nextTierId ]
+    qualityTierId = tier.id
+
+    // Rebuild the shadow target only when a settled quality change is applied; tuned bias
+    // and normal-bias values remain untouched so balls stay grounded at every tier.
+    if ( keyLight.shadow.map )
+    {
+      keyLight.shadow.map.dispose()
+      keyLight.shadow.map = null
+    }
+    keyLight.shadow.mapSize.set( tier.shadowMapSize, tier.shadowMapSize )
+    keyLight.shadow.needsUpdate = true
+    renderer.shadowMap.needsUpdate = true
+
+    if ( tier.useSsao )
+    {
+      if ( !composer )
+      {
+        const pipeline = createComposer()
+        composer = pipeline.composer
+        ssaoPass = pipeline.ssaoPass
+      }
+      ssaoPass.enabled = true
+    }
+    else
+    {
+      // Low/mobile tiers render directly. No composer or disabled pass is paid for here.
+      composer?.dispose()
+      composer = null
+      ssaoPass = null
+    }
+
+    onQualityState?.( {
+      id: tier.id,
+      pixelRatioCap: tier.pixelRatioCap,
+      shadowMapSize: tier.shadowMapSize,
+      ssao: tier.useSsao,
+    } )
+  }
+
+  applyQualityTier( initialQualityTier )
+  const qualityMonitor = createQualityMonitor( initialQualityTier, initialQualitySignals, applyQualityTier )
 
   const resize = () =>
   {
     const width = canvas.clientWidth || window.innerWidth
     const height = canvas.clientHeight || window.innerHeight
-    const isMobile = width <= 768 || window.matchMedia( '(pointer: coarse)' ).matches
-
-    // Mobile performance guardrail: bypass heavy SSAO and cap DPR on mobile GPUs
-    ssaoPass.enabled = !isMobile
-    const pixelRatioCap = isMobile ? 1.5 : 1.75
+    const signals = getDraft2QualitySignals( width, height )
+    qualityMonitor.suggestFromSignals( signals )
+    const pixelRatioCap = DRAFT2_QUALITY_TIERS[ qualityTierId ].pixelRatioCap
     const pixelRatio = Math.min( window.devicePixelRatio || 1, pixelRatioCap )
 
     camera.aspect = width / height
@@ -856,11 +1057,15 @@ const buildScene = ( canvas, simulation, onTextureReady ) =>
     camera.updateProjectionMatrix()
     renderer.setPixelRatio( pixelRatio )
     renderer.setSize( width, height, false )
-    composer.setPixelRatio( pixelRatio )
-    composer.setSize( width, height )
+    composer?.setPixelRatio( pixelRatio )
+    composer?.setSize( width, height )
   }
 
-  const render = () => composer.render()
+  const render = () =>
+  {
+    if ( composer ) composer.render()
+    else renderer.render( scene, camera )
+  }
 
   const dispose = () =>
   {
@@ -874,7 +1079,7 @@ const buildScene = ( canvas, simulation, onTextureReady ) =>
       }
     } )
     disposableMaterials.forEach( ( m ) => m.dispose() )
-    composer.dispose()
+    composer?.dispose()
     environmentTarget.dispose()
     renderer.dispose()
   }
@@ -886,6 +1091,15 @@ const buildScene = ( canvas, simulation, onTextureReady ) =>
     renderer,
     resize,
     render,
+    // Scheduler-owned frame timing feeds measured quality changes without creating a second loop.
+    observeRender ( durationMs, sceneSettled )
+    {
+      return qualityMonitor.observe( durationMs, sceneSettled )
+    },
+    hasPendingQuality ()
+    {
+      return qualityMonitor.pending
+    },
     dispose,
   }
 }
@@ -923,6 +1137,8 @@ export function WebglPoolDraft ( {
     let resizePending = true
     let destroyed = false
     let renderFrame = () => {}
+    let lastRenderedProgress = null
+    let stableProgressFrames = 0
 
     // One RAF owns every WebGL repaint; callers only mark the latest state dirty.
     const requestRender = () =>
@@ -933,7 +1149,15 @@ export function WebglPoolDraft ( {
 
     try
     {
-      world = buildScene( canvas, simulation, requestRender )
+      world = buildScene( canvas, simulation, requestRender, ( qualityState ) =>
+      {
+        // Dataset diagnostics make the active budget visible to browser acceptance tests
+        // without coupling those tests to Three.js internals.
+        root.dataset.webglQuality = qualityState.id
+        root.dataset.webglDprCap = String( qualityState.pixelRatioCap )
+        root.dataset.webglSsao = String( qualityState.ssao )
+        root.dataset.webglShadowMap = String( qualityState.shadowMapSize )
+      } )
       root.dataset.webglError = 'false'
     }
     catch ( error )
@@ -1058,15 +1282,28 @@ export function WebglPoolDraft ( {
         resizePending = false
       }
 
+      const progressChanged = lastRenderedProgress === null || Math.abs( progress - lastRenderedProgress ) > 0.0005
+      stableProgressFrames = progressChanged ? 0 : stableProgressFrames + 1
       pointerX += ( pointerTargetX - pointerX ) * 0.045
       pointerY += ( pointerTargetY - pointerY ) * 0.045
+      const renderStartedAt = performance.now()
       renderScene()
       world.render()
+      const renderDurationMs = performance.now() - renderStartedAt
+      lastRenderedProgress = progress
 
       const pointerSettled =
         Math.abs( pointerTargetX - pointerX ) <= pointerSettleTolerance &&
         Math.abs( pointerTargetY - pointerY ) <= pointerSettleTolerance
-      if ( !pointerSettled ) requestRender()
+      const sceneSettled = stableProgressFrames >= 4 && pointerSettled && !resizePending
+      if ( world.observeRender( renderDurationMs, sceneSettled ) )
+      {
+        // Apply a pending tier only after motion settles; the next scheduler frame picks up
+        // the new DPR/effects/shadow target without popping during a swipe or break gesture.
+        resizePending = true
+        requestRender()
+      }
+      if ( !pointerSettled || world.hasPendingQuality() ) requestRender()
     }
 
     const controller = {
