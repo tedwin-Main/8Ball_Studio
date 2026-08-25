@@ -70,16 +70,13 @@ const createPoolBallTexture = ( color, number, anisotropy = 16 ) =>
     context.fillRect( 0, 318, canvas.width, 388 )
   }
 
-  // Dual opposing number disks so the number remains legible as the ball rolls
+  // Dual opposing number disks stay legible through print contrast and physical lighting, without a painted contour.
   ;[ 512, 1536 ].forEach( ( centerX ) =>
   {
     context.fillStyle = '#f7f4ec'
     context.beginPath()
     context.arc( centerX, 512, 136, 0, Math.PI * 2 )
     context.fill()
-    context.strokeStyle = 'rgba(15, 15, 12, 0.18)'
-    context.lineWidth = 6
-    context.stroke()
     context.fillStyle = '#0a0d0b'
     context.font = '800 148px Arial, sans-serif'
     context.textAlign = 'center'
