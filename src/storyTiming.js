@@ -47,7 +47,8 @@ export const STORY_TIMING_DEFAULTS = freeze( {
   } ),
   intro: freeze( {
     // Draft 1 cue values keep the first swipe parked behind the 8-ball.
-    cueReady: 0.24,
+    // Duration from story start to the cue-ready checkpoint.
+    cueReadyDuration: 0.24,
     cueReleaseEpsilon: 0.002,
     // Shared approach and Draft 1 break timings are timeline progress units.
     approachDuration: 0.52,
@@ -68,7 +69,7 @@ export const STORY_TIMING_DEFAULTS = freeze( {
     cueFadeDelay: 0.2,
     cueFadeDuration: 0.14,
     cueHideThreshold: 0.004,
-    // Small GSAP beats stay here so the entire visible intro can be tuned from one file.
+    // Small GSAP beats stay here as duration/delay controls; starts are derived below.
     visual: freeze( {
       tableOpenDuration: 0.42,
       heroFadeDelay: 0.03,
@@ -76,29 +77,23 @@ export const STORY_TIMING_DEFAULTS = freeze( {
       promptFadeDelay: 0.05,
       promptFadeDuration: 0.2,
       cameraGridDuration: 0.7,
-      draft2TableSettleProgress: 0.04,
-      cueApproachStart: 0.34,
+      draft2SettleDuration: 0.04,
       cueApproachDuration: 0.18,
-      tableScaleStart: 0.42,
+      tableScaleLeadDuration: 0.1,
       tableScaleDuration: 0.26,
-      cueStrikeStart: 0.54,
+      cueStrikeDelay: 0.02,
       cueStrikeDuration: 0.08,
-      ballCompressStart: 0.56,
+      ballCompressDelay: 0.02,
       ballCompressDuration: 0.04,
-      ballRestoreStart: 0.6,
       ballRestoreDuration: 0.05,
-      cueRecoilStart: 0.62,
       cueRecoilDuration: 0.14,
-      ballPocketStart: 0.64,
+      ballPocketDelay: 0.02,
       ballPocketDuration: 0.14,
-      ballVanishStart: 0.78,
       ballVanishDuration: 0.04,
-      pocketIrisStart: 0.82,
       pocketIrisDuration: 0.18,
-      titleLineStart: 0.82,
       titleLineDuration: 0.1,
       titleLineStagger: 0.012,
-      metaStart: 0.88,
+      metaDelay: 0.06,
       metaDuration: 0.06,
       timelineEndEpsilon: 0.005,
     } ),
@@ -165,6 +160,21 @@ const validateSchedule = ( schedule ) =>
     throw new RangeError( 'both intro handoffs must finish before Projects.' )
   }
 
+  if ( schedule.pages.projectsFadeEnd > schedule.pages.projectsStable || schedule.pages.projectsTitleStart > schedule.pages.projectsStable )
+  {
+    throw new RangeError( 'Projects content must finish before its stable mark.' )
+  }
+
+  if ( schedule.pages.contactFadeEnd > schedule.pages.contactStable )
+  {
+    throw new RangeError( 'Contact fade must finish before its stable mark.' )
+  }
+
+  if ( schedule.pages.contactTitleStart > schedule.pages.contactStable || schedule.pages.contactItemsStart > schedule.pages.contactStable )
+  {
+    throw new RangeError( 'Contact content must start before its stable mark.' )
+  }
+
   const milestones = [
     schedule.pages.studioStart,
     schedule.pages.cinematicStudioStart,
@@ -184,16 +194,6 @@ const validateSchedule = ( schedule ) =>
   if ( milestones.some( ( value ) => value > schedule.totalTimelineUnits ) )
   {
     throw new RangeError( 'page schedule must fit inside totalTimelineUnits.' )
-  }
-
-  if ( schedule.pages.projectsFadeEnd > schedule.pages.projectsStable )
-  {
-    throw new RangeError( 'Projects fade must finish before its stable mark.' )
-  }
-
-  if ( schedule.pages.contactTitleStart > schedule.pages.contactStable || schedule.pages.contactItemsStart > schedule.pages.contactStable )
-  {
-    throw new RangeError( 'Contact content must start before its stable mark.' )
   }
 
   if ( schedule.pages.timelineEndStart < 0 )
@@ -234,7 +234,7 @@ export const resolveStoryTiming = ( overrides = {} ) =>
     finiteNonNegative( value, `pages.${name}` )
   } )
 
-  const cueReady = assertProgress( input.intro.cueReady, 'intro.cueReady' )
+  const cueReady = assertProgress( input.intro.cueReadyDuration, 'intro.cueReadyDuration' )
   const approachEnd = assertProgress( input.intro.approachDuration, 'intro.approachDuration' )
   const impact = approachEnd
   const draft1TransitionReady = assertProgress(
@@ -267,7 +267,7 @@ export const resolveStoryTiming = ( overrides = {} ) =>
   )
   if ( cueReady > approachEnd )
   {
-    throw new RangeError( 'intro.cueReady must occur before impact.' )
+    throw new RangeError( 'intro.cueReadyDuration must occur before impact.' )
   }
   const cueRelease = assertProgress(
     cueReady + input.intro.cueReleaseEpsilon,
@@ -282,30 +282,45 @@ export const resolveStoryTiming = ( overrides = {} ) =>
   assertWindow( cueReady, cueStrikeProgress, 'cue strike' )
   assertWindow( cueReady + input.intro.cueRecoilDelay, cueRecoilProgress, 'cue recoil' )
   assertWindow( cueReady + input.intro.cueFadeDelay, cueFadeDuration, 'cue fade' )
-  Object.entries( input.intro.visual ).forEach( ( [ name, value ] ) =>
-  {
-    if ( name.endsWith( 'Start' ) || name.endsWith( 'Progress' ) || name.endsWith( 'Threshold' ) )
-    {
-      assertProgress( value, `intro.visual.${name}` )
-    }
-  } )
   const visual = input.intro.visual
+  const cueStrikeStart = impact + visual.cueStrikeDelay
+  const ballCompressStart = cueStrikeStart + visual.ballCompressDelay
+  const ballRestoreStart = ballCompressStart + visual.ballCompressDuration
+  const cueRecoilStart = cueStrikeStart + visual.cueStrikeDuration
+  const ballPocketStart = cueRecoilStart + visual.ballPocketDelay
+  const ballVanishStart = ballPocketStart + visual.ballPocketDuration
+  const pocketIrisStart = ballVanishStart + visual.ballVanishDuration
+  const visualSchedule = {
+    ...visual,
+    draft2TableSettleProgress: visual.draft2SettleDuration,
+    cueApproachStart: approachEnd - visual.cueApproachDuration,
+    tableScaleStart: approachEnd - visual.tableScaleLeadDuration,
+    cueStrikeStart,
+    ballCompressStart,
+    ballRestoreStart,
+    cueRecoilStart,
+    ballPocketStart,
+    ballVanishStart,
+    pocketIrisStart,
+    titleLineStart: pocketIrisStart,
+    metaStart: pocketIrisStart + visual.metaDelay,
+  }
   ;[
     [ 'table open', 0, visual.tableOpenDuration ],
     [ 'hero fade', visual.heroFadeDelay, visual.heroFadeDuration ],
     [ 'scroll prompt fade', visual.promptFadeDelay, visual.promptFadeDuration ],
     [ 'camera grid', 0, visual.cameraGridDuration ],
-    [ 'cue approach', visual.cueApproachStart, visual.cueApproachDuration ],
-    [ 'table scale', visual.tableScaleStart, visual.tableScaleDuration ],
-    [ 'cue strike', visual.cueStrikeStart, visual.cueStrikeDuration ],
-    [ 'ball compress', visual.ballCompressStart, visual.ballCompressDuration ],
-    [ 'ball restore', visual.ballRestoreStart, visual.ballRestoreDuration ],
-    [ 'cue recoil', visual.cueRecoilStart, visual.cueRecoilDuration ],
-    [ 'ball pocket', visual.ballPocketStart, visual.ballPocketDuration ],
-    [ 'ball vanish', visual.ballVanishStart, visual.ballVanishDuration ],
-    [ 'pocket iris', visual.pocketIrisStart, visual.pocketIrisDuration ],
-    [ 'title line', visual.titleLineStart, visual.titleLineDuration ],
-    [ 'final meta', visual.metaStart, visual.metaDuration ],
+    [ 'cue approach', visualSchedule.cueApproachStart, visual.cueApproachDuration ],
+    [ 'table scale', visualSchedule.tableScaleStart, visual.tableScaleDuration ],
+    [ 'cue strike', visualSchedule.cueStrikeStart, visual.cueStrikeDuration ],
+    [ 'ball compress', visualSchedule.ballCompressStart, visual.ballCompressDuration ],
+    [ 'ball restore', visualSchedule.ballRestoreStart, visual.ballRestoreDuration ],
+    [ 'cue recoil', visualSchedule.cueRecoilStart, visual.cueRecoilDuration ],
+    [ 'ball pocket', visualSchedule.ballPocketStart, visual.ballPocketDuration ],
+    [ 'ball vanish', visualSchedule.ballVanishStart, visual.ballVanishDuration ],
+    [ 'pocket iris', visualSchedule.pocketIrisStart, visual.pocketIrisDuration ],
+    [ 'title line', visualSchedule.titleLineStart, visual.titleLineDuration ],
+    [ 'final meta', visualSchedule.metaStart, visual.metaDuration ],
     [ 'intro tail', 1 - visual.timelineEndEpsilon, visual.timelineEndEpsilon ],
   ].forEach( ( [ name, start, duration ] ) => assertWindow( start, duration, name ) )
   const projectsStart = 1 + finiteNonNegative( input.pages.studioHold, 'pages.studioHold' )
@@ -346,7 +361,7 @@ export const resolveStoryTiming = ( overrides = {} ) =>
     } ),
     intro: freeze( {
       ...input.intro,
-      visual: freeze( input.intro.visual ),
+      visual: freeze( visualSchedule ),
       approachEnd,
       impact,
       draft1: freeze( {

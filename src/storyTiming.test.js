@@ -62,4 +62,12 @@ test( 'rejects invalid duration contracts', () =>
     () => resolveStoryTiming( { pages: { timelineEndEpsilon: 4 } } ),
     /timelineEndEpsilon/,
   )
+  assert.throws(
+    () => resolveStoryTiming( { pages: { projectsTitleDelay: 1.2 } } ),
+    /Projects content/,
+  )
+  assert.throws(
+    () => resolveStoryTiming( { pages: { contactFadeDuration: 1 } } ),
+    /Contact fade/,
+  )
 } )
