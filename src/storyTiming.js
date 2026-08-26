@@ -72,7 +72,7 @@ export const STORY_TIMING_DEFAULTS = freeze( {
     cueRecoilProgress: 0.16,
     cueFadeDelay: 0.2,
     cueFadeDuration: 0.14,
-    cueHideDuration: 0.004,
+    cueHideProgress: 0.004,
     // Small GSAP beats stay here as duration/delay controls; starts are derived below.
     visual: freeze( {
       tableOpenDuration: 0.42,
@@ -292,7 +292,7 @@ export const resolveStoryTiming = ( overrides = {} ) =>
   const cueFadeDuration = assertPositive( input.intro.cueFadeDuration, 'intro.cueFadeDuration' )
   assertProgress( input.intro.cueRecoilDelay, 'intro.cueRecoilDelay' )
   assertProgress( input.intro.cueFadeDelay, 'intro.cueFadeDelay' )
-  const cueHideDuration = assertProgress( input.intro.cueHideDuration, 'intro.cueHideDuration' )
+  const cueHideProgress = assertProgress( input.intro.cueHideProgress, 'intro.cueHideProgress' )
   assertWindow( cueReady, cueStrikeProgress, 'cue strike' )
   assertWindow( cueReady + input.intro.cueRecoilDelay, cueRecoilProgress, 'cue recoil' )
   assertWindow( cueReady + input.intro.cueFadeDelay, cueFadeDuration, 'cue fade' )
@@ -383,7 +383,7 @@ export const resolveStoryTiming = ( overrides = {} ) =>
       recoilProgress: cueRecoilProgress,
       fadeDelay: input.intro.cueFadeDelay,
       fadeDuration: cueFadeDuration,
-      hideThreshold: cueHideDuration,
+      hideThreshold: cueHideProgress,
     } ),
     intro: freeze( {
       ...input.intro,
