@@ -30,6 +30,10 @@ const assertWindow = ( start, duration, name ) =>
   assertProgress( start + duration, `${name} end` )
 }
 
+// These counts mirror the fixed title spans and contact cards rendered by App.jsx.
+const PROJECTS_TITLE_LINE_COUNT = 2
+const CONTACT_TITLE_LINE_COUNT = 2
+const CONTACT_ITEM_COUNT = 3
 const freeze = ( value ) => Object.freeze( value )
 
 // Edit these semantic values while Vite is running; all dependent progress is derived below.
@@ -68,7 +72,7 @@ export const STORY_TIMING_DEFAULTS = freeze( {
     cueRecoilProgress: 0.16,
     cueFadeDelay: 0.2,
     cueFadeDuration: 0.14,
-    cueHideThreshold: 0.004,
+    cueHideDuration: 0.004,
     // Small GSAP beats stay here as duration/delay controls; starts are derived below.
     visual: freeze( {
       tableOpenDuration: 0.42,
@@ -77,7 +81,7 @@ export const STORY_TIMING_DEFAULTS = freeze( {
       promptFadeDelay: 0.05,
       promptFadeDuration: 0.2,
       cameraGridDuration: 0.7,
-      draft2SettleDuration: 0.04,
+      draft2TableSettleProgress: 0.04,
       cueApproachDuration: 0.18,
       tableScaleLeadDuration: 0.1,
       tableScaleDuration: 0.26,
@@ -147,6 +151,7 @@ const validateSchedule = ( schedule ) =>
 
   const starts = [
     schedule.pages.studioStart,
+    schedule.pages.draft2StudioStart,
     schedule.pages.projectsStart,
     schedule.pages.contactStart,
   ]
@@ -160,7 +165,12 @@ const validateSchedule = ( schedule ) =>
     throw new RangeError( 'both intro handoffs must finish before Projects.' )
   }
 
-  if ( schedule.pages.projectsFadeEnd > schedule.pages.projectsStable || schedule.pages.projectsTitleStart > schedule.pages.projectsStable )
+  if ( schedule.pages.draft2StudioStart <= schedule.pages.studioStart || schedule.pages.draft2StudioStart >= schedule.pages.projectsStart )
+  {
+    throw new RangeError( "Draft 2 Studio threshold must stay between its handoff and Projects." )
+  }
+
+  if ( schedule.pages.projectsFadeEnd > schedule.pages.projectsStable || schedule.pages.projectsTitleEnd > schedule.pages.projectsStable )
   {
     throw new RangeError( 'Projects content must finish before its stable mark.' )
   }
@@ -170,25 +180,29 @@ const validateSchedule = ( schedule ) =>
     throw new RangeError( 'Contact fade must finish before its stable mark.' )
   }
 
-  if ( schedule.pages.contactTitleStart > schedule.pages.contactStable || schedule.pages.contactItemsStart > schedule.pages.contactStable )
+  if ( schedule.pages.contactTitleEnd > schedule.pages.contactStable || schedule.pages.contactItemsEnd > schedule.pages.contactStable )
   {
-    throw new RangeError( 'Contact content must start before its stable mark.' )
+    throw new RangeError( 'Contact content must finish before its stable mark.' )
   }
 
   const milestones = [
     schedule.pages.studioStart,
+    schedule.pages.draft2StudioStart,
     schedule.pages.cinematicStudioStart,
     schedule.pages.projectsStart,
     schedule.pages.contactStart,
     schedule.pages.projectsFadeStart,
     schedule.pages.projectsFadeEnd,
     schedule.pages.projectsTitleStart,
+    schedule.pages.projectsTitleEnd,
     schedule.pages.contactRevealEnd,
     schedule.pages.contactStable,
     schedule.pages.contactFadeStart,
     schedule.pages.contactFadeEnd,
     schedule.pages.contactTitleStart,
+    schedule.pages.contactTitleEnd,
     schedule.pages.contactItemsStart,
+    schedule.pages.contactItemsEnd,
     schedule.pages.timelineEndStart,
   ]
   if ( milestones.some( ( value ) => value > schedule.totalTimelineUnits ) )
@@ -278,7 +292,7 @@ export const resolveStoryTiming = ( overrides = {} ) =>
   const cueFadeDuration = assertPositive( input.intro.cueFadeDuration, 'intro.cueFadeDuration' )
   assertProgress( input.intro.cueRecoilDelay, 'intro.cueRecoilDelay' )
   assertProgress( input.intro.cueFadeDelay, 'intro.cueFadeDelay' )
-  assertProgress( input.intro.cueHideThreshold, 'intro.cueHideThreshold' )
+  const cueHideDuration = assertProgress( input.intro.cueHideDuration, 'intro.cueHideDuration' )
   assertWindow( cueReady, cueStrikeProgress, 'cue strike' )
   assertWindow( cueReady + input.intro.cueRecoilDelay, cueRecoilProgress, 'cue recoil' )
   assertWindow( cueReady + input.intro.cueFadeDelay, cueFadeDuration, 'cue fade' )
@@ -292,7 +306,7 @@ export const resolveStoryTiming = ( overrides = {} ) =>
   const pocketIrisStart = ballVanishStart + visual.ballVanishDuration
   const visualSchedule = {
     ...visual,
-    draft2TableSettleProgress: visual.draft2SettleDuration,
+    draft2TableSettleProgress: assertProgress( visual.draft2TableSettleProgress, 'intro.visual.draft2TableSettleProgress' ),
     cueApproachStart: approachEnd - visual.cueApproachDuration,
     tableScaleStart: approachEnd - visual.tableScaleLeadDuration,
     cueStrikeStart,
@@ -328,22 +342,34 @@ export const resolveStoryTiming = ( overrides = {} ) =>
   const contactStart = 2 + finiteNonNegative( input.pages.projectsHold, 'pages.projectsHold' )
   const contactRevealEnd = contactStart + input.pages.contactRevealDuration
   const contactStable = contactRevealEnd + input.pages.contactHoldDuration
+  const projectsTitleStart = projectsStart + input.pages.projectsTitleDelay
+  const projectsTitleEnd = projectsTitleStart + input.pages.projectsTitleDuration + ( input.pages.projectsTitleStagger * ( PROJECTS_TITLE_LINE_COUNT - 1 ) )
+  const contactTitleStart = contactStart + input.pages.contactTitleDelay
+  const contactTitleEnd = contactTitleStart + input.pages.contactTitleDuration + ( input.pages.contactTitleStagger * ( CONTACT_TITLE_LINE_COUNT - 1 ) )
+  const contactItemsStart = contactStart + input.pages.contactItemsDelay
+  const contactItemsEnd = contactItemsStart + input.pages.contactItemDuration + ( input.pages.contactItemStagger * ( CONTACT_ITEM_COUNT - 1 ) )
+  // Resolve this timeline-unit threshold here so App.jsx never rebuilds a Draft 2 boundary.
+  const draft2StudioStart = draft2TransitionReady + input.progressEpsilon * input.totalTimelineUnits
   const pageSchedule = {
     studioStart: draft2TransitionReady,
+    draft2StudioStart,
     cinematicStudioStart: draft1TransitionReady,
     studioStable: 1,
     projectsStart,
     projectsStable: 2,
     projectsFadeStart: projectsStart + input.pages.projectsFadeDelay,
     projectsFadeEnd: projectsStart + input.pages.projectsFadeDelay + input.pages.projectsFadeDuration,
-    projectsTitleStart: projectsStart + input.pages.projectsTitleDelay,
+    projectsTitleStart,
+    projectsTitleEnd,
     contactStart,
     contactRevealEnd,
     contactStable,
     contactFadeStart: contactStart + input.pages.contactFadeDelay,
     contactFadeEnd: contactStart + input.pages.contactFadeDelay + input.pages.contactFadeDuration,
-    contactTitleStart: contactStart + input.pages.contactTitleDelay,
-    contactItemsStart: contactStart + input.pages.contactItemsDelay,
+    contactTitleStart,
+    contactTitleEnd,
+    contactItemsStart,
+    contactItemsEnd,
     timelineEndStart: input.totalTimelineUnits - input.pages.timelineEndEpsilon,
   }
 
@@ -357,7 +383,7 @@ export const resolveStoryTiming = ( overrides = {} ) =>
       recoilProgress: cueRecoilProgress,
       fadeDelay: input.intro.cueFadeDelay,
       fadeDuration: cueFadeDuration,
-      hideThreshold: input.intro.cueHideThreshold,
+      hideThreshold: cueHideDuration,
     } ),
     intro: freeze( {
       ...input.intro,

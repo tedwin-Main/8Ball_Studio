@@ -13,7 +13,10 @@ test( 'resolves semantic intro and page milestones in order', () =>
   assert.equal( STORY_TIMING.pages.projectsFadeDuration, 0.46 )
   assert.equal( STORY_TIMING.pages.contactRevealDuration, 0.56 )
   assert.equal( toTimelineUnits( toStoryProgress( STORY_TIMING.pages.projectsStart ) ), STORY_TIMING.pages.projectsStart )
-  assert.ok( STORY_TIMING.pages.studioStart < STORY_TIMING.pages.projectsStart )
+  assert.ok( STORY_TIMING.pages.draft2StudioStart > STORY_TIMING.pages.studioStart )
+  assert.ok( STORY_TIMING.pages.draft2StudioStart < STORY_TIMING.pages.projectsStart )
+  assert.ok( STORY_TIMING.pages.projectsTitleEnd <= STORY_TIMING.pages.projectsStable )
+  assert.ok( STORY_TIMING.pages.contactItemsEnd <= STORY_TIMING.pages.contactStable )
   assert.ok( STORY_TIMING.pages.projectsStart < STORY_TIMING.pages.contactStart )
 } )
 
@@ -27,7 +30,7 @@ test( 'changing one duration derives every dependent milestone', () =>
   assert.equal( timing.intro.draft2.exitEnd, 0.66 )
   assert.equal( timing.pages.studioStart, 0.62 )
 
-  const laterPageTiming = resolveStoryTiming( { pages: { projectsFadeDuration: 0.22, contactHoldDuration: 0.2 } } )
+  const laterPageTiming = resolveStoryTiming( { pages: { projectsFadeDuration: 0.22, contactHoldDuration: 0.2, contactItemDuration: 0.1 } } )
   assert.equal( laterPageTiming.pages.projectsFadeDuration, 0.22 )
   assert.ok( Math.abs( laterPageTiming.pages.contactStable - 2.9 ) < 1e-9 )
 } )

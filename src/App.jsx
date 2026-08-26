@@ -48,10 +48,6 @@ const CUE_PROGRESS_EPSILON = STORY_TIMING.progressEpsilon
 // Damp input during the pool-table sequence so the heavy ball cannot race ahead of the scroll.
 // Keep the final camera cut short so a soft swipe reaches the full Studio page quickly.
 const DRAFT2_TRANSITION_READY_STORY_PROGRESS = toStoryProgress( STORY_TIMING.intro.draft2.transitionReady )
-// Start the Studio page indicator just after its title fade begins, so it never leads a hidden title.
-const DRAFT2_STUDIO_PAGE_BOUNDARY_EPSILON = STORY_TIMING.progressEpsilon
-const DRAFT2_STUDIO_PAGE_START_PROGRESS =
-  DRAFT2_TRANSITION_READY_STORY_PROGRESS + DRAFT2_STUDIO_PAGE_BOUNDARY_EPSILON
 // Cut the shared 8-ball before its old pocket-drop path starts; Draft 1 keeps its original animation.
 const DRAFT2_POCKET_CUT_STORY_PROGRESS = toStoryProgress( STORY_TIMING.intro.draft2.pocketCut )
 const INTRO_SCROLL_WEIGHT = STORY_TIMING.scroll.introWeight
@@ -61,7 +57,7 @@ const easeCinematicBreakTransition = ( progress ) =>
   progress * progress * ( 3 - 2 * progress )
 const getStudioStartProgress = ( draftId ) =>
   draftId === 'webgl'
-    ? DRAFT2_STUDIO_PAGE_START_PROGRESS
+    ? toStoryProgress( STORY_TIMING.pages.draft2StudioStart )
     : STORY_PAGES[ 1 ].startProgress
 
 const getDraft2ExitProgress = ( progress ) =>
