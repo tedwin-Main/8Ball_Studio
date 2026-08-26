@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { resolveStoryTiming, STORY_TIMING } from './storyTiming.js'
+import { resolveStoryTiming, STORY_TIMING, toStoryProgress, toTimelineUnits } from './storyTiming.js'
 
 test( 'resolves semantic intro and page milestones in order', () =>
 {
@@ -8,6 +8,9 @@ test( 'resolves semantic intro and page milestones in order', () =>
   assert.equal( STORY_TIMING.intro.impact, STORY_TIMING.intro.approachEnd )
   assert.equal( STORY_TIMING.intro.draft2.transitionReady, 0.68 )
   assert.equal( STORY_TIMING.intro.draft2.exitEnd, 0.74 )
+  assert.equal( STORY_TIMING.pages.cinematicStudioStart, 0.76 )
+  assert.equal( STORY_TIMING.pages.contactStart, 2.14 )
+  assert.equal( toTimelineUnits( toStoryProgress( STORY_TIMING.pages.projectsStart ) ), STORY_TIMING.pages.projectsStart )
   assert.ok( STORY_TIMING.pages.studioStart < STORY_TIMING.pages.projectsStart )
   assert.ok( STORY_TIMING.pages.projectsStart < STORY_TIMING.pages.contactStart )
 } )

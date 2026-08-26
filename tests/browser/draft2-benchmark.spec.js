@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, relative } from 'node:path'
 import { test, expect } from '@playwright/test'
+import { STORY_TIMING, toStoryProgress } from '../../src/storyTiming.js'
 
 const VIEWPORTS = [
   { name: 'desktop', width: 1280, height: 800 },
@@ -16,9 +17,9 @@ const INACTIVE_RENDER_FRAME_BUDGET = 0
 
 const BREAK_STATES = [
   { name: 'start', progress: 0, settleMs: 220 },
-  { name: 'impact', progress: 0.52, settleMs: 80 },
-  { name: 'scatter', progress: 0.76, settleMs: 220 },
-  { name: 'exit', progress: 0.91, settleMs: 220 },
+  { name: 'impact', progress: toStoryProgress( STORY_TIMING.intro.impact ), settleMs: 80 },
+  { name: 'scatter', progress: toStoryProgress( STORY_TIMING.intro.draft2.transitionReady ), settleMs: 220 },
+  { name: 'exit', progress: toStoryProgress( STORY_TIMING.intro.draft2.exitEnd + 0.03 ), settleMs: 220 },
 ]
 
 const median = ( values ) =>
@@ -378,7 +379,7 @@ test( 'Draft 2 touch gesture reaches Studio on portrait', async ( { browser, bas
     await installGestureProbe( page )
     await page.goto( `${baseURL}/?draft=webgl&benchmark=draft2`, { waitUntil: 'domcontentloaded' } )
     await waitForDraftTwo( page )
-    await driveStoryProgress( page, 0.22 )
+    await driveStoryProgress( page, toStoryProgress( STORY_TIMING.pages.studioStart ) - 0.006 )
     await dispatchPortraitTouchGesture( context )
     await waitForStudioHandoff( page )
 
@@ -406,7 +407,7 @@ test( 'Draft 2 cuts the pocket drop before the Studio crossfade', async ( { brow
   {
     await page.goto( `${baseURL}/?draft=webgl&benchmark=draft2`, { waitUntil: 'domcontentloaded' } )
     await waitForDraftTwo( page )
-    await driveStoryProgress( page, 0.215 )
+    await driveStoryProgress( page, toStoryProgress( STORY_TIMING.intro.draft2.pocketCut ) )
 
     const ballOpacity = await page.locator( '.ball-rig' ).evaluate( ( node ) => getComputedStyle( node ).opacity )
     const pocketOpacity = await page.locator( '.pocket-iris' ).evaluate( ( node ) => getComputedStyle( node ).opacity )
@@ -627,7 +628,7 @@ for ( const viewport of VIEWPORTS )
       }
 
       // Restore a settled source playhead, then rotate. Resize must not restart it.
-      await driveStoryProgress( page, 0.76 )
+      await driveStoryProgress( page, toStoryProgress( STORY_TIMING.intro.draft2.transitionReady ) )
       await page.waitForTimeout( 350 )
       const beforeResize = await readDraftDiagnostics( page )
 
@@ -714,8 +715,9 @@ for ( const viewport of VIEWPORTS )
         expect( cycle.resumed.textures ).toBe( resourcesBeforeLifecycle.textures )
         expect( cycle.resumed.programs ).toBe( resourcesBeforeLifecycle.programs )
       } )
-      expect( rotated.progress ).toBeCloseTo( beforeResize.progress, 3 )
-      expect( restored.progress ).toBeCloseTo( beforeResize.progress, 3 )
+      // A two-pixel scroll rounding shift is expected when the viewport changes aspect.
+      expect( Math.abs( rotated.progress - beforeResize.progress ) ).toBeLessThan( 0.002 )
+      expect( Math.abs( restored.progress - beforeResize.progress ) ).toBeLessThan( 0.002 )
       expect( Number.isFinite( rotated.dprCap ) ).toBe( true )
       expect( Number.isFinite( rotated.shadowMapSize ) ).toBe( true )
       expect( restored.quality ).toBe( resourcesBeforeLifecycle.quality )

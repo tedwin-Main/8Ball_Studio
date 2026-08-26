@@ -11,10 +11,10 @@ import brandLogo from '../assets/8BALL-V4.jpg'
 
 // Initialize RectAreaLight uniforms for WebGLRenderer
 RectAreaLightUniformsLib.init()
+import { STORY_TIMING } from '../storyTiming'
 import {
   getBreakSimulation,
   sampleDraft2BreakState,
-  DRAFT2_TIMING_CONTRACT,
 } from './poolBreakPhysics'
 
 const clamp = ( value, min = 0, max = 1 ) => Math.min( max, Math.max( min, value ) )
@@ -1262,14 +1262,14 @@ export function WebglPoolDraft ( {
       {
         phaseLabel.textContent = progress <= 0.04
           ? 'TABLE  /  SET'
-          : progress < DRAFT2_TIMING_CONTRACT.exitStart
+          : progress < STORY_TIMING.intro.draft2.exitStart
             ? 'BREAK  /  RUN'
-            : progress < DRAFT2_TIMING_CONTRACT.exitEnd
+            : progress < STORY_TIMING.intro.draft2.exitEnd
               ? 'POCKET  /  CLEAR'
               : 'STUDIO  /  CUT'
       }
 
-      const exitProgress = clamp( ( progress - DRAFT2_TIMING_CONTRACT.exitStart ) / ( DRAFT2_TIMING_CONTRACT.exitEnd - DRAFT2_TIMING_CONTRACT.exitStart ) )
+      const exitProgress = clamp( ( progress - STORY_TIMING.intro.draft2.exitStart ) / ( STORY_TIMING.intro.draft2.exitEnd - STORY_TIMING.intro.draft2.exitStart ) )
 
       // Sync physical ball meshes and contact shadows to deterministic physics state
       state.balls.forEach( ( ball, index ) =>
@@ -1305,7 +1305,7 @@ export function WebglPoolDraft ( {
 
       // Camera starts locked behind 8-ball and smoothly tracks forward down-table on first swipe as ball rolls and breaks
       const portraitMix = clamp( ( 0.86 - world.camera.aspect ) / 0.36 )
-      const trackProgress = clamp( progress / DRAFT2_TIMING_CONTRACT.transitionReady )
+      const trackProgress = clamp( progress / STORY_TIMING.intro.draft2.transitionReady )
       const trackEase = trackProgress * trackProgress * ( 3 - 2 * trackProgress )
 
       const camY = THREE.MathUtils.lerp( 0.78 + portraitMix * 0.45, 1.35 + portraitMix * 0.55, trackEase )

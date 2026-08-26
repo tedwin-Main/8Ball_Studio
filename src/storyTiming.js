@@ -44,6 +44,8 @@ export const STORY_TIMING_DEFAULTS = freeze( {
     draft2PocketCutLead: 0.04,
     // Lenis duration is seconds, not scroll-story progress.
     draft1BreakTransitionSeconds: 1.8,
+    // Lenis uses seconds for Draft 2's short programmatic handoff after a soft swipe.
+    draft2HandoffSeconds: 0.2,
   } ),
   pages: freeze( {
     // Studio occupies timeline unit 1; these are the readable holds before later pages.
@@ -130,9 +132,11 @@ export const resolveStoryTiming = ( overrides = {} ) =>
     'intro.draft2 transition end',
   )
   const projectsStart = 1 + finiteNonNegative( input.pages.studioHold, 'pages.studioHold' )
-  const contactStart = projectsStart + finiteNonNegative( input.pages.projectsHold, 'pages.projectsHold' )
+  // Each later page owns one full timeline unit; holds are measured from that page's stable mark.
+  const contactStart = 2 + finiteNonNegative( input.pages.projectsHold, 'pages.projectsHold' )
   const pageSchedule = {
     studioStart: draft2TransitionReady,
+    cinematicStudioStart: draft1TransitionReady,
     studioStable: 1,
     projectsStart,
     projectsStable: 2,
@@ -156,12 +160,16 @@ export const resolveStoryTiming = ( overrides = {} ) =>
       approachEnd,
       impact,
       draft1: freeze( {
+        approachEnd,
+        impact,
         transitionReady: draft1TransitionReady,
         exitStart: draft1TransitionReady,
         exitEnd: draft1ExitEnd,
         studioHandoff: draft1ExitEnd,
       } ),
       draft2: freeze( {
+        approachEnd,
+        impact,
         transitionReady: draft2TransitionReady,
         exitStart: draft2TransitionReady,
         exitEnd: draft2ExitEnd,
@@ -180,3 +188,7 @@ export const STORY_TIMING = resolveStoryTiming()
 
 export const toStoryProgress = ( timelineUnit ) =>
   finiteNonNegative( timelineUnit, 'timelineUnit' ) / STORY_TIMING.totalTimelineUnits
+
+// Convert normalized ScrollTrigger progress back to the GSAP timeline units used by draft controllers.
+export const toTimelineUnits = ( storyProgress ) =>
+  assertProgress( storyProgress, 'storyProgress' ) * STORY_TIMING.totalTimelineUnits
