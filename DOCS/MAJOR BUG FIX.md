@@ -1,5 +1,27 @@
 # Major Bug Fixes
 
+## Reduced speed of Phase 2 cue strike and rack break animation (24/08/2026, 02:24 AM)
+
+### Problem
+
+Phase 2 completed too quickly for the user to register the physical details of the cue strike, 8-ball travel, and rack scatter before transitioning into Studio.
+
+### Fix
+
+- Increased `CINEMATIC_BREAK_TRANSITION_DURATION` from `1.15s` to `2.2s` in `App.jsx`.
+- Set `easeCinematicBreakTransition` to `1 - Math.pow(1 - progress, 2.2)` for immediate response on swipe detection with a smooth, readable deceleration.
+- Tuned `CINEMATIC_HIT_PROGRESS` to `0.252` and `CINEMATIC_IMPACT_PROGRESS` to `0.35` in `poolBreakPhysics.js` for natural pacing.
+- Expanded cue strike stroke to `0.032` and tuned recoil in `PoolPovDraft.jsx`.
+
+### Files Changed
+
+- [src/App.jsx](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/App.jsx)
+  - Modified — [line 41](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/App.jsx:41) sets `CINEMATIC_BREAK_TRANSITION_DURATION = 2.2` and ease curve.
+- [src/drafts/poolBreakPhysics.js](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/poolBreakPhysics.js)
+  - Modified — [line 17](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/poolBreakPhysics.js:17) sets `CINEMATIC_HIT_PROGRESS = 0.252` and `CINEMATIC_IMPACT_PROGRESS = 0.35`.
+- [src/drafts/PoolPovDraft.jsx](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/PoolPovDraft.jsx)
+  - Modified — [line 539](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/PoolPovDraft.jsx:539) adjusts strike progress and recoil.
+
 ## Cue stick skipped the pre-hit stop during overscroll (06/08/2026, 01:20 AM)
 
 ### Problem

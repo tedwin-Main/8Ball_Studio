@@ -4,7 +4,6 @@ import { DecalGeometry } from 'three/addons/geometries/DecalGeometry.js'
 import brandLogo from '../assets/8BALL-V4.jpg'
 import landscapePool from '../assets/drafts/pool-pov-landscape.png'
 import portraitPool from '../assets/drafts/pool-pov-portrait.png'
-import { STORY_TIMING } from '../storyTiming'
 import {
   getBreakSimulation,
   sampleCinematicBreakState,
@@ -12,8 +11,6 @@ import {
 
 const clamp = ( value, min = 0, max = 1 ) => Math.min( max, Math.max( min, value ) )
 const lerp = ( start, end, progress ) => start + ( end - start ) * progress
-
-const CUE_PROGRESS_EPSILON = STORY_TIMING.intro.cueReleaseEpsilon
 
 const BALL_COLORS = [
   '#f5b818', '#1b46a2', '#cb242a', '#59287a', '#e76317',
@@ -30,16 +27,20 @@ const RACK_BALL_NUMBERS = [
   9, 12, 15, 6, 7,
 ]
 
-// Each plate stores the low third-person camera, table, light, rail, and projected pocket measurements together.
+// Scale Draft 2's opening camera into Draft 1 units so the 8-ball dominates the foreground.
+const CLOSE_THIRD_PERSON_FOV = 38
+const CLOSE_THIRD_PERSON_CAMERA = Object.freeze( {
+  position: Object.freeze( [ 0, 0.103, 0.771 ] ),
+  // Keep the far rack locked to the photographic table while moving closer to the 8-ball.
+  target: Object.freeze( [ 0, -0.0312, -0.344 ] ),
+} )
+
+// Each plate stores its table, light, rail, and projected pocket measurements together.
 const PLATE_CALIBRATIONS = Object.freeze( {
   landscape: Object.freeze( {
     referenceAspect: 1.6,
-    // A longer lens keeps the foreground 8-ball dominant while making the distant rack read larger.
-    fov: 25,
-    camera: Object.freeze( {
-      position: Object.freeze( [ 0, 0.195, 1.11 ] ),
-      target: Object.freeze( [ 0, -0.035, -0.58 ] ),
-    } ),
+    fov: CLOSE_THIRD_PERSON_FOV,
+    camera: CLOSE_THIRD_PERSON_CAMERA,
     tablePlane: Object.freeze( {
       position: Object.freeze( [ 0, 0, 0 ] ),
       rotation: Object.freeze( [ 0, 0, 0 ] ),
@@ -50,8 +51,8 @@ const PLATE_CALIBRATIONS = Object.freeze( {
       right: Object.freeze( [ 0.91567, 0.35152 ] ),
     } ),
     projectedAnchors: Object.freeze( {
-      rackApex: Object.freeze( [ 0.5, 0.37395 ] ),
-      strikerContact: Object.freeze( [ 0.49753, 0.3804 ] ),
+      rackApex: Object.freeze( [ 0.5, 0.38488 ] ),
+      strikerContact: Object.freeze( [ 0.49807, 0.38747 ] ),
     } ),
     lightPosition: Object.freeze( [ -0.42, 1.42, -0.46 ] ),
     pocketProjection: Object.freeze( [
@@ -65,11 +66,8 @@ const PLATE_CALIBRATIONS = Object.freeze( {
   } ),
   portrait: Object.freeze( {
     referenceAspect: 390 / 844,
-    fov: 25,
-    camera: Object.freeze( {
-      position: Object.freeze( [ 0, 0.195, 1.11 ] ),
-      target: Object.freeze( [ 0, -0.035, -0.58 ] ),
-    } ),
+    fov: CLOSE_THIRD_PERSON_FOV,
+    camera: CLOSE_THIRD_PERSON_CAMERA,
     tablePlane: Object.freeze( {
       position: Object.freeze( [ 0, 0, 0 ] ),
       rotation: Object.freeze( [ 0, 0, 0 ] ),
@@ -80,8 +78,8 @@ const PLATE_CALIBRATIONS = Object.freeze( {
       right: Object.freeze( [ 1.01679, 0.30877 ] ),
     } ),
     projectedAnchors: Object.freeze( {
-      rackApex: Object.freeze( [ 0.5, 0.37395 ] ),
-      strikerContact: Object.freeze( [ 0.49146, 0.3804 ] ),
+      rackApex: Object.freeze( [ 0.5, 0.38488 ] ),
+      strikerContact: Object.freeze( [ 0.49331, 0.38747 ] ),
     } ),
     lightPosition: Object.freeze( [ 0, 1.82, -0.52 ] ),
     pocketProjection: Object.freeze( [
@@ -184,7 +182,8 @@ const createLogoTexture = ( anisotropy, requestRender ) =>
 const createWarmEnvironment = ( renderer ) =>
 {
   const environmentScene = new THREE.Scene()
-  environmentScene.background = new THREE.Color( '#030302' )
+  // A dim felt-colored ambient floor stops glossy black surfaces clipping to absolute black.
+  environmentScene.background = new THREE.Color( '#151b16' )
   const resources = []
 
   const addCard = ( geometry, color, intensity, position, target = [ 0, 0, 0 ] ) =>
@@ -202,10 +201,11 @@ const createWarmEnvironment = ( renderer ) =>
     resources.push( geometry, material )
   }
 
-  // A round overhead card and two dim wall cards reproduce the photographed room reflections.
+  // Reflection cards reproduce the photographed room and keep the black foreground ball readable.
   addCard( new THREE.CircleGeometry( 0.72, 48 ), '#ffd99a', 2.2, [ -0.25, 2.1, -0.55 ] )
   addCard( new THREE.PlaneGeometry( 1.8, 0.34 ), '#b77742', 0.62, [ 1.7, 0.72, 0.25 ] )
   addCard( new THREE.PlaneGeometry( 1.2, 0.26 ), '#426352', 0.32, [ -1.4, 0.38, -0.8 ] )
+  addCard( new THREE.PlaneGeometry( 1.6, 0.72 ), '#8ca899', 0.38, [ 0, 0.58, 1.65 ], [ 0, 0.04, 0.3 ] )
 
   const generator = new THREE.PMREMGenerator( renderer )
   generator.compileCubemapShader()
@@ -269,6 +269,9 @@ const buildWorld = ( canvas, simulation ) =>
   const decalMaterial = new THREE.MeshPhysicalMaterial( {
     map: logoTexture,
     color: '#ffffff',
+    // Pure-black logo pixels need a low ambient floor or they crush despite the reflected light.
+    emissive: '#26382f',
+    emissiveIntensity: 0.35,
     transparent: true,
     roughness: 0.12,
     clearcoat: 0.9,
@@ -313,64 +316,6 @@ const buildWorld = ( canvas, simulation ) =>
     tableRoot.add( mesh )
     ballMeshes.push( mesh )
   } )
-
-  // Build the cue in table scale so it lines up naturally behind the foreground 8-ball.
-  const cueWoodMaterial = new THREE.MeshPhysicalMaterial( {
-    color: '#d0a069',
-    roughness: 0.3,
-    clearcoat: 0.48,
-    clearcoatRoughness: 0.16,
-    transparent: true,
-  } )
-  const cueButtMaterial = new THREE.MeshPhysicalMaterial( {
-    color: '#27150f',
-    roughness: 0.25,
-    clearcoat: 0.58,
-    clearcoatRoughness: 0.12,
-    transparent: true,
-  } )
-  const cueMetalMaterial = new THREE.MeshStandardMaterial( {
-    color: '#b98b4d',
-    metalness: 0.72,
-    roughness: 0.24,
-    transparent: true,
-  } )
-  const cueFerruleMaterial = new THREE.MeshStandardMaterial( {
-    color: '#eee8dc',
-    roughness: 0.42,
-    transparent: true,
-  } )
-  const cueChalkMaterial = new THREE.MeshStandardMaterial( {
-    color: '#4e8b82',
-    roughness: 0.88,
-    transparent: true,
-  } )
-  const cueMaterials = [
-    cueWoodMaterial,
-    cueButtMaterial,
-    cueMetalMaterial,
-    cueFerruleMaterial,
-    cueChalkMaterial,
-  ]
-  const cueGroup = new THREE.Group()
-  const addCuePart = ( length, frontRadius, backRadius, centerZ, material ) =>
-  {
-    const part = new THREE.Mesh(
-      new THREE.CylinderGeometry( backRadius, frontRadius, length, 24 ),
-      material,
-    )
-    part.rotation.x = Math.PI / 2
-    part.position.z = centerZ
-    cueGroup.add( part )
-  }
-
-  addCuePart( 0.012, 0.0062, 0.0062, 0.006, cueChalkMaterial )
-  addCuePart( 0.035, 0.0068, 0.0072, 0.0295, cueFerruleMaterial )
-  addCuePart( 0.8, 0.0072, 0.014, 0.447, cueWoodMaterial )
-  addCuePart( 0.03, 0.014, 0.0145, 0.862, cueMetalMaterial )
-  addCuePart( 0.48, 0.0145, 0.017, 1.117, cueButtMaterial )
-  cueGroup.visible = false
-  tableRoot.add( cueGroup )
 
   // The pendant supplies warm specular light; ground shadows stay off against the photo plate.
   const pendantSpot = new THREE.SpotLight( '#ffe5b5', 18, 7, Math.PI / 3.1, 0.82, 1.35 )
@@ -475,8 +420,6 @@ const buildWorld = ( canvas, simulation ) =>
 
   return {
     ballMeshes,
-    cueGroup,
-    cueMaterials,
     renderer,
     resize,
     render,
@@ -534,51 +477,12 @@ export function PoolPovDraft ( { active, onController } )
           mesh.visible = ball.visibility
         } )
 
-        const aimProgress = clamp( progress / STORY_TIMING.cue.ready )
-        const aimEase = aimProgress * aimProgress * ( 3 - 2 * aimProgress )
-        const strikeProgress = clamp(
-          ( progress - STORY_TIMING.cue.ready ) / STORY_TIMING.cue.strikeProgress,
-        )
-        const strikeOffset = progress > STORY_TIMING.cue.ready && strikeProgress < 1
-          ? Math.sin( strikeProgress * Math.PI ) * 0.03
-          : 0
-        const recoil = clamp(
-          ( progress - STORY_TIMING.cue.ready - STORY_TIMING.cue.recoilDelay ) / STORY_TIMING.cue.recoilProgress,
-        ) * 0.11
-        const cueOpacity = (
-          1 - clamp( ( progress - STORY_TIMING.cue.ready - STORY_TIMING.cue.fadeDelay ) / STORY_TIMING.cue.fadeDuration )
-        ) * state.opacity
-        const strikerStart = simulation.initial.strikerStart
-        const cueAimZ = strikerStart.z + simulation.config.ball.radius + 0.025
-
-        // Swipe one eases the cue into place; swipe two adds the short strike and recoil.
-        world.cueGroup.position.set(
-          lerp( -0.2, strikerStart.x, aimEase ),
-          strikerStart.y + 0.004,
-          lerp( strikerStart.z + 0.38, cueAimZ, aimEase ) - strikeOffset + recoil,
-        )
-        world.cueGroup.rotation.set(
-          0,
-          lerp( 0.16, 0.006, aimEase ),
-          lerp( -0.035, 0, aimEase ),
-        )
-        world.cueGroup.visible = progress > STORY_TIMING.cue.hideThreshold && cueOpacity > 0.01
-        world.cueMaterials.forEach( ( material ) => { material.opacity = cueOpacity } )
         world.render()
       }
 
       // Fade the photograph, lighting, and balls as one reversible composition.
       root.style.setProperty( '--draft-exit-opacity', String( state.opacity ) )
-      root.dataset.phase = progress <= STORY_TIMING.cue.release ? 'aim' : state.phase
-      root.dataset.cue = progress <= STORY_TIMING.cue.hideThreshold
-        ? 'hidden'
-        : progress < STORY_TIMING.cue.ready - CUE_PROGRESS_EPSILON
-          ? 'aiming'
-          : progress <= STORY_TIMING.cue.ready + CUE_PROGRESS_EPSILON
-            ? 'ready'
-            : world?.cueGroup.visible
-              ? 'striking'
-              : 'spent'
+      root.dataset.phase = state.phase
     }
 
     const handleResize = () =>

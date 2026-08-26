@@ -208,42 +208,42 @@ const createTableGeometry = ( config ) =>
   addSegment( halfWidth, -halfLength + cornerGap, halfWidth, -sideGap )
   addSegment( halfWidth, sideGap, halfWidth, halfLength - cornerGap )
 
-  // Short angled jaws guide valid trajectories into open throats instead of closing each gap.
-  ;[ -1, 1 ].forEach( ( xSign ) =>
-  {
-    ;[ -1, 1 ].forEach( ( zSign ) =>
+    // Short angled jaws guide valid trajectories into open throats instead of closing each gap.
+    ;[ -1, 1 ].forEach( ( xSign ) =>
     {
+      ;[ -1, 1 ].forEach( ( zSign ) =>
+      {
+        addSegment(
+          xSign * ( halfWidth - cornerGap ),
+          zSign * halfLength,
+          xSign * ( halfWidth - cornerGap * 0.43 ),
+          zSign * ( halfLength + jawOutset ),
+          'corner-jaw',
+        )
+        addSegment(
+          xSign * halfWidth,
+          zSign * ( halfLength - cornerGap ),
+          xSign * ( halfWidth + jawOutset ),
+          zSign * ( halfLength - cornerGap * 0.43 ),
+          'corner-jaw',
+        )
+      } )
+
       addSegment(
-        xSign * ( halfWidth - cornerGap ),
-        zSign * halfLength,
-        xSign * ( halfWidth - cornerGap * 0.43 ),
-        zSign * ( halfLength + jawOutset ),
-        'corner-jaw',
+        xSign * halfWidth,
+        -sideGap,
+        xSign * ( halfWidth + jawOutset ),
+        -sideGap * 0.38,
+        'side-jaw',
       )
       addSegment(
         xSign * halfWidth,
-        zSign * ( halfLength - cornerGap ),
+        sideGap,
         xSign * ( halfWidth + jawOutset ),
-        zSign * ( halfLength - cornerGap * 0.43 ),
-        'corner-jaw',
+        sideGap * 0.38,
+        'side-jaw',
       )
     } )
-
-    addSegment(
-      xSign * halfWidth,
-      -sideGap,
-      xSign * ( halfWidth + jawOutset ),
-      -sideGap * 0.38,
-      'side-jaw',
-    )
-    addSegment(
-      xSign * halfWidth,
-      sideGap,
-      xSign * ( halfWidth + jawOutset ),
-      sideGap * 0.38,
-      'side-jaw',
-    )
-  } )
 
   const pockets = [
     { x: -halfWidth - 0.006, z: -halfLength - 0.006, radius: config.table.cornerPocketRadius },
@@ -747,7 +747,8 @@ const createFrame = ( balls, time, radius ) => freezeDeep( {
     pocketDepth: ball.pocketDepth,
     pocketIndex: ball.pocketIndex,
     pocketed: ball.pocketed,
-    visibility: !ball.pocketed || ball.pocketDepth < radius * 3.2,
+    // Keep ball visible during deep 3D gravity drop down recessed pocket cylinder
+    visibility: !ball.pocketed || ball.pocketDepth < radius * 8.5,
   } ) ),
 } )
 
@@ -1013,8 +1014,8 @@ const sampleBreakStateWithTiming = ( suppliedProgress, simulation, timing ) =>
 
   if ( progress <= timing.approachEnd )
   {
-    // Accelerate into the rack so the striker carries visible momentum before impact.
-    const approachProgress = ( progress / timing.approachEnd ) ** 2
+    // Start the roll on the first gesture; the timing contract controls its endpoint.
+    const approachProgress = progress / timing.approachEnd
     const x = lerp( initial.strikerStart.x, initial.strikerImpact.x, approachProgress )
     const z = lerp( initial.strikerStart.z, initial.strikerImpact.z, approachProgress )
     const distance = magnitude2( x - initial.strikerStart.x, z - initial.strikerStart.z )
@@ -1024,7 +1025,6 @@ const sampleBreakStateWithTiming = ( suppliedProgress, simulation, timing ) =>
       0,
       -1,
     )
-    // The sign makes a ball moving toward decreasing Z roll forward, not backward.
     const quaternion = quaternionFromAxisAngle(
       direction.z,
       0,
@@ -1043,6 +1043,7 @@ const sampleBreakStateWithTiming = ( suppliedProgress, simulation, timing ) =>
     return freezeDeep( { balls, opacity: 1, phase: 'approach' } )
   }
 
+  // Phase 2 Break & Scatter (0.28 to 0.76): Rack scatters from 8-ball impact.
   const milestoneFrame = milestones.transitionReadyFrame
   // Freeze on the requested wide scatter so later simulation frames cannot create a dead scroll tail.
   const sampledProgress = Math.min( progress, timing.transitionReady )
@@ -1099,23 +1100,11 @@ export function sampleDraft2BreakState ( suppliedProgress, simulation = getBreak
 }
 
 
-// Hold Draft 1 still through its aim checkpoint, then fit the full break into swipe two.
+// Draft 1 uses the same first-swipe sampler as Draft 2; only the resolved timing window differs.
 export function sampleCinematicBreakState (
   suppliedProgress,
   simulation = getBreakSimulation(),
 )
 {
-  const progress = clamp( suppliedProgress )
-
-  if ( progress <= STORY_TIMING.cue.release )
-  {
-    return sampleBreakState( 0, simulation )
-  }
-
-  const breakProgress = progress < LEGACY_BREAK_TIMING.exitStart
-    ? ( progress - STORY_TIMING.cue.release ) /
-      ( LEGACY_BREAK_TIMING.exitStart - STORY_TIMING.cue.release ) * LEGACY_BREAK_TIMING.exitStart
-    : progress
-
-  return sampleBreakState( breakProgress, simulation )
+  return sampleBreakStateWithTiming( suppliedProgress, simulation, LEGACY_BREAK_TIMING )
 }

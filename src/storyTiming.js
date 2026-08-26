@@ -51,17 +51,17 @@ export const STORY_TIMING_DEFAULTS = freeze( {
     syncTouchLerp: 0.06,
   } ),
   intro: freeze( {
-    // Draft 1 cue values keep the first swipe parked behind the 8-ball.
-    // Duration from story start to the cue-ready checkpoint.
+    // Legacy cue values remain available for compatibility; the live scene now rolls on the first swipe.
+    // Duration from story start to the historical cue-ready checkpoint.
     cueReadyDuration: 0.24,
     cueReleaseEpsilon: 0.002,
-    // Shared approach and Draft 1 break timings are timeline progress units.
-    approachDuration: 0.52,
-    draft1ScatterDuration: 0.24,
-    draft1TransitionDuration: 0.14,
-    // Draft 2 cuts the pocket-drop hold after the rack reaches readable spread.
-    draft2ScatterDuration: 0.16,
-    draft2TransitionDuration: 0.06,
+    // Shared approach and break timings are timeline progress units. Both drafts now move on the first swipe.
+    approachDuration: 0.28,
+    draft1ScatterDuration: 0.22,
+    draft1TransitionDuration: 0.4,
+    // Draft 2 uses the same readable spread and fade window; App.jsx handles its short handoff assist.
+    draft2ScatterDuration: 0.22,
+    draft2TransitionDuration: 0.4,
     draft2PocketCutLead: 0.04,
     // Lenis duration is seconds, not scroll-story progress.
     draft1BreakTransitionSeconds: 1.8,
