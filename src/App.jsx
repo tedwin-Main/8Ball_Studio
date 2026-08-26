@@ -10,6 +10,7 @@ import {
   CINEMATIC_CUE_READY_PROGRESS,
   CINEMATIC_EXIT_END,
   CINEMATIC_EXIT_START,
+  DRAFT2_TIMING_CONTRACT,
 } from './drafts/poolBreakPhysics'
 // One V4 asset supplies both the header brand mark and animated 8-ball surface.
 import brandLogo from './assets/8BALL-V4.jpg'
@@ -32,10 +33,11 @@ const STORY_PAGES = [
 // Each cue draft stops its first gesture at the point where that scene finishes aiming.
 const CUE_READY_PROGRESS_BY_DRAFT = Object.freeze( {
   cinematic: CINEMATIC_CUE_READY_PROGRESS / 3,
-  webgl: 0.52 / 3,
 } )
 const CUE_PROGRESS_EPSILON = 0.0005
 // Damp input during the pool-table sequence so the heavy ball cannot race ahead of the scroll.
+const DRAFT2_HANDOFF_DURATION = 0.46
+const DRAFT2_TRANSITION_READY_STORY_PROGRESS = DRAFT2_TIMING_CONTRACT.transitionReady / 3
 const INTRO_SCROLL_WEIGHT = 0.72
 // Give Draft 1 enough fixed time to show the strike, spread, and full cut into Studio.
 const CINEMATIC_BREAK_TRANSITION_DURATION = 1.8
@@ -293,7 +295,9 @@ function App ()
 
       if ( !( isWheel || isTouch ) ) return true
 
-      if ( storyProgressRef.current * 3 < CINEMATIC_EXIT_END )
+      const isDraft2 = activeDraftRef.current === 'webgl'
+      const introWeightLimit = isDraft2 ? DRAFT2_TIMING_CONTRACT.transitionReady : CINEMATIC_EXIT_END
+      if ( storyProgressRef.current * 3 < introWeightLimit )
       {
         // Reduce wheel and touch travel only while the 8-ball sequence is on screen.
         scrollInput.deltaY *= INTRO_SCROLL_WEIGHT
@@ -303,7 +307,7 @@ function App ()
       const cueReadyProgress = CUE_READY_PROGRESS_BY_DRAFT[ activeDraftRef.current ]
 
       // Draft 3 has no cue sequence, so it keeps the original continuous scroll.
-      if ( cueReadyProgress === undefined )
+      if ( cueReadyProgress === undefined && !isDraft2 )
       {
         cueGateState = 'armed'
         return true
@@ -326,6 +330,36 @@ function App ()
         : deltaY
 
       if ( effectiveDeltaY === 0 ) return true
+      if ( isDraft2 )
+      {
+        const studioProgress = STORY_PAGES[ 1 ].targetProgress
+        const currentScroll = lenis.scroll
+        const candidateTarget = lenis.targetScroll + effectiveDeltaY
+        const currentProgress = getStoryProgress( currentScroll, metrics )
+        const candidateProgress = getStoryProgress( candidateTarget, metrics )
+
+        if (
+          effectiveDeltaY > 0 &&
+          currentProgress < studioProgress - CUE_PROGRESS_EPSILON &&
+          candidateProgress >= DRAFT2_TRANSITION_READY_STORY_PROGRESS
+        )
+        {
+          const studioScroll = Math.round( metrics.top + metrics.range * studioProgress )
+
+          // The qualifying gesture already crossed the rack-spread boundary. Let its
+          // remaining momentum finish the short handoff without locking reverse input.
+          lenis.scrollTo( studioScroll, {
+            duration: prefersReducedMotion ? 0 : DRAFT2_HANDOFF_DURATION,
+            easing: easeCinematicBreakTransition,
+            immediate: prefersReducedMotion,
+            force: true,
+            programmatic: true,
+          } )
+          return false
+        }
+
+        return true
+      }
 
       const checkpointScroll = metrics.top + metrics.range * cueReadyProgress
       const currentScroll = lenis.scroll
