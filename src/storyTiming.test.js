@@ -27,8 +27,9 @@ test( 'changing one duration derives every dependent milestone', () =>
   assert.equal( timing.intro.draft2.exitEnd, 0.66 )
   assert.equal( timing.pages.studioStart, 0.62 )
 
-  const laterPageTiming = resolveStoryTiming( { pages: { projectsFadeDuration: 0.22 } } )
+  const laterPageTiming = resolveStoryTiming( { pages: { projectsFadeDuration: 0.22, contactHoldDuration: 0.2 } } )
   assert.equal( laterPageTiming.pages.projectsFadeDuration, 0.22 )
+  assert.ok( Math.abs( laterPageTiming.pages.contactStable - 2.9 ) < 1e-9 )
 } )
 
 test( 'rejects invalid duration contracts', () =>
@@ -48,6 +49,10 @@ test( 'rejects invalid duration contracts', () =>
   assert.throws(
     () => resolveStoryTiming( { intro: { draft2PocketCutLead: 0.8 } } ),
     /pocket cut/,
+  )
+  assert.throws(
+    () => resolveStoryTiming( { intro: { draft2TransitionDuration: 0 } } ),
+    /greater than zero/,
   )
   assert.throws(
     () => resolveStoryTiming( { intro: { approachDuration: 0.1 } } ),

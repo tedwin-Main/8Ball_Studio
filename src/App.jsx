@@ -66,7 +66,7 @@ const getStudioStartProgress = ( draftId ) =>
 
 const getDraft2ExitProgress = ( progress ) =>
   Math.min( 1, Math.max( 0, ( progress - DRAFT2_TRANSITION_READY_STORY_PROGRESS ) /
-    ( toStoryProgress( STORY_TIMING.intro.draft2.exitEnd ) - DRAFT2_TRANSITION_READY_STORY_PROGRESS ) ) )
+    STORY_TIMING.intro.draft2.transitionDurationProgress ) )
 
 
 const DRAFT_IDS = [ 'cinematic', 'webgl', 'original' ]
@@ -886,7 +886,7 @@ function App ()
             .to( '.pool-table', {
               scale: 1,
               rotationX: desktop ? 8 : 4,
-              duration: 0.42,
+              duration: STORY_TIMING.intro.visual.tableOpenDuration,
             }, 0 )
             .to( '.ball-rig', {
               scale: 1,
@@ -898,27 +898,27 @@ function App ()
             .to( '.hero-copy', {
               y: -36,
               autoAlpha: 0,
-              duration: 0.28,
-            }, 0.03 )
+              duration: STORY_TIMING.intro.visual.heroFadeDuration,
+            }, STORY_TIMING.intro.visual.heroFadeDelay )
             .to( '.scroll-prompt', {
               y: 20,
               autoAlpha: 0,
-              duration: 0.2,
-            }, 0.05 )
+              duration: STORY_TIMING.intro.visual.promptFadeDuration,
+            }, STORY_TIMING.intro.visual.promptFadeDelay )
             .to( '.camera-grid', {
               opacity: 0.38,
-              duration: 0.7,
+              duration: STORY_TIMING.intro.visual.cameraGridDuration,
             }, 0 )
             // Approach: bring the cue in while the ball settles at its table position.
             .to( '.cue-stick', {
               x: 0,
               autoAlpha: 1,
-              duration: 0.18,
-            }, 0.34 )
+              duration: STORY_TIMING.intro.visual.cueApproachDuration,
+            }, STORY_TIMING.intro.visual.cueApproachStart )
             .to( '.pool-table', {
               scale: 0.84,
-              duration: 0.26,
-            }, 0.42 )
+              duration: STORY_TIMING.intro.visual.tableScaleDuration,
+            }, STORY_TIMING.intro.visual.tableScaleStart )
             // Contact: push the cue tip into the ball, then compress the ball briefly.
             .to( '.cue-stick', {
               x: desktop
@@ -926,18 +926,18 @@ function App ()
                 : compactLandscape
                   ? '3.8vw'
                   : '5.8vw',
-              duration: 0.08,
-            }, 0.54 )
+              duration: STORY_TIMING.intro.visual.cueStrikeDuration,
+            }, STORY_TIMING.intro.visual.cueStrikeStart )
             .to( '.ball-rig', {
               scaleX: 0.88,
               scaleY: 1.08,
-              duration: 0.04,
-            }, 0.56 )
+              duration: STORY_TIMING.intro.visual.ballCompressDuration,
+            }, STORY_TIMING.intro.visual.ballCompressStart )
             .to( '.ball-rig', {
               scaleX: 1,
               scaleY: 1,
-              duration: 0.05,
-            }, 0.6 )
+              duration: STORY_TIMING.intro.visual.ballRestoreDuration,
+            }, STORY_TIMING.intro.visual.ballRestoreStart )
             // Recoil: pull the cue away as the ball rolls toward the pocket path.
             .to( '.cue-stick', {
               x: desktop
@@ -946,44 +946,44 @@ function App ()
                   ? '-8vw'
                   : '-12vw',
               autoAlpha: 0,
-              duration: 0.14,
-            }, 0.62 )
+              duration: STORY_TIMING.intro.visual.cueRecoilDuration,
+            }, STORY_TIMING.intro.visual.cueRecoilStart )
             .to( '.ball-rig', {
               x: pocketX,
               y: pocketY,
               rotation: 910,
-              duration: 0.14,
-            }, 0.64 )
+              duration: STORY_TIMING.intro.visual.ballPocketDuration,
+            }, STORY_TIMING.intro.visual.ballPocketStart )
             .to( '.ball-rig', {
               scale: 0.35,
               autoAlpha: 0,
-              duration: 0.04,
-            }, 0.78 )
+              duration: STORY_TIMING.intro.visual.ballVanishDuration,
+            }, STORY_TIMING.intro.visual.ballVanishStart )
             // Open the black-hole iris only after the ball has fully vanished.
             .to( '.pocket-iris', {
               scale: desktop ? 38 : 42,
-              duration: 0.18,
-            }, 0.82 )
+              duration: STORY_TIMING.intro.visual.pocketIrisDuration,
+            }, STORY_TIMING.intro.visual.pocketIrisStart )
             .to( '.scene-interface', {
               autoAlpha: 0,
-              duration: STORY_TIMING.intro.draft1.exitEnd - STORY_TIMING.intro.draft1.exitStart,
+              duration: STORY_TIMING.intro.draft1.transitionDuration,
             }, STORY_TIMING.intro.draft1.exitStart )
             // Crossfade into Studio as soon as the colored balls reach the reference spread.
             .to( '.title-screen', {
               autoAlpha: 1,
-              duration: STORY_TIMING.intro.draft1.exitEnd - STORY_TIMING.intro.draft1.exitStart,
+              duration: STORY_TIMING.intro.draft1.transitionDuration,
             }, STORY_TIMING.intro.draft1.exitStart )
             .to( '.final-title-line > span', {
               yPercent: 0,
-              duration: 0.1,
-              stagger: 0.012,
-            }, 0.82 )
+              duration: STORY_TIMING.intro.visual.titleLineDuration,
+              stagger: STORY_TIMING.intro.visual.titleLineStagger,
+            }, STORY_TIMING.intro.visual.titleLineStart )
             .to( '.final-meta', {
               y: 0,
               autoAlpha: 1,
-              duration: 0.06,
-            }, 0.88 )
-            .to( {}, { duration: 0.005 }, 0.995 )
+              duration: STORY_TIMING.intro.visual.metaDuration,
+            }, STORY_TIMING.intro.visual.metaStart )
+            .to( {}, { duration: STORY_TIMING.intro.visual.timelineEndEpsilon }, 1 - STORY_TIMING.intro.visual.timelineEndEpsilon )
             .addLabel( 'studio', STORY_TIMING.pages.studioStable )
 
             // Studio → Projects. Reveal the project heading.
@@ -997,12 +997,12 @@ function App ()
               yPercent: -2,
               autoAlpha: 0,
               duration: STORY_TIMING.pages.projectsFadeDuration,
-            }, STORY_TIMING.pages.projectsStart + STORY_TIMING.pages.projectsFadeDelay )
+            }, STORY_TIMING.pages.projectsFadeStart )
             .to( '.projects-title-line > span', {
               yPercent: 0,
-              duration: 0.22,
-              stagger: 0.04,
-            }, STORY_TIMING.pages.projectsStart + STORY_TIMING.pages.projectsTitleDelay )
+              duration: STORY_TIMING.pages.projectsTitleDuration,
+              stagger: STORY_TIMING.pages.projectsTitleStagger,
+            }, STORY_TIMING.pages.projectsTitleStart )
             .addLabel( 'projects', STORY_TIMING.pages.projectsStable )
 
             // Projects → Contact. Reveal every contact item.
@@ -1016,20 +1016,20 @@ function App ()
               yPercent: -2,
               autoAlpha: 0,
               duration: STORY_TIMING.pages.contactFadeDuration,
-            }, STORY_TIMING.pages.contactStart + STORY_TIMING.pages.contactFadeDelay )
+            }, STORY_TIMING.pages.contactFadeStart )
             .to( '.contact-title-line > span', {
               yPercent: 0,
-              duration: 0.24,
-              stagger: 0.04,
-            }, STORY_TIMING.pages.contactStart + STORY_TIMING.pages.contactTitleDelay )
+              duration: STORY_TIMING.pages.contactTitleDuration,
+              stagger: STORY_TIMING.pages.contactTitleStagger,
+            }, STORY_TIMING.pages.contactTitleStart )
             .to( '.contact-item', {
               y: 0,
               autoAlpha: 1,
-              duration: 0.2,
-              stagger: 0.05,
-            }, STORY_TIMING.pages.contactStart + STORY_TIMING.pages.contactItemsDelay )
+              duration: STORY_TIMING.pages.contactItemDuration,
+              stagger: STORY_TIMING.pages.contactItemStagger,
+            }, STORY_TIMING.pages.contactItemsStart )
             // This empty tween makes the complete timeline exactly three units long.
-            .to( {}, { duration: STORY_TIMING.pages.timelineEndEpsilon }, STORY_TIMING.totalTimelineUnits - STORY_TIMING.pages.timelineEndEpsilon )
+            .to( {}, { duration: STORY_TIMING.pages.timelineEndEpsilon }, STORY_TIMING.pages.timelineEndStart )
             .addLabel( 'contact', STORY_TIMING.pages.contactStable )
         },
       )

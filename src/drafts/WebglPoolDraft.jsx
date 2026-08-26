@@ -1260,7 +1260,7 @@ export function WebglPoolDraft ( {
 
       if ( phaseLabel )
       {
-        phaseLabel.textContent = progress <= 0.04
+        phaseLabel.textContent = progress <= STORY_TIMING.intro.visual.draft2TableSettleProgress
           ? 'TABLE  /  SET'
           : progress < STORY_TIMING.intro.draft2.exitStart
             ? 'BREAK  /  RUN'
@@ -1269,7 +1269,8 @@ export function WebglPoolDraft ( {
               : 'STUDIO  /  CUT'
       }
 
-      const exitProgress = clamp( ( progress - STORY_TIMING.intro.draft2.exitStart ) / ( STORY_TIMING.intro.draft2.exitEnd - STORY_TIMING.intro.draft2.exitStart ) )
+      const exitProgress = clamp( ( progress - STORY_TIMING.intro.draft2.exitStart ) /
+        STORY_TIMING.intro.draft2.transitionDurationProgress )
 
       // Sync physical ball meshes and contact shadows to deterministic physics state
       state.balls.forEach( ( ball, index ) =>

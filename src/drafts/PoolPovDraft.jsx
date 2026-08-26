@@ -537,16 +537,16 @@ export function PoolPovDraft ( { active, onController } )
         const aimProgress = clamp( progress / STORY_TIMING.cue.ready )
         const aimEase = aimProgress * aimProgress * ( 3 - 2 * aimProgress )
         const strikeProgress = clamp(
-          ( progress - STORY_TIMING.cue.ready ) / 0.07,
+          ( progress - STORY_TIMING.cue.ready ) / STORY_TIMING.cue.strikeProgress,
         )
         const strikeOffset = progress > STORY_TIMING.cue.ready && strikeProgress < 1
           ? Math.sin( strikeProgress * Math.PI ) * 0.03
           : 0
         const recoil = clamp(
-          ( progress - STORY_TIMING.cue.ready - 0.055 ) / 0.16,
+          ( progress - STORY_TIMING.cue.ready - STORY_TIMING.cue.recoilDelay ) / STORY_TIMING.cue.recoilProgress,
         ) * 0.11
         const cueOpacity = (
-          1 - clamp( ( progress - STORY_TIMING.cue.ready - 0.2 ) / 0.14 )
+          1 - clamp( ( progress - STORY_TIMING.cue.ready - STORY_TIMING.cue.fadeDelay ) / STORY_TIMING.cue.fadeDuration )
         ) * state.opacity
         const strikerStart = simulation.initial.strikerStart
         const cueAimZ = strikerStart.z + simulation.config.ball.radius + 0.025
@@ -562,7 +562,7 @@ export function PoolPovDraft ( { active, onController } )
           lerp( 0.16, 0.006, aimEase ),
           lerp( -0.035, 0, aimEase ),
         )
-        world.cueGroup.visible = progress > 0.004 && cueOpacity > 0.01
+        world.cueGroup.visible = progress > STORY_TIMING.cue.hideThreshold && cueOpacity > 0.01
         world.cueMaterials.forEach( ( material ) => { material.opacity = cueOpacity } )
         world.render()
       }
@@ -570,7 +570,7 @@ export function PoolPovDraft ( { active, onController } )
       // Fade the photograph, lighting, and balls as one reversible composition.
       root.style.setProperty( '--draft-exit-opacity', String( state.opacity ) )
       root.dataset.phase = progress <= STORY_TIMING.cue.release ? 'aim' : state.phase
-      root.dataset.cue = progress <= 0.004
+      root.dataset.cue = progress <= STORY_TIMING.cue.hideThreshold
         ? 'hidden'
         : progress < STORY_TIMING.cue.ready - CUE_PROGRESS_EPSILON
           ? 'aiming'
