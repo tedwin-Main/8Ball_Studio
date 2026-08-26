@@ -395,6 +395,34 @@ test( 'Draft 2 touch gesture reaches Studio on portrait', async ( { browser, bas
   }
 } )
 
+test( 'Draft 2 page controls reach Projects and Contact', async ( { browser, baseURL } ) =>
+{
+  const context = await browser.newContext( { viewport: { width: 1280, height: 800 } } )
+  const page = await context.newPage()
+
+  try
+  {
+    await page.goto( `${baseURL}/?draft=webgl&benchmark=draft2`, { waitUntil: 'domcontentloaded' } )
+    await waitForDraftTwo( page )
+
+    const projectsButton = page.getByRole( 'button', { name: 'Go to Projects page' } )
+    await projectsButton.click()
+    await expect( projectsButton ).toHaveAttribute( 'aria-current', 'page' )
+    await expect( page.locator( '.projects-screen' ) ).toHaveCSS( 'opacity', '1' )
+    await expect( page.locator( '.projects-title-line' ) ).toContainText( 'Projects' )
+
+    const contactButton = page.getByRole( 'button', { name: 'Go to Contact page' } )
+    await contactButton.click()
+    await expect( contactButton ).toHaveAttribute( 'aria-current', 'page' )
+    await expect( page.locator( '.contact-screen' ) ).toHaveCSS( 'opacity', '1' )
+    await expect( page.locator( '.contact-title-line' ) ).toContainText( 'Contact' )
+  }
+  finally
+  {
+    await context.close()
+  }
+} )
+
 test( 'Draft 2 cuts the pocket drop before the Studio crossfade', async ( { browser, baseURL } ) =>
 {
   const context = await browser.newContext( {
