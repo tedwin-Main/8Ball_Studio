@@ -198,6 +198,179 @@ const waitForDraftTwo = async ( page ) =>
   } )
 }
 
+
+const installGestureProbe = async ( page ) =>
+{
+  await page.addInitScript( () =>
+  {
+    const state = {
+      wheelCount: 0,
+      forwardWheelCount: 0,
+      reverseWheelCount: 0,
+    }
+
+    // Count browser input at the document boundary so a handoff cannot pass by
+    // silently consuming a second wheel event inside the scene.
+    window.addEventListener( 'wheel', ( event ) =>
+    {
+      state.wheelCount += 1
+      if ( event.deltaY > 0 ) state.forwardWheelCount += 1
+      if ( event.deltaY < 0 ) state.reverseWheelCount += 1
+    }, { capture: true, passive: true } )
+
+    window.__draft2GestureProbe = {
+      snapshot: () => ( { ...state } ),
+    }
+  } )
+}
+
+const installPhaseProbe = async ( page ) =>
+{
+  await page.evaluate( () =>
+  {
+    const phase = document.querySelector( '.webgl-phase' )
+    if ( !phase ) throw new Error( 'Draft 2 phase label is not available.' )
+
+    const phases = []
+    const recordPhase = () =>
+    {
+      const value = phase.textContent?.trim()
+      if ( value && phases[ phases.length - 1 ] !== value ) phases.push( value )
+    }
+
+    recordPhase()
+    const observer = new MutationObserver( recordPhase )
+    observer.observe( phase, { childList: true, characterData: true, subtree: true } )
+
+    // Keep the observer behind a small public test seam; no Three.js objects or
+    // private tween state are exposed to the browser assertion.
+    window.__draft2PhaseProbe = {
+      snapshot: () => ( { phases: [ ...phases ] } ),
+      stop: () => observer.disconnect(),
+    }
+  } )
+}
+
+const getBoundedSoftGestureDelta = ( page ) => page.evaluate( () =>
+{
+  const story = document.querySelector( '.story' )
+  const range = story ? Math.max( 0, story.offsetHeight - window.innerHeight ) : 0
+
+  // A single bounded wheel packet crosses the intro weighting on both target
+  // viewports while remaining below one full story range.
+  return Math.ceil( range * 0.9 )
+} )
+
+const waitForStudioHandoff = async ( page ) =>
+{
+  await expect( page.getByRole( 'button', { name: 'Go to Studio page' } ) )
+    .toHaveAttribute( 'aria-current', 'page', { timeout: 10_000 } )
+  await expect( page.locator( '.title-screen' ) ).toBeVisible()
+  await expect( page.locator( '.scene-interface' ) ).toBeHidden()
+  await expect.poll( async () => page.locator( '.draft-layer-webgl' ).getAttribute( 'data-webgl-progress' ), {
+    timeout: 10_000,
+  } ).toBe( '1.0000' )
+}
+
+for ( const viewport of VIEWPORTS )
+{
+  test( `Draft 2 one soft gesture reaches Studio — ${viewport.name}`, async ( { browser, baseURL } ) =>
+  {
+    const context = await browser.newContext( {
+      viewport: { width: viewport.width, height: viewport.height },
+      deviceScaleFactor: 1,
+    } )
+    const page = await context.newPage()
+
+    try
+    {
+      await installGestureProbe( page )
+      await page.goto( `${baseURL}/?draft=webgl&benchmark=draft2`, { waitUntil: 'domcontentloaded' } )
+      await waitForDraftTwo( page )
+      await installPhaseProbe( page )
+      await page.mouse.move( viewport.width / 2, viewport.height / 2 )
+
+      // One bounded wheel packet is the complete visitor gesture. No follow-up
+      // nudge is allowed after the rack reaches its readable spread.
+      const gestureDelta = await getBoundedSoftGestureDelta( page )
+      await page.mouse.wheel( 0, gestureDelta )
+      await waitForStudioHandoff( page )
+
+      const gesture = await page.evaluate( () => window.__draft2GestureProbe.snapshot() )
+      const phaseTrace = await page.evaluate( () => window.__draft2PhaseProbe.snapshot() )
+      expect( gesture.wheelCount ).toBe( 1 )
+      expect( gesture.forwardWheelCount ).toBe( 1 )
+      expect( phaseTrace.phases ).toContain( 'BREAK  /  RUN' )
+      expect( phaseTrace.phases ).toContain( 'POCKET  /  CLEAR' )
+      expect( phaseTrace.phases ).toContain( 'STUDIO  /  CUT' )
+
+      // A reverse gesture after the handoff must remain authoritative; the
+      // shortened transition must not leave Lenis locked at the page boundary.
+      await page.mouse.wheel( 0, -Math.ceil( gestureDelta * 0.2 ) )
+      await expect.poll( async () => Number(
+        await page.locator( '.draft-layer-webgl' ).getAttribute( 'data-webgl-progress' ),
+      ) ).toBeLessThan( 1 )
+      const reversedGesture = await page.evaluate( () => window.__draft2GestureProbe.snapshot() )
+      expect( reversedGesture.forwardWheelCount ).toBe( 1 )
+      expect( reversedGesture.reverseWheelCount ).toBe( 1 )
+    }
+    finally
+    {
+      await page.evaluate( () => window.__draft2PhaseProbe?.stop() ).catch( () => {} )
+      await context.close()
+    }
+  } )
+}
+
+test( 'Draft 2 one soft gesture respects reduced motion', async ( { browser, baseURL } ) =>
+{
+  const context = await browser.newContext( {
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 1,
+    reducedMotion: 'reduce',
+  } )
+  const page = await context.newPage()
+
+  try
+  {
+    await installGestureProbe( page )
+    await page.goto( `${baseURL}/?draft=webgl&benchmark=draft2`, { waitUntil: 'domcontentloaded' } )
+    await waitForDraftTwo( page )
+    await page.mouse.move( 195, 422 )
+    await page.mouse.wheel( 0, await getBoundedSoftGestureDelta( page ) )
+    await waitForStudioHandoff( page )
+
+    const gesture = await page.evaluate( () => window.__draft2GestureProbe.snapshot() )
+    expect( gesture.wheelCount ).toBe( 1 )
+    expect( gesture.forwardWheelCount ).toBe( 1 )
+  }
+  finally
+  {
+    await context.close()
+  }
+} )
+
+test( 'Draft 2 page controls remain keyboard reachable', async ( { browser, baseURL } ) =>
+{
+  const context = await browser.newContext( { viewport: { width: 1280, height: 800 } } )
+  const page = await context.newPage()
+
+  try
+  {
+    await page.goto( `${baseURL}/?draft=webgl&benchmark=draft2`, { waitUntil: 'domcontentloaded' } )
+    await waitForDraftTwo( page )
+    const studioButton = page.getByRole( 'button', { name: 'Go to Studio page' } )
+    await studioButton.focus()
+    await page.keyboard.press( 'Enter' )
+    await expect( studioButton ).toHaveAttribute( 'aria-current', 'page' )
+    await expect( page.locator( '.title-screen' ) ).toBeVisible()
+  }
+  finally
+  {
+    await context.close()
+  }
+} )
+
 const driveStoryProgress = async ( page, progress ) =>
 {
   const target = await page.evaluate( ( nextProgress ) =>
