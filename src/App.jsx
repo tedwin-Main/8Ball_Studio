@@ -36,12 +36,15 @@ const CUE_READY_PROGRESS_BY_DRAFT = Object.freeze( {
 } )
 const CUE_PROGRESS_EPSILON = 0.0005
 // Damp input during the pool-table sequence so the heavy ball cannot race ahead of the scroll.
-const DRAFT2_HANDOFF_DURATION = 0.46
+// Keep the final camera cut short so a soft swipe reaches the full Studio page quickly.
+const DRAFT2_HANDOFF_DURATION = 0.2
 const DRAFT2_TRANSITION_READY_STORY_PROGRESS = DRAFT2_TIMING_CONTRACT.transitionReady / 3
 // Start the Studio page indicator just after its title fade begins, so it never leads a hidden title.
 const DRAFT2_STUDIO_PAGE_BOUNDARY_EPSILON = 0.0005
 const DRAFT2_STUDIO_PAGE_START_PROGRESS =
   DRAFT2_TRANSITION_READY_STORY_PROGRESS + DRAFT2_STUDIO_PAGE_BOUNDARY_EPSILON
+// Cut the shared 8-ball before its old pocket-drop path starts; Draft 1 keeps its original animation.
+const DRAFT2_POCKET_CUT_STORY_PROGRESS = ( DRAFT2_TIMING_CONTRACT.transitionReady - 0.04 ) / 3
 const INTRO_SCROLL_WEIGHT = 0.72
 // Give Draft 1 enough fixed time to show the strike, spread, and full cut into Studio.
 const CINEMATIC_BREAK_TRANSITION_DURATION = 1.8
@@ -823,6 +826,11 @@ function App ()
           const syncDraft2Handoff = ( progress ) =>
           {
             if ( activeDraftRef.current !== 'webgl' ) return
+
+            const cutPocketDrop = progress >= DRAFT2_POCKET_CUT_STORY_PROGRESS
+            // Draft 2 skips the old 8-ball drop and iris hold; Draft 1 remains untouched.
+            gsap.set( '.ball-rig', { autoAlpha: cutPocketDrop ? 0 : 1 } )
+            gsap.set( '.pocket-iris', { autoAlpha: cutPocketDrop ? 0 : 1 } )
 
             const exitProgress = getDraft2ExitProgress( progress )
             const titleOffset = ( 1 - exitProgress ) * 115

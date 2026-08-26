@@ -301,7 +301,7 @@ const dispatchPortraitTouchGesture = async ( context ) =>
 const waitForStudioHandoff = async ( page ) =>
 {
   const startedAt = Date.now()
-  const completionBudgetMs = 2_500
+  const completionBudgetMs = 1_200
   await expect( page.getByRole( 'button', { name: 'Go to Studio page' } ) )
     .toHaveAttribute( 'aria-current', 'page', { timeout: 10_000 } )
   await expect( page.locator( '.title-screen' ) ).toBeVisible()
@@ -342,7 +342,7 @@ for ( const viewport of VIEWPORTS )
       expect( gesture.wheelCount ).toBe( 1 )
       expect( gesture.forwardWheelCount ).toBe( 1 )
       expect( phaseTrace.phases ).toContain( 'BREAK  /  RUN' )
-      expect( phaseTrace.phases ).toContain( 'POCKET  /  CLEAR' )
+      // The faster Draft 2 path intentionally cuts past the old pocket phase.
       expect( phaseTrace.phases ).toContain( 'STUDIO  /  CUT' )
 
       // A reverse gesture after the handoff must remain authoritative; the
@@ -387,6 +387,35 @@ test( 'Draft 2 touch gesture reaches Studio on portrait', async ( { browser, bas
     expect( gesture.touchStartCount ).toBe( 1 )
     expect( gesture.touchMoveCount ).toBeGreaterThan( 0 )
     expect( gesture.touchEndCount ).toBe( 1 )
+  }
+  finally
+  {
+    await context.close()
+  }
+} )
+
+test( 'Draft 2 cuts the pocket drop before the Studio crossfade', async ( { browser, baseURL } ) =>
+{
+  const context = await browser.newContext( {
+    viewport: { width: 1280, height: 800 },
+    deviceScaleFactor: 1,
+  } )
+  const page = await context.newPage()
+
+  try
+  {
+    await page.goto( `${baseURL}/?draft=webgl&benchmark=draft2`, { waitUntil: 'domcontentloaded' } )
+    await waitForDraftTwo( page )
+    await driveStoryProgress( page, 0.215 )
+
+    const ballOpacity = await page.locator( '.ball-rig' ).evaluate( ( node ) => getComputedStyle( node ).opacity )
+    const pocketOpacity = await page.locator( '.pocket-iris' ).evaluate( ( node ) => getComputedStyle( node ).opacity )
+    const titleOpacity = await page.locator( '.title-screen' ).evaluate( ( node ) => getComputedStyle( node ).opacity )
+
+    // The 8-ball and pocket mask are already cut while the next-page title has not started fading in.
+    expect( ballOpacity ).toBe( '0' )
+    expect( pocketOpacity ).toBe( '0' )
+    expect( titleOpacity ).toBe( '0' )
   }
   finally
   {

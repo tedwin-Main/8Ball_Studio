@@ -9,14 +9,14 @@ const CONTACT_EPSILON = 2e-6
 // Hold the break on screen long enough for the slower, heavier spread to read before the cut.
 export const CINEMATIC_EXIT_START = 0.76
 export const CINEMATIC_EXIT_END = 0.90
-// Draft 2 compresses only the scroll allocation after impact; the simulation frames stay unchanged.
+// Draft 2 keeps the readable spread, then cuts directly into the next page before a pocket-drop hold.
 export const DRAFT2_TIMING_CONTRACT = Object.freeze( {
   approachEnd: 0.52,
   impact: 0.52,
   transitionReady: 0.68,
   exitStart: 0.68,
-  exitEnd: 0.84,
-  studioHandoff: 0.84,
+  exitEnd: 0.74,
+  studioHandoff: 0.74,
 } )
 const LEGACY_BREAK_TIMING = Object.freeze( {
   approachEnd: 0.52,
