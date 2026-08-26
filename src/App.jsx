@@ -43,6 +43,15 @@ const INTRO_SCROLL_WEIGHT = 0.72
 const CINEMATIC_BREAK_TRANSITION_DURATION = 1.8
 const easeCinematicBreakTransition = ( progress ) =>
   progress * progress * ( 3 - 2 * progress )
+const getStudioStartProgress = ( draftId ) =>
+  draftId === 'webgl'
+    ? DRAFT2_TRANSITION_READY_STORY_PROGRESS
+    : STORY_PAGES[ 1 ].startProgress
+
+const getDraft2ExitProgress = ( progress ) =>
+  Math.min( 1, Math.max( 0, ( progress - DRAFT2_TRANSITION_READY_STORY_PROGRESS ) /
+    ( ( DRAFT2_TIMING_CONTRACT.exitEnd - DRAFT2_TIMING_CONTRACT.transitionReady ) / 3 ) ) )
+
 
 const DRAFT_IDS = [ 'cinematic', 'webgl', 'original' ]
 
@@ -587,11 +596,14 @@ function App ()
     }
 
     const getPageIndex = ( progress ) =>
-      STORY_PAGES.reduce(
+    {
+      const studioStartProgress = getStudioStartProgress( activeDraftRef.current )
+      return STORY_PAGES.reduce(
         ( currentIndex, page, index ) =>
-          progress >= page.startProgress ? index : currentIndex,
+          progress >= ( index === 1 ? studioStartProgress : page.startProgress ) ? index : currentIndex,
         0,
       )
+    }
 
     const updateActivePage = ( progress ) =>
     {
@@ -650,8 +662,9 @@ function App ()
         {
           // Reduced-motion scenes use the same entry points as their active pagination dots.
           updateDraftProgress( progress )
-          const showIntro = progress < STORY_PAGES[ 1 ].startProgress
-          const showStudio = progress >= STORY_PAGES[ 1 ].startProgress && progress < STORY_PAGES[ 2 ].startProgress
+          const studioStartProgress = getStudioStartProgress( activeDraftRef.current )
+          const showIntro = progress < studioStartProgress
+          const showStudio = progress >= studioStartProgress && progress < STORY_PAGES[ 2 ].startProgress
           const showProjects = progress >= STORY_PAGES[ 2 ].startProgress && progress < STORY_PAGES[ 3 ].startProgress
           const showContact = progress >= STORY_PAGES[ 3 ].startProgress
           const showEndScreen = showStudio || showProjects || showContact
@@ -786,6 +799,23 @@ function App ()
           gsap.set( '.contact-title-line > span', { y: 0, yPercent: 115 } )
           gsap.set( '.contact-item', { y: 20, autoAlpha: 0 } )
 
+          const syncDraft2Handoff = ( progress ) =>
+          {
+            if ( activeDraftRef.current !== 'webgl' ) return
+
+            const exitProgress = getDraft2ExitProgress( progress )
+            const titleOffset = ( 1 - exitProgress ) * 115
+            gsap.set( '.scene-interface', { autoAlpha: 1 - exitProgress } )
+            gsap.set( '.title-screen', { autoAlpha: exitProgress } )
+            gsap.set( '.final-title-line > span', {
+              autoAlpha: exitProgress,
+              yPercent: titleOffset,
+            } )
+            gsap.set( '.final-meta', {
+              autoAlpha: exitProgress,
+              y: ( 1 - exitProgress ) * 20,
+            } )
+          }
           const timeline = gsap.timeline( {
             scrollTrigger: {
               trigger: storyRef.current,
@@ -798,11 +828,13 @@ function App ()
               {
                 updateDraftProgress( progress )
                 setBallLayerPromotion( progress > 0.001 && progress < 0.999 )
+                syncDraft2Handoff( progress )
                 updateActivePage( progress )
               },
               onRefresh: ( { progress } ) =>
               {
                 updateDraftProgress( progress )
+                syncDraft2Handoff( progress )
                 updateActivePage( progress )
               },
             },
