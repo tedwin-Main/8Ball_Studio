@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "benchmark:draft2": "playwright test tests/browser/draft2-benchmark.spec.js"
   },
   "dependencies": {
     "gsap": "^3.13.0",
@@ -16,6 +17,7 @@
     "three": "^0.185.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.45.3",
     "@vitejs/plugin-react": "^5.0.2",
     "vite": "^7.1.2"
   }

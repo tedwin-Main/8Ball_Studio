@@ -10,6 +10,7 @@ import {
   CINEMATIC_CUE_READY_PROGRESS,
   CINEMATIC_EXIT_END,
   CINEMATIC_EXIT_START,
+  DRAFT2_TIMING_CONTRACT,
 } from './drafts/poolBreakPhysics'
 // One V4 asset supplies both the header brand mark and animated 8-ball surface.
 import brandLogo from './assets/8BALL-V4.jpg'
@@ -32,15 +33,32 @@ const STORY_PAGES = [
 // Each cue draft stops its first gesture at the point where that scene finishes aiming.
 const CUE_READY_PROGRESS_BY_DRAFT = Object.freeze( {
   cinematic: CINEMATIC_CUE_READY_PROGRESS / 3,
-  webgl: 0.52 / 3,
 } )
 const CUE_PROGRESS_EPSILON = 0.0005
 // Damp input during the pool-table sequence so the heavy ball cannot race ahead of the scroll.
+// Keep the final camera cut short so a soft swipe reaches the full Studio page quickly.
+const DRAFT2_HANDOFF_DURATION = 0.2
+const DRAFT2_TRANSITION_READY_STORY_PROGRESS = DRAFT2_TIMING_CONTRACT.transitionReady / 3
+// Start the Studio page indicator just after its title fade begins, so it never leads a hidden title.
+const DRAFT2_STUDIO_PAGE_BOUNDARY_EPSILON = 0.0005
+const DRAFT2_STUDIO_PAGE_START_PROGRESS =
+  DRAFT2_TRANSITION_READY_STORY_PROGRESS + DRAFT2_STUDIO_PAGE_BOUNDARY_EPSILON
+// Cut the shared 8-ball before its old pocket-drop path starts; Draft 1 keeps its original animation.
+const DRAFT2_POCKET_CUT_STORY_PROGRESS = ( DRAFT2_TIMING_CONTRACT.transitionReady - 0.04 ) / 3
 const INTRO_SCROLL_WEIGHT = 0.72
 // Give Draft 1 enough fixed time to show the strike, spread, and full cut into Studio.
 const CINEMATIC_BREAK_TRANSITION_DURATION = 1.8
 const easeCinematicBreakTransition = ( progress ) =>
   progress * progress * ( 3 - 2 * progress )
+const getStudioStartProgress = ( draftId ) =>
+  draftId === 'webgl'
+    ? DRAFT2_STUDIO_PAGE_START_PROGRESS
+    : STORY_PAGES[ 1 ].startProgress
+
+const getDraft2ExitProgress = ( progress ) =>
+  Math.min( 1, Math.max( 0, ( progress - DRAFT2_TRANSITION_READY_STORY_PROGRESS ) /
+    ( ( DRAFT2_TIMING_CONTRACT.exitEnd - DRAFT2_TIMING_CONTRACT.transitionReady ) / 3 ) ) )
+
 
 const DRAFT_IDS = [ 'cinematic', 'webgl', 'original' ]
 
@@ -250,6 +268,7 @@ function App ()
     let pointerY = 0
     let ballLayerIsPromoted = false
     let cueGateState = 'armed'
+    let draft2HandoffTargetScroll = null
     const hasFinePointer = window.matchMedia( '(hover: hover) and (pointer: fine)' ).matches
     const prefersReducedMotion = window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches
 
@@ -293,7 +312,9 @@ function App ()
 
       if ( !( isWheel || isTouch ) ) return true
 
-      if ( storyProgressRef.current * 3 < CINEMATIC_EXIT_END )
+      const isDraft2 = activeDraftRef.current === 'webgl'
+      const introWeightLimit = isDraft2 ? DRAFT2_TIMING_CONTRACT.transitionReady : CINEMATIC_EXIT_END
+      if ( storyProgressRef.current * 3 < introWeightLimit )
       {
         // Reduce wheel and touch travel only while the 8-ball sequence is on screen.
         scrollInput.deltaY *= INTRO_SCROLL_WEIGHT
@@ -303,7 +324,7 @@ function App ()
       const cueReadyProgress = CUE_READY_PROGRESS_BY_DRAFT[ activeDraftRef.current ]
 
       // Draft 3 has no cue sequence, so it keeps the original continuous scroll.
-      if ( cueReadyProgress === undefined )
+      if ( cueReadyProgress === undefined && !isDraft2 )
       {
         cueGateState = 'armed'
         return true
@@ -326,6 +347,52 @@ function App ()
         : deltaY
 
       if ( effectiveDeltaY === 0 ) return true
+      if ( isDraft2 )
+      {
+        const studioProgress = STORY_PAGES[ 1 ].targetProgress
+        const currentScroll = lenis.scroll
+        const candidateTarget = lenis.targetScroll + effectiveDeltaY
+        const currentProgress = getStoryProgress( currentScroll, metrics )
+        const candidateProgress = getStoryProgress( candidateTarget, metrics )
+
+        if ( effectiveDeltaY < 0 || currentProgress >= studioProgress - CUE_PROGRESS_EPSILON )
+        {
+          draft2HandoffTargetScroll = null
+        }
+
+        if (
+          effectiveDeltaY > 0 &&
+          currentProgress < studioProgress - CUE_PROGRESS_EPSILON &&
+          candidateProgress >= DRAFT2_TRANSITION_READY_STORY_PROGRESS
+        )
+        {
+          const studioScroll = Math.round( metrics.top + metrics.range * studioProgress )
+
+          // One continuous gesture can emit many packets; memo the assist target so
+          // later packets do not restart its easing or create a second-swipe gate.
+          if ( draft2HandoffTargetScroll === studioScroll )
+          {
+            if ( isTouch ) return consumeCueInput( event )
+            return true
+          }
+          // Stop browser-native touch scrolling from racing the programmatic handoff.
+          if ( isTouch && event.cancelable ) event.preventDefault()
+          draft2HandoffTargetScroll = studioScroll
+
+          // The qualifying gesture already crossed the rack-spread boundary. Let its
+          // remaining momentum finish the short handoff without locking reverse input.
+          lenis.scrollTo( studioScroll, {
+            duration: prefersReducedMotion ? 0 : DRAFT2_HANDOFF_DURATION,
+            easing: easeCinematicBreakTransition,
+            immediate: prefersReducedMotion,
+            force: true,
+            programmatic: true,
+          } )
+          return false
+        }
+
+        return true
+      }
 
       const checkpointScroll = metrics.top + metrics.range * cueReadyProgress
       const currentScroll = lenis.scroll
@@ -498,7 +565,30 @@ function App ()
     gsap.ticker.add( driveLenis )
     // Disable GSAP's lag smoothing so scroll physics do not jump after a delayed frame.
     gsap.ticker.lagSmoothing( 0 )
-    const refreshScroll = () => ScrollTrigger.refresh()
+    let resizeFrame = 0
+    const refreshScroll = () =>
+    {
+      const preservedProgress = storyProgressRef.current
+      if ( resizeFrame ) window.cancelAnimationFrame( resizeFrame )
+      resizeFrame = window.requestAnimationFrame( () =>
+      {
+        resizeFrame = 0
+        ScrollTrigger.refresh()
+        const story = storyRef.current
+        if ( !story ) return
+
+        // A refresh changes the pixel scroll range. Seek the same normalized chapter
+        // position afterward so camera, cue phase, and Draft 2 progress do not jump.
+        const storyTop = window.scrollY + story.getBoundingClientRect().top
+        const range = Math.max( 0, story.offsetHeight - window.innerHeight )
+        lenis.scrollTo( storyTop + range * preservedProgress, {
+          immediate: true,
+          force: true,
+          programmatic: true,
+        } )
+        ScrollTrigger.update()
+      } )
+    }
     window.addEventListener( 'resize', refreshScroll )
 
     const moveCursorDotX = hasFinePointer
@@ -530,11 +620,14 @@ function App ()
     }
 
     const getPageIndex = ( progress ) =>
-      STORY_PAGES.reduce(
+    {
+      const studioStartProgress = getStudioStartProgress( activeDraftRef.current )
+      return STORY_PAGES.reduce(
         ( currentIndex, page, index ) =>
-          progress >= page.startProgress ? index : currentIndex,
+          progress >= ( index === 1 ? studioStartProgress : page.startProgress ) ? index : currentIndex,
         0,
       )
+    }
 
     const updateActivePage = ( progress ) =>
     {
@@ -593,8 +686,9 @@ function App ()
         {
           // Reduced-motion scenes use the same entry points as their active pagination dots.
           updateDraftProgress( progress )
-          const showIntro = progress < STORY_PAGES[ 1 ].startProgress
-          const showStudio = progress >= STORY_PAGES[ 1 ].startProgress && progress < STORY_PAGES[ 2 ].startProgress
+          const studioStartProgress = getStudioStartProgress( activeDraftRef.current )
+          const showIntro = progress < studioStartProgress
+          const showStudio = progress >= studioStartProgress && progress < STORY_PAGES[ 2 ].startProgress
           const showProjects = progress >= STORY_PAGES[ 2 ].startProgress && progress < STORY_PAGES[ 3 ].startProgress
           const showContact = progress >= STORY_PAGES[ 3 ].startProgress
           const showEndScreen = showStudio || showProjects || showContact
@@ -729,6 +823,28 @@ function App ()
           gsap.set( '.contact-title-line > span', { y: 0, yPercent: 115 } )
           gsap.set( '.contact-item', { y: 20, autoAlpha: 0 } )
 
+          const syncDraft2Handoff = ( progress ) =>
+          {
+            if ( activeDraftRef.current !== 'webgl' ) return
+
+            const cutPocketDrop = progress >= DRAFT2_POCKET_CUT_STORY_PROGRESS
+            // Draft 2 skips the old 8-ball drop and iris hold; Draft 1 remains untouched.
+            gsap.set( '.ball-rig', { autoAlpha: cutPocketDrop ? 0 : 1 } )
+            gsap.set( '.pocket-iris', { autoAlpha: cutPocketDrop ? 0 : 1 } )
+
+            const exitProgress = getDraft2ExitProgress( progress )
+            const titleOffset = ( 1 - exitProgress ) * 115
+            gsap.set( '.scene-interface', { autoAlpha: 1 - exitProgress } )
+            gsap.set( '.title-screen', { autoAlpha: exitProgress } )
+            gsap.set( '.final-title-line > span', {
+              autoAlpha: exitProgress,
+              yPercent: titleOffset,
+            } )
+            gsap.set( '.final-meta', {
+              autoAlpha: exitProgress,
+              y: ( 1 - exitProgress ) * 20,
+            } )
+          }
           const timeline = gsap.timeline( {
             scrollTrigger: {
               trigger: storyRef.current,
@@ -741,11 +857,13 @@ function App ()
               {
                 updateDraftProgress( progress )
                 setBallLayerPromotion( progress > 0.001 && progress < 0.999 )
+                syncDraft2Handoff( progress )
                 updateActivePage( progress )
               },
               onRefresh: ( { progress } ) =>
               {
                 updateDraftProgress( progress )
+                syncDraft2Handoff( progress )
                 updateActivePage( progress )
               },
             },
@@ -913,6 +1031,7 @@ function App ()
     return () =>
     {
       if ( pointerFrame ) window.cancelAnimationFrame( pointerFrame )
+      if ( resizeFrame ) window.cancelAnimationFrame( resizeFrame )
       if ( hasFinePointer ) window.removeEventListener( 'pointermove', movePointer )
       window.removeEventListener( 'resize', refreshScroll )
       lenis.off( 'scroll', handleLenisScroll )
