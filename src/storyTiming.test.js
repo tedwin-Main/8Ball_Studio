@@ -17,6 +17,7 @@ test( 'resolves semantic intro and page milestones in order', () =>
   assert.ok( STORY_TIMING.pages.draft2StudioStart < STORY_TIMING.pages.projectsStart )
   assert.ok( STORY_TIMING.pages.projectsTitleEnd <= STORY_TIMING.pages.projectsStable )
   assert.ok( STORY_TIMING.pages.contactItemsEnd <= STORY_TIMING.pages.contactStable )
+  assert.ok( STORY_TIMING.intro.visual.titleLineEnd <= 1 )
   assert.ok( STORY_TIMING.pages.projectsStart < STORY_TIMING.pages.contactStart )
 } )
 

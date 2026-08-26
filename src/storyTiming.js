@@ -33,6 +33,7 @@ const assertWindow = ( start, duration, name ) =>
 // These counts mirror the fixed title spans and contact cards rendered by App.jsx.
 const PROJECTS_TITLE_LINE_COUNT = 2
 const CONTACT_TITLE_LINE_COUNT = 2
+const FINAL_TITLE_LINE_COUNT = 2
 const CONTACT_ITEM_COUNT = 3
 const freeze = ( value ) => Object.freeze( value )
 
@@ -304,6 +305,8 @@ export const resolveStoryTiming = ( overrides = {} ) =>
   const ballPocketStart = cueRecoilStart + visual.ballPocketDelay
   const ballVanishStart = ballPocketStart + visual.ballPocketDuration
   const pocketIrisStart = ballVanishStart + visual.ballVanishDuration
+  const titleLineStart = pocketIrisStart
+  const titleLineEnd = titleLineStart + visual.titleLineDuration + ( visual.titleLineStagger * ( FINAL_TITLE_LINE_COUNT - 1 ) )
   const visualSchedule = {
     ...visual,
     draft2TableSettleProgress: assertProgress( visual.draft2TableSettleProgress, 'intro.visual.draft2TableSettleProgress' ),
@@ -316,7 +319,8 @@ export const resolveStoryTiming = ( overrides = {} ) =>
     ballPocketStart,
     ballVanishStart,
     pocketIrisStart,
-    titleLineStart: pocketIrisStart,
+    titleLineStart,
+    titleLineEnd,
     metaStart: pocketIrisStart + visual.metaDelay,
   }
   ;[
@@ -333,7 +337,7 @@ export const resolveStoryTiming = ( overrides = {} ) =>
     [ 'ball pocket', visualSchedule.ballPocketStart, visual.ballPocketDuration ],
     [ 'ball vanish', visualSchedule.ballVanishStart, visual.ballVanishDuration ],
     [ 'pocket iris', visualSchedule.pocketIrisStart, visual.pocketIrisDuration ],
-    [ 'title line', visualSchedule.titleLineStart, visual.titleLineDuration ],
+    [ 'title line', visualSchedule.titleLineStart, visualSchedule.titleLineEnd - visualSchedule.titleLineStart ],
     [ 'final meta', visualSchedule.metaStart, visual.metaDuration ],
     [ 'intro tail', 1 - visual.timelineEndEpsilon, visual.timelineEndEpsilon ],
   ].forEach( ( [ name, start, duration ] ) => assertWindow( start, duration, name ) )
