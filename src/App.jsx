@@ -1028,7 +1028,7 @@ function App ()
               duration: STORY_TIMING.pages.contactItemDuration,
               stagger: STORY_TIMING.pages.contactItemStagger,
             }, STORY_TIMING.pages.contactItemsStart )
-            // This empty tween makes the complete timeline exactly three units long.
+            // This empty tween makes the complete timeline exactly the configured length.
             .to( {}, { duration: STORY_TIMING.pages.timelineEndEpsilon }, STORY_TIMING.pages.timelineEndStart )
             .addLabel( 'contact', STORY_TIMING.pages.contactStable )
         },
