@@ -6,12 +6,7 @@ import { useStoryPager } from './hooks/useStoryPager'
 import { DraftSwitcher } from './components/DraftSwitcher'
 import { PoolPovDraft } from './drafts/PoolPovDraft'
 import { WebglPoolDraft } from './drafts/WebglPoolDraft'
-import {
-  CINEMATIC_CUE_READY_PROGRESS,
-  CINEMATIC_EXIT_END,
-  CINEMATIC_EXIT_START,
-  DRAFT2_TIMING_CONTRACT,
-} from './drafts/poolBreakPhysics'
+import { STORY_TIMING, toStoryProgress, toTimelineUnits } from './storyTiming'
 // One V4 asset supplies both the header brand mark and animated 8-ball surface.
 import brandLogo from './assets/8BALL-V4.jpg'
 // The PNG has a baked checkerboard; CSS clips its square to the logo circle at render time.
@@ -25,39 +20,49 @@ gsap.registerPlugin( ScrollTrigger )
 const STORY_PAGES = [
   // Scene starts activate dots; stable targets land clicks after each transition finishes.
   { id: 'page-intro', label: 'Intro', startProgress: 0, targetProgress: 0 },
-  { id: 'page-studio', label: 'Studio', startProgress: CINEMATIC_EXIT_START / 3, targetProgress: 1 / 3 },
-  { id: 'page-projects', label: 'Projects', startProgress: 1.16 / 3, targetProgress: 2 / 3 },
-  { id: 'page-contact', label: 'Contact', startProgress: 2.14 / 3, targetProgress: 1 },
+  {
+    id: 'page-studio',
+    label: 'Studio',
+    startProgress: toStoryProgress( STORY_TIMING.pages.cinematicStudioStart ),
+    targetProgress: toStoryProgress( STORY_TIMING.pages.studioStable ),
+  },
+  {
+    id: 'page-projects',
+    label: 'Projects',
+    startProgress: toStoryProgress( STORY_TIMING.pages.projectsStart ),
+    targetProgress: toStoryProgress( STORY_TIMING.pages.projectsStable ),
+  },
+  {
+    id: 'page-contact',
+    label: 'Contact',
+    startProgress: toStoryProgress( STORY_TIMING.pages.contactStart ),
+    targetProgress: toStoryProgress( STORY_TIMING.pages.contactStable ),
+  },
 ]
 
 // Each cue draft stops its first gesture at the point where that scene finishes aiming.
 const CUE_READY_PROGRESS_BY_DRAFT = Object.freeze( {
-  cinematic: CINEMATIC_CUE_READY_PROGRESS / 3,
+  cinematic: toStoryProgress( STORY_TIMING.cue.ready ),
 } )
-const CUE_PROGRESS_EPSILON = 0.0005
+const CUE_PROGRESS_EPSILON = STORY_TIMING.progressEpsilon
 // Damp input during the pool-table sequence so the heavy ball cannot race ahead of the scroll.
 // Keep the final camera cut short so a soft swipe reaches the full Studio page quickly.
-const DRAFT2_HANDOFF_DURATION = 0.2
-const DRAFT2_TRANSITION_READY_STORY_PROGRESS = DRAFT2_TIMING_CONTRACT.transitionReady / 3
-// Start the Studio page indicator just after its title fade begins, so it never leads a hidden title.
-const DRAFT2_STUDIO_PAGE_BOUNDARY_EPSILON = 0.0005
-const DRAFT2_STUDIO_PAGE_START_PROGRESS =
-  DRAFT2_TRANSITION_READY_STORY_PROGRESS + DRAFT2_STUDIO_PAGE_BOUNDARY_EPSILON
+const DRAFT2_TRANSITION_READY_STORY_PROGRESS = toStoryProgress( STORY_TIMING.intro.draft2.transitionReady )
 // Cut the shared 8-ball before its old pocket-drop path starts; Draft 1 keeps its original animation.
-const DRAFT2_POCKET_CUT_STORY_PROGRESS = ( DRAFT2_TIMING_CONTRACT.transitionReady - 0.04 ) / 3
-const INTRO_SCROLL_WEIGHT = 0.72
+const DRAFT2_POCKET_CUT_STORY_PROGRESS = toStoryProgress( STORY_TIMING.intro.draft2.pocketCut )
+const INTRO_SCROLL_WEIGHT = STORY_TIMING.scroll.introWeight
 // Give Draft 1 enough fixed time to show the strike, spread, and full cut into Studio.
-const CINEMATIC_BREAK_TRANSITION_DURATION = 1.8
+const CINEMATIC_BREAK_TRANSITION_DURATION = STORY_TIMING.intro.draft1BreakTransitionSeconds
 const easeCinematicBreakTransition = ( progress ) =>
   progress * progress * ( 3 - 2 * progress )
 const getStudioStartProgress = ( draftId ) =>
   draftId === 'webgl'
-    ? DRAFT2_STUDIO_PAGE_START_PROGRESS
+    ? toStoryProgress( STORY_TIMING.pages.draft2StudioStart )
     : STORY_PAGES[ 1 ].startProgress
 
 const getDraft2ExitProgress = ( progress ) =>
   Math.min( 1, Math.max( 0, ( progress - DRAFT2_TRANSITION_READY_STORY_PROGRESS ) /
-    ( ( DRAFT2_TIMING_CONTRACT.exitEnd - DRAFT2_TIMING_CONTRACT.transitionReady ) / 3 ) ) )
+    STORY_TIMING.intro.draft2.transitionDurationProgress ) )
 
 
 const DRAFT_IDS = [ 'cinematic', 'webgl', 'original' ]
@@ -192,7 +197,7 @@ function App ()
     if ( controller )
     {
       draftControllersRef.current[ draftId ] = controller
-      controller.setProgress( Math.min( 1, storyProgressRef.current * 3 ) )
+      controller.setProgress( Math.min( 1, toTimelineUnits( storyProgressRef.current ) ) )
       controller.setActive( activeDraftRef.current === draftId )
       return
     }
@@ -236,7 +241,7 @@ function App ()
 
     // Seek the selected draft to the existing story position for a seamless switch.
     draftControllersRef.current[ activeDraft ]?.setProgress(
-      Math.min( 1, storyProgressRef.current * 3 ),
+      Math.min( 1, toTimelineUnits( storyProgressRef.current ) ),
     )
 
     // Reapply the shared GSAP playhead after a draft switch changes CSS visibility rules.
@@ -313,8 +318,8 @@ function App ()
       if ( !( isWheel || isTouch ) ) return true
 
       const isDraft2 = activeDraftRef.current === 'webgl'
-      const introWeightLimit = isDraft2 ? DRAFT2_TIMING_CONTRACT.transitionReady : CINEMATIC_EXIT_END
-      if ( storyProgressRef.current * 3 < introWeightLimit )
+      const introWeightLimit = isDraft2 ? STORY_TIMING.intro.draft2.transitionReady : STORY_TIMING.intro.draft1.exitEnd
+      if ( toTimelineUnits( storyProgressRef.current ) < introWeightLimit )
       {
         // Reduce wheel and touch travel only while the 8-ball sequence is on screen.
         scrollInput.deltaY *= INTRO_SCROLL_WEIGHT
@@ -382,7 +387,7 @@ function App ()
           // The qualifying gesture already crossed the rack-spread boundary. Let its
           // remaining momentum finish the short handoff without locking reverse input.
           lenis.scrollTo( studioScroll, {
-            duration: prefersReducedMotion ? 0 : DRAFT2_HANDOFF_DURATION,
+            duration: prefersReducedMotion ? 0 : STORY_TIMING.intro.draft2HandoffSeconds,
             easing: easeCinematicBreakTransition,
             immediate: prefersReducedMotion,
             force: true,
@@ -518,13 +523,13 @@ function App ()
 
     // A low lerp value lets the page carry momentum and settle like a weighted camera move.
     const lenis = new Lenis( {
-      wheelMultiplier: 0.4,
+      wheelMultiplier: STORY_TIMING.scroll.wheelMultiplier,
       // Route touch movement and touch-end inertia through the same virtual-scroll gate.
       syncTouch: true,
-      syncTouchLerp: 0.06,
+      syncTouchLerp: STORY_TIMING.scroll.syncTouchLerp,
       infinite: false,
       gestureOrientation: 'vertical',
-      lerp: 0.085,
+      lerp: STORY_TIMING.scroll.lerp,
       autoRaf: false,
       autoResize: true,
       virtualScroll: handleVirtualScroll,
@@ -640,7 +645,7 @@ function App ()
       storyProgressRef.current = progress
       // Drive only the selected intro layer; inactive layers seek when selected later.
       draftControllersRef.current[ activeDraftRef.current ]?.setProgress(
-        Math.min( 1, progress * 3 ),
+        Math.min( 1, toTimelineUnits( progress ) ),
       )
     }
 
@@ -877,39 +882,39 @@ function App ()
             .to( '.pool-table', {
               scale: 1,
               rotationX: desktop ? 8 : 4,
-              duration: 0.42,
+              duration: STORY_TIMING.intro.visual.tableOpenDuration,
             }, 0 )
             .to( '.ball-rig', {
               scale: 1,
               x: holdX,
               y: holdY,
               rotation: 0,
-              duration: 0.52,
+              duration: STORY_TIMING.intro.approachDuration,
             }, 0 )
             .to( '.hero-copy', {
               y: -36,
               autoAlpha: 0,
-              duration: 0.28,
-            }, 0.03 )
+              duration: STORY_TIMING.intro.visual.heroFadeDuration,
+            }, STORY_TIMING.intro.visual.heroFadeDelay )
             .to( '.scroll-prompt', {
               y: 20,
               autoAlpha: 0,
-              duration: 0.2,
-            }, 0.05 )
+              duration: STORY_TIMING.intro.visual.promptFadeDuration,
+            }, STORY_TIMING.intro.visual.promptFadeDelay )
             .to( '.camera-grid', {
               opacity: 0.38,
-              duration: 0.7,
+              duration: STORY_TIMING.intro.visual.cameraGridDuration,
             }, 0 )
             // Approach: bring the cue in while the ball settles at its table position.
             .to( '.cue-stick', {
               x: 0,
               autoAlpha: 1,
-              duration: 0.18,
-            }, 0.34 )
+              duration: STORY_TIMING.intro.visual.cueApproachDuration,
+            }, STORY_TIMING.intro.visual.cueApproachStart )
             .to( '.pool-table', {
               scale: 0.84,
-              duration: 0.26,
-            }, 0.42 )
+              duration: STORY_TIMING.intro.visual.tableScaleDuration,
+            }, STORY_TIMING.intro.visual.tableScaleStart )
             // Contact: push the cue tip into the ball, then compress the ball briefly.
             .to( '.cue-stick', {
               x: desktop
@@ -917,18 +922,18 @@ function App ()
                 : compactLandscape
                   ? '3.8vw'
                   : '5.8vw',
-              duration: 0.08,
-            }, 0.54 )
+              duration: STORY_TIMING.intro.visual.cueStrikeDuration,
+            }, STORY_TIMING.intro.visual.cueStrikeStart )
             .to( '.ball-rig', {
               scaleX: 0.88,
               scaleY: 1.08,
-              duration: 0.04,
-            }, 0.56 )
+              duration: STORY_TIMING.intro.visual.ballCompressDuration,
+            }, STORY_TIMING.intro.visual.ballCompressStart )
             .to( '.ball-rig', {
               scaleX: 1,
               scaleY: 1,
-              duration: 0.05,
-            }, 0.6 )
+              duration: STORY_TIMING.intro.visual.ballRestoreDuration,
+            }, STORY_TIMING.intro.visual.ballRestoreStart )
             // Recoil: pull the cue away as the ball rolls toward the pocket path.
             .to( '.cue-stick', {
               x: desktop
@@ -937,91 +942,91 @@ function App ()
                   ? '-8vw'
                   : '-12vw',
               autoAlpha: 0,
-              duration: 0.14,
-            }, 0.62 )
+              duration: STORY_TIMING.intro.visual.cueRecoilDuration,
+            }, STORY_TIMING.intro.visual.cueRecoilStart )
             .to( '.ball-rig', {
               x: pocketX,
               y: pocketY,
               rotation: 910,
-              duration: 0.14,
-            }, 0.64 )
+              duration: STORY_TIMING.intro.visual.ballPocketDuration,
+            }, STORY_TIMING.intro.visual.ballPocketStart )
             .to( '.ball-rig', {
               scale: 0.35,
               autoAlpha: 0,
-              duration: 0.04,
-            }, 0.78 )
+              duration: STORY_TIMING.intro.visual.ballVanishDuration,
+            }, STORY_TIMING.intro.visual.ballVanishStart )
             // Open the black-hole iris only after the ball has fully vanished.
             .to( '.pocket-iris', {
               scale: desktop ? 38 : 42,
-              duration: 0.18,
-            }, 0.82 )
+              duration: STORY_TIMING.intro.visual.pocketIrisDuration,
+            }, STORY_TIMING.intro.visual.pocketIrisStart )
             .to( '.scene-interface', {
               autoAlpha: 0,
-              duration: CINEMATIC_EXIT_END - CINEMATIC_EXIT_START,
-            }, CINEMATIC_EXIT_START )
+              duration: STORY_TIMING.intro.draft1.transitionDuration,
+            }, STORY_TIMING.intro.draft1.exitStart )
             // Crossfade into Studio as soon as the colored balls reach the reference spread.
             .to( '.title-screen', {
               autoAlpha: 1,
-              duration: CINEMATIC_EXIT_END - CINEMATIC_EXIT_START,
-            }, CINEMATIC_EXIT_START )
+              duration: STORY_TIMING.intro.draft1.transitionDuration,
+            }, STORY_TIMING.intro.draft1.exitStart )
             .to( '.final-title-line > span', {
               yPercent: 0,
-              duration: 0.1,
-              stagger: 0.012,
-            }, 0.82 )
+              duration: STORY_TIMING.intro.visual.titleLineDuration,
+              stagger: STORY_TIMING.intro.visual.titleLineStagger,
+            }, STORY_TIMING.intro.visual.titleLineStart )
             .to( '.final-meta', {
               y: 0,
               autoAlpha: 1,
-              duration: 0.06,
-            }, 0.88 )
-            .to( {}, { duration: 0.005 }, 0.995 )
-            .addLabel( 'studio', 1 )
+              duration: STORY_TIMING.intro.visual.metaDuration,
+            }, STORY_TIMING.intro.visual.metaStart )
+            .to( {}, { duration: STORY_TIMING.intro.visual.timelineEndEpsilon }, 1 - STORY_TIMING.intro.visual.timelineEndEpsilon )
+            .addLabel( 'studio', STORY_TIMING.pages.studioStable )
 
             // Studio → Projects. Reveal the project heading.
             .to( '.projects-screen', {
               yPercent: 0,
               autoAlpha: 1,
-              duration: 0.52,
-            }, 1.16 )
+              duration: STORY_TIMING.pages.studioRevealDuration,
+            }, STORY_TIMING.pages.projectsStart )
             .to( '.title-screen', {
               scale: 0.965,
               yPercent: -2,
               autoAlpha: 0,
-              duration: 0.46,
-            }, 1.2 )
+              duration: STORY_TIMING.pages.projectsFadeDuration,
+            }, STORY_TIMING.pages.projectsFadeStart )
             .to( '.projects-title-line > span', {
               yPercent: 0,
-              duration: 0.22,
-              stagger: 0.04,
-            }, 1.57 )
-            .addLabel( 'projects', 2 )
+              duration: STORY_TIMING.pages.projectsTitleDuration,
+              stagger: STORY_TIMING.pages.projectsTitleStagger,
+            }, STORY_TIMING.pages.projectsTitleStart )
+            .addLabel( 'projects', STORY_TIMING.pages.projectsStable )
 
             // Projects → Contact. Reveal every contact item.
             .to( '.contact-screen', {
               yPercent: 0,
               autoAlpha: 1,
-              duration: 0.56,
-            }, 2.14 )
+              duration: STORY_TIMING.pages.contactRevealDuration,
+            }, STORY_TIMING.pages.contactStart )
             .to( '.projects-screen', {
               scale: 0.965,
               yPercent: -2,
               autoAlpha: 0,
-              duration: 0.5,
-            }, 2.18 )
+              duration: STORY_TIMING.pages.contactFadeDuration,
+            }, STORY_TIMING.pages.contactFadeStart )
             .to( '.contact-title-line > span', {
               yPercent: 0,
-              duration: 0.24,
-              stagger: 0.04,
-            }, 2.52 )
+              duration: STORY_TIMING.pages.contactTitleDuration,
+              stagger: STORY_TIMING.pages.contactTitleStagger,
+            }, STORY_TIMING.pages.contactTitleStart )
             .to( '.contact-item', {
               y: 0,
               autoAlpha: 1,
-              duration: 0.2,
-              stagger: 0.05,
-            }, 2.67 )
-            // This empty tween makes the complete timeline exactly three units long.
-            .to( {}, { duration: 0.01 }, 2.99 )
-            .addLabel( 'contact', 3 )
+              duration: STORY_TIMING.pages.contactItemDuration,
+              stagger: STORY_TIMING.pages.contactItemStagger,
+            }, STORY_TIMING.pages.contactItemsStart )
+            // This empty tween makes the complete timeline exactly the configured length.
+            .to( {}, { duration: STORY_TIMING.pages.timelineEndEpsilon }, STORY_TIMING.pages.timelineEndStart )
+            .addLabel( 'contact', STORY_TIMING.pages.contactStable )
         },
       )
 
@@ -1053,7 +1058,13 @@ function App ()
       className={ `experience draft-${activeDraft}${activePage === 2 ? ' is-projects-active' : ''}` }
       ref={ rootRef }
     >
-      <section className="story" ref={ storyRef } aria-label="Interactive 8 Ball Studio introduction">
+      {/* Keep the physical scroll range in lockstep with the editable timeline length. */}
+      <section
+        className="story"
+        ref={ storyRef }
+        style={ { '--story-height': `${ STORY_TIMING.totalTimelineUnits + 1 }svh` } }
+        aria-label="Interactive 8 Ball Studio introduction"
+      >
         <div className="stage">
           <div className="pointer-glow" aria-hidden="true" />
           <div className="camera-grid" aria-hidden="true" />

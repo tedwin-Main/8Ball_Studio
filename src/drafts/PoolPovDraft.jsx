@@ -4,15 +4,16 @@ import { DecalGeometry } from 'three/addons/geometries/DecalGeometry.js'
 import brandLogo from '../assets/8BALL-V4.jpg'
 import landscapePool from '../assets/drafts/pool-pov-landscape.png'
 import portraitPool from '../assets/drafts/pool-pov-portrait.png'
+import { STORY_TIMING } from '../storyTiming'
 import {
-  CINEMATIC_CUE_READY_PROGRESS,
-  CINEMATIC_CUE_RELEASE_PROGRESS,
   getBreakSimulation,
   sampleCinematicBreakState,
 } from './poolBreakPhysics'
 
 const clamp = ( value, min = 0, max = 1 ) => Math.min( max, Math.max( min, value ) )
 const lerp = ( start, end, progress ) => start + ( end - start ) * progress
+
+const CUE_PROGRESS_EPSILON = STORY_TIMING.intro.cueReleaseEpsilon
 
 const BALL_COLORS = [
   '#f5b818', '#1b46a2', '#cb242a', '#59287a', '#e76317',
@@ -533,19 +534,19 @@ export function PoolPovDraft ( { active, onController } )
           mesh.visible = ball.visibility
         } )
 
-        const aimProgress = clamp( progress / CINEMATIC_CUE_READY_PROGRESS )
+        const aimProgress = clamp( progress / STORY_TIMING.cue.ready )
         const aimEase = aimProgress * aimProgress * ( 3 - 2 * aimProgress )
         const strikeProgress = clamp(
-          ( progress - CINEMATIC_CUE_READY_PROGRESS ) / 0.07,
+          ( progress - STORY_TIMING.cue.ready ) / STORY_TIMING.cue.strikeProgress,
         )
-        const strikeOffset = progress > CINEMATIC_CUE_READY_PROGRESS && strikeProgress < 1
+        const strikeOffset = progress > STORY_TIMING.cue.ready && strikeProgress < 1
           ? Math.sin( strikeProgress * Math.PI ) * 0.03
           : 0
         const recoil = clamp(
-          ( progress - CINEMATIC_CUE_READY_PROGRESS - 0.055 ) / 0.16,
+          ( progress - STORY_TIMING.cue.ready - STORY_TIMING.cue.recoilDelay ) / STORY_TIMING.cue.recoilProgress,
         ) * 0.11
         const cueOpacity = (
-          1 - clamp( ( progress - CINEMATIC_CUE_READY_PROGRESS - 0.2 ) / 0.14 )
+          1 - clamp( ( progress - STORY_TIMING.cue.ready - STORY_TIMING.cue.fadeDelay ) / STORY_TIMING.cue.fadeDuration )
         ) * state.opacity
         const strikerStart = simulation.initial.strikerStart
         const cueAimZ = strikerStart.z + simulation.config.ball.radius + 0.025
@@ -561,19 +562,19 @@ export function PoolPovDraft ( { active, onController } )
           lerp( 0.16, 0.006, aimEase ),
           lerp( -0.035, 0, aimEase ),
         )
-        world.cueGroup.visible = progress > 0.004 && cueOpacity > 0.01
+        world.cueGroup.visible = progress > STORY_TIMING.cue.hideThreshold && cueOpacity > 0.01
         world.cueMaterials.forEach( ( material ) => { material.opacity = cueOpacity } )
         world.render()
       }
 
       // Fade the photograph, lighting, and balls as one reversible composition.
       root.style.setProperty( '--draft-exit-opacity', String( state.opacity ) )
-      root.dataset.phase = progress <= CINEMATIC_CUE_RELEASE_PROGRESS ? 'aim' : state.phase
-      root.dataset.cue = progress <= 0.004
+      root.dataset.phase = progress <= STORY_TIMING.cue.release ? 'aim' : state.phase
+      root.dataset.cue = progress <= STORY_TIMING.cue.hideThreshold
         ? 'hidden'
-        : progress < CINEMATIC_CUE_READY_PROGRESS - 0.002
+        : progress < STORY_TIMING.cue.ready - CUE_PROGRESS_EPSILON
           ? 'aiming'
-          : progress <= CINEMATIC_CUE_READY_PROGRESS + 0.002
+          : progress <= STORY_TIMING.cue.ready + CUE_PROGRESS_EPSILON
             ? 'ready'
             : world?.cueGroup.visible
               ? 'striking'

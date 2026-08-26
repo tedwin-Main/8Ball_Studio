@@ -89,7 +89,8 @@ a:focus-visible {
 
 .story {
   position: relative;
-  height: 400svh;
+  /* Inline style comes from STORY_TIMING so changing totalTimelineUnits updates scroll distance too. */
+  height: var(--story-height);
 }
 
 .stage {

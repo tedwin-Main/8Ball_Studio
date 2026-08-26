@@ -1,4 +1,5 @@
 // This module has no DOM or renderer dependency, so the cached break can be tested in Node.
+import { STORY_TIMING } from '../storyTiming.js'
 
 const clamp = ( value, min = 0, max = 1 ) => Math.min( max, Math.max( min, value ) )
 const lerp = ( start, end, progress ) => start + ( end - start ) * progress
@@ -6,30 +7,9 @@ const smoothstep = ( progress ) => progress * progress * ( 3 - 2 * progress )
 const EPSILON = 1e-9
 const CONTACT_EPSILON = 2e-6
 
-// Hold the break on screen long enough for the slower, heavier spread to read before the cut.
-export const CINEMATIC_EXIT_START = 0.76
-export const CINEMATIC_EXIT_END = 0.90
-// Draft 2 keeps the readable spread, then cuts directly into the next page before a pocket-drop hold.
-export const DRAFT2_TIMING_CONTRACT = Object.freeze( {
-  approachEnd: 0.52,
-  impact: 0.52,
-  transitionReady: 0.68,
-  exitStart: 0.68,
-  exitEnd: 0.74,
-  studioHandoff: 0.74,
-} )
-const LEGACY_BREAK_TIMING = Object.freeze( {
-  approachEnd: 0.52,
-  impact: 0.52,
-  transitionReady: CINEMATIC_EXIT_START,
-  exitStart: CINEMATIC_EXIT_START,
-  exitEnd: CINEMATIC_EXIT_END,
-  studioHandoff: CINEMATIC_EXIT_END,
-} )
-// Draft 1 uses the first gesture to park the cue behind a stationary 8-ball.
-export const CINEMATIC_CUE_READY_PROGRESS = 0.24
-// Browsers round scroll positions to pixels, so this dead zone keeps swipe one fully still.
-export const CINEMATIC_CUE_RELEASE_PROGRESS = CINEMATIC_CUE_READY_PROGRESS + 0.002
+// The resolved intro branches already contain every sampler milestone; keep physics as a pure consumer.
+const LEGACY_BREAK_TIMING = STORY_TIMING.intro.draft1
+const DRAFT2_BREAK_TIMING = STORY_TIMING.intro.draft2
 
 // SI-unit defaults keep the deterministic break physically consistent with the rendered table.
 export const DEFAULT_BREAK_CONFIG = Object.freeze( {
@@ -1115,7 +1095,7 @@ export function sampleBreakState ( suppliedProgress, simulation = getBreakSimula
 // Draft 2 uses the shorter post-impact contract without changing Draft 1's frames or fade.
 export function sampleDraft2BreakState ( suppliedProgress, simulation = getBreakSimulation() )
 {
-  return sampleBreakStateWithTiming( suppliedProgress, simulation, DRAFT2_TIMING_CONTRACT )
+  return sampleBreakStateWithTiming( suppliedProgress, simulation, DRAFT2_BREAK_TIMING )
 }
 
 
@@ -1127,14 +1107,14 @@ export function sampleCinematicBreakState (
 {
   const progress = clamp( suppliedProgress )
 
-  if ( progress <= CINEMATIC_CUE_RELEASE_PROGRESS )
+  if ( progress <= STORY_TIMING.cue.release )
   {
     return sampleBreakState( 0, simulation )
   }
 
-  const breakProgress = progress < CINEMATIC_EXIT_START
-    ? ( progress - CINEMATIC_CUE_RELEASE_PROGRESS ) /
-      ( CINEMATIC_EXIT_START - CINEMATIC_CUE_RELEASE_PROGRESS ) * CINEMATIC_EXIT_START
+  const breakProgress = progress < LEGACY_BREAK_TIMING.exitStart
+    ? ( progress - STORY_TIMING.cue.release ) /
+      ( LEGACY_BREAK_TIMING.exitStart - STORY_TIMING.cue.release ) * LEGACY_BREAK_TIMING.exitStart
     : progress
 
   return sampleBreakState( breakProgress, simulation )
