@@ -207,6 +207,9 @@ const installGestureProbe = async ( page ) =>
       wheelCount: 0,
       forwardWheelCount: 0,
       reverseWheelCount: 0,
+      touchStartCount: 0,
+      touchMoveCount: 0,
+      touchEndCount: 0,
     }
 
     // Count browser input at the document boundary so a handoff cannot pass by
@@ -217,6 +220,11 @@ const installGestureProbe = async ( page ) =>
       if ( event.deltaY > 0 ) state.forwardWheelCount += 1
       if ( event.deltaY < 0 ) state.reverseWheelCount += 1
     }, { capture: true, passive: true } )
+
+    // Touch counters prove the portrait path used a real touch sequence when the browser supports CDP input.
+    window.addEventListener( "touchstart", () => { state.touchStartCount += 1 }, { capture: true, passive: true } )
+    window.addEventListener( "touchmove", () => { state.touchMoveCount += 1 }, { capture: true, passive: true } )
+    window.addEventListener( "touchend", () => { state.touchEndCount += 1 }, { capture: true, passive: true } )
 
     window.__draft2GestureProbe = {
       snapshot: () => ( { ...state } ),
@@ -261,8 +269,39 @@ const getBoundedSoftGestureDelta = ( page ) => page.evaluate( () =>
   return Math.ceil( range * 0.9 )
 } )
 
+const dispatchPortraitTouchGesture = async ( context ) =>
+{
+  const client = await context.newCDPSession( await context.pages()[ 0 ] )
+  const touchPoint = ( y ) => ( {
+    x: 195,
+    y,
+    radiusX: 1,
+    radiusY: 1,
+    force: 1,
+    id: 1,
+  } )
+
+  await client.send( 'Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [ touchPoint( 840 ) ],
+    modifiers: 0,
+  } )
+  await client.send( 'Input.dispatchTouchEvent', {
+    type: 'touchMove',
+    touchPoints: [ touchPoint( 700 ) ],
+    modifiers: 0,
+  } )
+  await client.send( 'Input.dispatchTouchEvent', {
+    type: 'touchEnd',
+    touchPoints: [],
+    modifiers: 0,
+  } )
+}
+
 const waitForStudioHandoff = async ( page ) =>
 {
+  const startedAt = Date.now()
+  const completionBudgetMs = 2_500
   await expect( page.getByRole( 'button', { name: 'Go to Studio page' } ) )
     .toHaveAttribute( 'aria-current', 'page', { timeout: 10_000 } )
   await expect( page.locator( '.title-screen' ) ).toBeVisible()
@@ -270,6 +309,8 @@ const waitForStudioHandoff = async ( page ) =>
   await expect.poll( async () => page.locator( '.draft-layer-webgl' ).getAttribute( 'data-webgl-progress' ), {
     timeout: 10_000,
   } ).toBe( '1.0000' )
+  await expect( page.locator( '.webgl-pool-canvas' ) ).toHaveCSS( 'opacity', '0' )
+  expect( Date.now() - startedAt ).toBeLessThan( completionBudgetMs )
 }
 
 for ( const viewport of VIEWPORTS )
@@ -321,6 +362,37 @@ for ( const viewport of VIEWPORTS )
     }
   } )
 }
+
+test( 'Draft 2 touch gesture reaches Studio on portrait', async ( { browser, baseURL } ) =>
+{
+  const context = await browser.newContext( {
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 1,
+    hasTouch: true,
+    isMobile: true,
+  } )
+  const page = await context.newPage()
+
+  try
+  {
+    await installGestureProbe( page )
+    await page.goto( `${baseURL}/?draft=webgl&benchmark=draft2`, { waitUntil: 'domcontentloaded' } )
+    await waitForDraftTwo( page )
+    await driveStoryProgress( page, 0.22 )
+    await dispatchPortraitTouchGesture( context )
+    await waitForStudioHandoff( page )
+
+    const gesture = await page.evaluate( () => window.__draft2GestureProbe.snapshot() )
+    expect( gesture.wheelCount ).toBe( 0 )
+    expect( gesture.touchStartCount ).toBe( 1 )
+    expect( gesture.touchMoveCount ).toBeGreaterThan( 0 )
+    expect( gesture.touchEndCount ).toBe( 1 )
+  }
+  finally
+  {
+    await context.close()
+  }
+} )
 
 test( 'Draft 2 one soft gesture respects reduced motion', async ( { browser, baseURL } ) =>
 {
