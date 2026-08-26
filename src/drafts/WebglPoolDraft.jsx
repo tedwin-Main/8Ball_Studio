@@ -13,9 +13,8 @@ import brandLogo from '../assets/8BALL-V4.jpg'
 RectAreaLightUniformsLib.init()
 import {
   getBreakSimulation,
-  sampleBreakState,
-  CINEMATIC_EXIT_START,
-  CINEMATIC_EXIT_END,
+  sampleDraft2BreakState,
+  DRAFT2_TIMING_CONTRACT,
 } from './poolBreakPhysics'
 
 const clamp = ( value, min = 0, max = 1 ) => Math.min( max, Math.max( min, value ) )
@@ -1257,20 +1256,20 @@ export function WebglPoolDraft ( {
     {
       if ( failed || !world ) return
 
-      const state = sampleBreakState( progress, simulation )
+      const state = sampleDraft2BreakState( progress, simulation )
 
       if ( phaseLabel )
       {
         phaseLabel.textContent = progress <= 0.04
           ? 'TABLE  /  SET'
-          : progress < CINEMATIC_EXIT_START
+          : progress < DRAFT2_TIMING_CONTRACT.exitStart
             ? 'BREAK  /  RUN'
-            : progress < CINEMATIC_EXIT_END
+            : progress < DRAFT2_TIMING_CONTRACT.exitEnd
               ? 'POCKET  /  CLEAR'
               : 'STUDIO  /  CUT'
       }
 
-      const exitProgress = clamp( ( progress - CINEMATIC_EXIT_START ) / ( CINEMATIC_EXIT_END - CINEMATIC_EXIT_START ) )
+      const exitProgress = clamp( ( progress - DRAFT2_TIMING_CONTRACT.exitStart ) / ( DRAFT2_TIMING_CONTRACT.exitEnd - DRAFT2_TIMING_CONTRACT.exitStart ) )
 
       // Sync physical ball meshes and contact shadows to deterministic physics state
       state.balls.forEach( ( ball, index ) =>
@@ -1306,7 +1305,7 @@ export function WebglPoolDraft ( {
 
       // Camera starts locked behind 8-ball and smoothly tracks forward down-table on first swipe as ball rolls and breaks
       const portraitMix = clamp( ( 0.86 - world.camera.aspect ) / 0.36 )
-      const trackProgress = clamp( progress / CINEMATIC_EXIT_START )
+      const trackProgress = clamp( progress / DRAFT2_TIMING_CONTRACT.transitionReady )
       const trackEase = trackProgress * trackProgress * ( 3 - 2 * trackProgress )
 
       const camY = THREE.MathUtils.lerp( 0.78 + portraitMix * 0.45, 1.35 + portraitMix * 0.55, trackEase )

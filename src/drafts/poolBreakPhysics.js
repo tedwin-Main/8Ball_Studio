@@ -9,6 +9,23 @@ const CONTACT_EPSILON = 2e-6
 // Hold the break on screen long enough for the slower, heavier spread to read before the cut.
 export const CINEMATIC_EXIT_START = 0.76
 export const CINEMATIC_EXIT_END = 0.90
+// Draft 2 compresses only the scroll allocation after impact; the simulation frames stay unchanged.
+export const DRAFT2_TIMING_CONTRACT = Object.freeze( {
+  approachEnd: 0.52,
+  impact: 0.52,
+  transitionReady: 0.68,
+  exitStart: 0.68,
+  exitEnd: 0.84,
+  studioHandoff: 0.84,
+} )
+const LEGACY_BREAK_TIMING = Object.freeze( {
+  approachEnd: 0.52,
+  impact: 0.52,
+  transitionReady: CINEMATIC_EXIT_START,
+  exitStart: CINEMATIC_EXIT_START,
+  exitEnd: CINEMATIC_EXIT_END,
+  studioHandoff: CINEMATIC_EXIT_END,
+} )
 // Draft 1 uses the first gesture to park the cue behind a stationary 8-ball.
 export const CINEMATIC_CUE_READY_PROGRESS = 0.24
 // Browsers round scroll positions to pixels, so this dead zone keeps swipe one fully still.
@@ -1007,17 +1024,17 @@ const slerpQuaternion = ( first, second, progress ) =>
   return result
 }
 
-// Sample the same frozen frames in either scroll direction; no live integration occurs here.
-export function sampleBreakState ( suppliedProgress, simulation = getBreakSimulation() )
+// Sample the same frozen frames in either scroll direction under one timing contract.
+const sampleBreakStateWithTiming = ( suppliedProgress, simulation, timing ) =>
 {
   const progress = clamp( suppliedProgress )
   const { config, frames, initial, milestones } = simulation
   const radius = config.ball.radius
 
-  if ( progress <= 0.52 )
+  if ( progress <= timing.approachEnd )
   {
     // Accelerate into the rack so the striker carries visible momentum before impact.
-    const approachProgress = ( progress / 0.52 ) ** 2
+    const approachProgress = ( progress / timing.approachEnd ) ** 2
     const x = lerp( initial.strikerStart.x, initial.strikerImpact.x, approachProgress )
     const z = lerp( initial.strikerStart.z, initial.strikerImpact.z, approachProgress )
     const distance = magnitude2( x - initial.strikerStart.x, z - initial.strikerStart.z )
@@ -1048,8 +1065,9 @@ export function sampleBreakState ( suppliedProgress, simulation = getBreakSimula
 
   const milestoneFrame = milestones.transitionReadyFrame
   // Freeze on the requested wide scatter so later simulation frames cannot create a dead scroll tail.
-  const sampledProgress = Math.min( progress, CINEMATIC_EXIT_START )
-  const rawBreakProgress = ( sampledProgress - 0.52 ) / 0.38
+  const sampledProgress = Math.min( progress, timing.transitionReady )
+  const rawBreakProgress = ( sampledProgress - timing.impact ) /
+    ( timing.transitionReady - timing.impact )
   // Ease through the first impulse so the rack compresses before the full scatter develops.
   const breakProgress = smoothstep( rawBreakProgress )
   const exactFrame = breakProgress * milestoneFrame
@@ -1078,16 +1096,28 @@ export function sampleBreakState ( suppliedProgress, simulation = getBreakSimula
     }
   } )
   const opacity = clamp(
-    1 - ( progress - CINEMATIC_EXIT_START ) /
-      ( CINEMATIC_EXIT_END - CINEMATIC_EXIT_START ),
+    1 - ( progress - timing.exitStart ) /
+      ( timing.exitEnd - timing.exitStart ),
   )
 
   return freezeDeep( {
     balls,
     opacity,
-    phase: progress <= CINEMATIC_EXIT_START ? 'break' : 'exit',
+    phase: progress <= timing.exitStart ? 'break' : 'exit',
   } )
 }
+// Draft 1 and existing consumers retain the original cinematic timing.
+export function sampleBreakState ( suppliedProgress, simulation = getBreakSimulation() )
+{
+  return sampleBreakStateWithTiming( suppliedProgress, simulation, LEGACY_BREAK_TIMING )
+}
+
+// Draft 2 uses the shorter post-impact contract without changing Draft 1's frames or fade.
+export function sampleDraft2BreakState ( suppliedProgress, simulation = getBreakSimulation() )
+{
+  return sampleBreakStateWithTiming( suppliedProgress, simulation, DRAFT2_TIMING_CONTRACT )
+}
+
 
 // Hold Draft 1 still through its aim checkpoint, then fit the full break into swipe two.
 export function sampleCinematicBreakState (
