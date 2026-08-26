@@ -7,12 +7,8 @@ const EPSILON = 1e-9
 const CONTACT_EPSILON = 2e-6
 
 // Hold the break on screen long enough for the slower, heavier spread to read before the cut.
-export const CINEMATIC_EXIT_START = 0.76
-export const CINEMATIC_EXIT_END = 0.90
-// Draft 1 uses the first gesture to park the cue behind a stationary 8-ball.
-export const CINEMATIC_CUE_READY_PROGRESS = 0.24
-// Browsers round scroll positions to pixels, so this dead zone keeps swipe one fully still.
-export const CINEMATIC_CUE_RELEASE_PROGRESS = CINEMATIC_CUE_READY_PROGRESS + 0.002
+export const CINEMATIC_EXIT_START = 0.5
+export const CINEMATIC_EXIT_END = 0.9
 
 // SI-unit defaults keep the deterministic break physically consistent with the rendered table.
 export const DEFAULT_BREAK_CONFIG = Object.freeze( {
@@ -211,42 +207,42 @@ const createTableGeometry = ( config ) =>
   addSegment( halfWidth, -halfLength + cornerGap, halfWidth, -sideGap )
   addSegment( halfWidth, sideGap, halfWidth, halfLength - cornerGap )
 
-  // Short angled jaws guide valid trajectories into open throats instead of closing each gap.
-  ;[ -1, 1 ].forEach( ( xSign ) =>
-  {
-    ;[ -1, 1 ].forEach( ( zSign ) =>
+    // Short angled jaws guide valid trajectories into open throats instead of closing each gap.
+    ;[ -1, 1 ].forEach( ( xSign ) =>
     {
+      ;[ -1, 1 ].forEach( ( zSign ) =>
+      {
+        addSegment(
+          xSign * ( halfWidth - cornerGap ),
+          zSign * halfLength,
+          xSign * ( halfWidth - cornerGap * 0.43 ),
+          zSign * ( halfLength + jawOutset ),
+          'corner-jaw',
+        )
+        addSegment(
+          xSign * halfWidth,
+          zSign * ( halfLength - cornerGap ),
+          xSign * ( halfWidth + jawOutset ),
+          zSign * ( halfLength - cornerGap * 0.43 ),
+          'corner-jaw',
+        )
+      } )
+
       addSegment(
-        xSign * ( halfWidth - cornerGap ),
-        zSign * halfLength,
-        xSign * ( halfWidth - cornerGap * 0.43 ),
-        zSign * ( halfLength + jawOutset ),
-        'corner-jaw',
+        xSign * halfWidth,
+        -sideGap,
+        xSign * ( halfWidth + jawOutset ),
+        -sideGap * 0.38,
+        'side-jaw',
       )
       addSegment(
         xSign * halfWidth,
-        zSign * ( halfLength - cornerGap ),
+        sideGap,
         xSign * ( halfWidth + jawOutset ),
-        zSign * ( halfLength - cornerGap * 0.43 ),
-        'corner-jaw',
+        sideGap * 0.38,
+        'side-jaw',
       )
     } )
-
-    addSegment(
-      xSign * halfWidth,
-      -sideGap,
-      xSign * ( halfWidth + jawOutset ),
-      -sideGap * 0.38,
-      'side-jaw',
-    )
-    addSegment(
-      xSign * halfWidth,
-      sideGap,
-      xSign * ( halfWidth + jawOutset ),
-      sideGap * 0.38,
-      'side-jaw',
-    )
-  } )
 
   const pockets = [
     { x: -halfWidth - 0.006, z: -halfLength - 0.006, radius: config.table.cornerPocketRadius },
@@ -750,7 +746,8 @@ const createFrame = ( balls, time, radius ) => freezeDeep( {
     pocketDepth: ball.pocketDepth,
     pocketIndex: ball.pocketIndex,
     pocketed: ball.pocketed,
-    visibility: !ball.pocketed || ball.pocketDepth < radius * 3.2,
+    // Keep ball visible during deep 3D gravity drop down recessed pocket cylinder
+    visibility: !ball.pocketed || ball.pocketDepth < radius * 8.5,
   } ) ),
 } )
 
@@ -1014,10 +1011,10 @@ export function sampleBreakState ( suppliedProgress, simulation = getBreakSimula
   const { config, frames, initial, milestones } = simulation
   const radius = config.ball.radius
 
-  if ( progress <= 0.52 )
+  // Phase 1 (0 to 0.28): 8-ball rolls forward immediately on the first swipe into the rack.
+  if ( progress <= 0.28 )
   {
-    // Accelerate into the rack so the striker carries visible momentum before impact.
-    const approachProgress = ( progress / 0.52 ) ** 2
+    const approachProgress = progress / 0.28
     const x = lerp( initial.strikerStart.x, initial.strikerImpact.x, approachProgress )
     const z = lerp( initial.strikerStart.z, initial.strikerImpact.z, approachProgress )
     const distance = magnitude2( x - initial.strikerStart.x, z - initial.strikerStart.z )
@@ -1027,7 +1024,6 @@ export function sampleBreakState ( suppliedProgress, simulation = getBreakSimula
       0,
       -1,
     )
-    // The sign makes a ball moving toward decreasing Z roll forward, not backward.
     const quaternion = quaternionFromAxisAngle(
       direction.z,
       0,
@@ -1046,10 +1042,11 @@ export function sampleBreakState ( suppliedProgress, simulation = getBreakSimula
     return freezeDeep( { balls, opacity: 1, phase: 'approach' } )
   }
 
+  // Phase 2 Break & Scatter (0.28 to 0.76): Rack scatters from 8-ball impact.
   const milestoneFrame = milestones.transitionReadyFrame
   // Freeze on the requested wide scatter so later simulation frames cannot create a dead scroll tail.
   const sampledProgress = Math.min( progress, CINEMATIC_EXIT_START )
-  const rawBreakProgress = ( sampledProgress - 0.52 ) / 0.38
+  const rawBreakProgress = ( sampledProgress - 0.28 ) / ( CINEMATIC_EXIT_START - 0.28 )
   // Ease through the first impulse so the rack compresses before the full scatter develops.
   const breakProgress = smoothstep( rawBreakProgress )
   const exactFrame = breakProgress * milestoneFrame
@@ -1079,7 +1076,7 @@ export function sampleBreakState ( suppliedProgress, simulation = getBreakSimula
   } )
   const opacity = clamp(
     1 - ( progress - CINEMATIC_EXIT_START ) /
-      ( CINEMATIC_EXIT_END - CINEMATIC_EXIT_START ),
+    ( CINEMATIC_EXIT_END - CINEMATIC_EXIT_START ),
   )
 
   return freezeDeep( {
@@ -1089,23 +1086,86 @@ export function sampleBreakState ( suppliedProgress, simulation = getBreakSimula
   } )
 }
 
-// Hold Draft 1 still through its aim checkpoint, then fit the full break into swipe two.
+// Hold Draft 1 8-ball at start and immediately roll forward into the rack upon first swipe.
 export function sampleCinematicBreakState (
   suppliedProgress,
   simulation = getBreakSimulation(),
 )
 {
   const progress = clamp( suppliedProgress )
+  const { config, frames, initial, milestones } = simulation
+  const radius = config.ball.radius
 
-  if ( progress <= CINEMATIC_CUE_RELEASE_PROGRESS )
+  // Phase 1 Approach (0 to 0.28): 8-ball rolls forward immediately upon first swipe into the rack apex.
+  if ( progress <= 0.28 )
   {
-    return sampleBreakState( 0, simulation )
+    const approachProgress = progress / 0.28
+    const x = lerp( initial.strikerStart.x, initial.strikerImpact.x, approachProgress )
+    const z = lerp( initial.strikerStart.z, initial.strikerImpact.z, approachProgress )
+    const distance = magnitude2( x - initial.strikerStart.x, z - initial.strikerStart.z )
+    const direction = normalize2(
+      x - initial.strikerStart.x,
+      z - initial.strikerStart.z,
+      0,
+      -1,
+    )
+    const quaternion = quaternionFromAxisAngle(
+      direction.z,
+      0,
+      -direction.x,
+      distance / radius,
+    )
+    const balls = [ {
+      position: { x, y: radius, z },
+      quaternion,
+      pocketDepth: 0,
+      pocketed: false,
+      visibility: true,
+    } ]
+
+    frames[ 0 ].balls.slice( 1 ).forEach( ( ball ) => balls.push( copySampleBall( ball ) ) )
+    return freezeDeep( { balls, opacity: 1, phase: 'approach' } )
   }
 
-  const breakProgress = progress < CINEMATIC_EXIT_START
-    ? ( progress - CINEMATIC_CUE_RELEASE_PROGRESS ) /
-      ( CINEMATIC_EXIT_START - CINEMATIC_CUE_RELEASE_PROGRESS ) * CINEMATIC_EXIT_START
-    : progress
+  // Phase 2 Break & Scatter (0.28 to 0.76): 8-ball impacts rack apex; rack explodes into realistic physics scatter.
+  const milestoneFrame = milestones.transitionReadyFrame
+  const sampledProgress = Math.min( progress, CINEMATIC_EXIT_START )
+  const rawBreakProgress = ( sampledProgress - 0.28 ) /
+    ( CINEMATIC_EXIT_START - 0.28 )
+  const breakProgress = smoothstep( rawBreakProgress )
+  const exactFrame = breakProgress * milestoneFrame
+  const firstFrameIndex = Math.floor( exactFrame )
+  const secondFrameIndex = Math.min( milestoneFrame, firstFrameIndex + 1 )
+  const interpolation = exactFrame - firstFrameIndex
+  const firstFrame = frames[ firstFrameIndex ]
+  const secondFrame = frames[ secondFrameIndex ]
+  const balls = firstFrame.balls.map( ( firstBall, index ) =>
+  {
+    const secondBall = secondFrame.balls[ index ]
+    return {
+      position: {
+        x: lerp( firstBall.position.x, secondBall.position.x, interpolation ),
+        y: lerp( firstBall.position.y, secondBall.position.y, interpolation ),
+        z: lerp( firstBall.position.z, secondBall.position.z, interpolation ),
+      },
+      quaternion: slerpQuaternion(
+        firstBall.quaternion,
+        secondBall.quaternion,
+        interpolation,
+      ),
+      pocketDepth: lerp( firstBall.pocketDepth, secondBall.pocketDepth, interpolation ),
+      pocketed: firstBall.pocketed || secondBall.pocketed,
+      visibility: firstBall.visibility || secondBall.visibility,
+    }
+  } )
+  const opacity = clamp(
+    1 - ( progress - CINEMATIC_EXIT_START ) /
+    ( CINEMATIC_EXIT_END - CINEMATIC_EXIT_START ),
+  )
 
-  return sampleBreakState( breakProgress, simulation )
+  return freezeDeep( {
+    balls,
+    opacity,
+    phase: progress <= CINEMATIC_EXIT_START ? 'break' : 'exit',
+  } )
 }

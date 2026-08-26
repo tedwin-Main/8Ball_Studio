@@ -336,41 +336,6 @@ a:focus-visible {
   transform: translateZ(25px);
 }
 
-/* Draw the cue as one cheap layer so GSAP only moves and fades this element. */
-.cue-stick {
-  position: absolute;
-  z-index: 5;
-  top: calc(50% + 8vh);
-  right: calc(50% + 4vw);
-  width: min(63vw, 900px);
-  height: clamp(10px, 1vw, 15px);
-  clip-path: polygon(0 32%, 100% 0, 100% 100%, 0 68%);
-  background:
-    linear-gradient(90deg, #111 0 16%, #eee8dc 16.2% 18.5%, #42261c 18.7% 22%, #c69555 22.2% 89%, #f4e7c6 89.2% 97.5%, #7bb4a1 97.7% 100%);
-  box-shadow: 0 8px 11px rgba(0, 0, 0, 0.46);
-  transform-origin: 100% 50%;
-  will-change: transform, opacity;
-}
-
-.cue-stick::before {
-  position: absolute;
-  inset: 16% 0 50%;
-  content: '';
-  background: rgba(255, 255, 255, 0.4);
-}
-
-/* Small cue label gives the stick a visible branded detail during the hit. */
-.cue-mark {
-  position: absolute;
-  top: 50%;
-  left: 10%;
-  color: rgba(255, 255, 255, 0.76);
-  font-family: 'DM Mono', monospace;
-  font-size: 7px;
-  letter-spacing: 0.18em;
-  transform: translateY(-50%);
-}
-
 /* Black circle grows from the pocket and creates the warp into the Studio page. */
 .pocket-iris {
   position: absolute;
@@ -1038,12 +1003,6 @@ a.contact-item:focus-visible .contact-icon {
     left: max(17px, env(safe-area-inset-left));
   }
 
-  /* Shorten and reposition the cue so the same hit fits narrow screens. */
-  .cue-stick {
-    top: calc(50% + 6vh);
-    right: calc(50% + 6vw);
-    width: 92vw;
-  }
 
   /* Move the iris to the mobile pocket path before it expands full-screen. */
   .pocket-iris {
@@ -1183,12 +1142,6 @@ a.contact-item:focus-visible .contact-icon {
     bottom: max(12px, env(safe-area-inset-bottom));
   }
 
-  /* Keep the cue clear of the table edge in short landscape layouts. */
-  .cue-stick {
-    top: calc(50% + 5vh);
-    right: calc(50% + 2vw);
-    width: 70vw;
-  }
 
   /* Keep the warp origin aligned with the wider pocket on short landscape screens. */
   .pocket-iris {
@@ -1333,7 +1286,6 @@ a.contact-item:focus-visible .contact-icon {
 
 /* The original intro remains mounted as Draft 3, but cannot cover the new scenes. */
 .experience:not(.draft-original) .pool-table,
-.experience:not(.draft-original) .cue-stick,
 .experience:not(.draft-original) .ball-rig,
 .experience:not(.draft-original) .pocket-iris,
 .experience:not(.draft-original) .camera-grid,

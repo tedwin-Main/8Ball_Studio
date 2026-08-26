@@ -7,7 +7,6 @@ import { DraftSwitcher } from './components/DraftSwitcher'
 import { PoolPovDraft } from './drafts/PoolPovDraft'
 import { WebglPoolDraft } from './drafts/WebglPoolDraft'
 import {
-  CINEMATIC_CUE_READY_PROGRESS,
   CINEMATIC_EXIT_END,
   CINEMATIC_EXIT_START,
 } from './drafts/poolBreakPhysics'
@@ -29,18 +28,8 @@ const STORY_PAGES = [
   { id: 'page-contact', label: 'Contact', startProgress: 2.14 / 3, targetProgress: 1 },
 ]
 
-// Each cue draft stops its first gesture at the point where that scene finishes aiming.
-const CUE_READY_PROGRESS_BY_DRAFT = Object.freeze( {
-  cinematic: CINEMATIC_CUE_READY_PROGRESS / 3,
-  webgl: 0.52 / 3,
-} )
-const CUE_PROGRESS_EPSILON = 0.0005
 // Damp input during the pool-table sequence so the heavy ball cannot race ahead of the scroll.
 const INTRO_SCROLL_WEIGHT = 0.72
-// Give Draft 1 enough fixed time to show the strike, spread, and full cut into Studio.
-const CINEMATIC_BREAK_TRANSITION_DURATION = 1.8
-const easeCinematicBreakTransition = ( progress ) =>
-  progress * progress * ( 3 - 2 * progress )
 
 const DRAFT_IDS = [ 'cinematic', 'webgl', 'original' ]
 
@@ -249,44 +238,12 @@ function App ()
     let pointerX = 0
     let pointerY = 0
     let ballLayerIsPromoted = false
-    let cueGateState = 'armed'
+
     const hasFinePointer = window.matchMedia( '(hover: hover) and (pointer: fine)' ).matches
     const prefersReducedMotion = window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches
 
-    const getStoryMetrics = () =>
-    {
-      const story = storyRef.current
-
-      if ( !story ) return null
-
-      const bounds = story.getBoundingClientRect()
-
-      return {
-        top: window.scrollY + bounds.top,
-        range: Math.max( 0, story.offsetHeight - window.innerHeight ),
-      }
-    }
-
-    const getStoryProgress = ( scrollValue, metrics ) =>
-    {
-      if ( !metrics || metrics.range === 0 ) return 0
-
-      return Math.min(
-        1,
-        Math.max( 0, ( scrollValue - metrics.top ) / metrics.range ),
-      )
-    }
-
-    const consumeCueInput = ( event ) =>
-    {
-      // Returning false skips Lenis; preventDefault also blocks native touch scrolling.
-      if ( event.cancelable ) event.preventDefault()
-      return false
-    }
-
     const handleVirtualScroll = ( scrollInput ) =>
     {
-      let { deltaY } = scrollInput
       const { event } = scrollInput
       const isWheel = event.type.includes( 'wheel' )
       const isTouch = event.type.includes( 'touch' )
@@ -295,158 +252,11 @@ function App ()
 
       if ( storyProgressRef.current * 3 < CINEMATIC_EXIT_END )
       {
-        // Reduce wheel and touch travel only while the 8-ball sequence is on screen.
+        // Smoothly balance wheel and touch travel during the 8-ball sequence.
         scrollInput.deltaY *= INTRO_SCROLL_WEIGHT
-        deltaY = scrollInput.deltaY
       }
 
-      const cueReadyProgress = CUE_READY_PROGRESS_BY_DRAFT[ activeDraftRef.current ]
-
-      // Draft 3 has no cue sequence, so it keeps the original continuous scroll.
-      if ( cueReadyProgress === undefined )
-      {
-        cueGateState = 'armed'
-        return true
-      }
-
-      const isTouchEnd = event.type === 'touchend'
-
-      if ( deltaY === 0 ) return true
-
-      const metrics = getStoryMetrics()
-
-      if ( !metrics || metrics.range === 0 ) return true
-
-      // Lenis replaces touchend delta with velocity-based inertia before scrolling.
-      const effectiveDeltaY = isTouchEnd
-        ? Math.sign( lenis.velocity ) * Math.pow(
-          Math.abs( lenis.velocity ),
-          lenis.options.touchInertiaExponent,
-        )
-        : deltaY
-
-      if ( effectiveDeltaY === 0 ) return true
-
-      const checkpointScroll = metrics.top + metrics.range * cueReadyProgress
-      const currentScroll = lenis.scroll
-      const currentTarget = lenis.targetScroll
-      const candidateTarget = currentTarget + effectiveDeltaY
-      const currentProgress = getStoryProgress( currentScroll, metrics )
-      const candidateProgress = getStoryProgress( candidateTarget, metrics )
-      const isForward = effectiveDeltaY > 0
-      const cueGateIsMoving = cueGateState === 'settling' || cueGateState === 'transitioning'
-
-      // Going back below the checkpoint fully rearms the next forward gesture.
-      if (
-        !cueGateIsMoving &&
-        currentProgress < cueReadyProgress - CUE_PROGRESS_EPSILON
-      )
-      {
-        cueGateState = 'armed'
-      }
-
-      // Reloads and programmatic jumps above the checkpoint must not rewind on forward input.
-      if (
-        isForward &&
-        !cueGateIsMoving &&
-        currentProgress > cueReadyProgress + CUE_PROGRESS_EPSILON
-      )
-      {
-        cueGateState = 'passed'
-      }
-
-      if ( !isForward )
-      {
-        if ( cueGateIsMoving )
-        {
-          // Break either temporary Lenis lock so reverse input works immediately.
-          const reverseScroll = Math.max(
-            0,
-            Math.min( lenis.limit, lenis.animatedScroll + effectiveDeltaY ),
-          )
-
-          lenis.scrollTo( reverseScroll, {
-            immediate: true,
-            force: true,
-            programmatic: false,
-          } )
-          cueGateState = getStoryProgress( reverseScroll, metrics ) < cueReadyProgress - CUE_PROGRESS_EPSILON
-            ? 'armed'
-            : 'passed'
-          return consumeCueInput( event )
-        }
-
-        if ( candidateProgress < cueReadyProgress - CUE_PROGRESS_EPSILON )
-        {
-          cueGateState = 'armed'
-        }
-
-        return true
-      }
-
-      if ( cueGateState === 'transitioning' )
-      {
-        return consumeCueInput( event )
-      }
-
-      if ( cueGateState === 'passed' )
-      {
-        const studioProgress = STORY_PAGES[ 1 ].targetProgress
-
-        if (
-          activeDraftRef.current !== 'cinematic' ||
-          currentProgress >= studioProgress - CUE_PROGRESS_EPSILON
-        )
-        {
-          return true
-        }
-
-        const studioScroll = Math.round( metrics.top + metrics.range * studioProgress )
-        cueGateState = 'transitioning'
-        consumeCueInput( event )
-
-        // Any second downward input commits Draft 1 through the complete break and page cut.
-        lenis.scrollTo( studioScroll, {
-          duration: CINEMATIC_BREAK_TRANSITION_DURATION,
-          easing: easeCinematicBreakTransition,
-          immediate: prefersReducedMotion,
-          lock: true,
-          programmatic: false,
-          onComplete: () =>
-          {
-            cueGateState = 'passed'
-          },
-        } )
-
-        return false
-      }
-
-      if ( cueGateState === 'settling' )
-      {
-        // Consume input only until the exact checkpoint finishes settling.
-        return consumeCueInput( event )
-      }
-
-      if ( candidateProgress <= cueReadyProgress + CUE_PROGRESS_EPSILON )
-      {
-        return true
-      }
-
-      cueGateState = 'settling'
-      consumeCueInput( event )
-
-      // Lock Lenis only while this exact checkpoint settles; the next input can continue.
-      lenis.scrollTo( checkpointScroll, {
-        lock: true,
-        programmatic: false,
-        onComplete: () =>
-        {
-          // Settling is over, so forward input immediately passes the cue gate.
-          cueGateState = 'passed'
-        },
-      } )
-
-      return false
+      return true
     }
 
     // A low lerp value lets the page carry momentum and settle like a weighted camera move.
@@ -637,8 +447,6 @@ function App ()
             scale: showIntro ? 6.25 : 1,
             autoAlpha: showEndScreen ? 0 : 1,
           } )
-          // Reduced motion hides the cue because its hit timing is intentionally disabled.
-          gsap.set( '.cue-stick', { autoAlpha: 0 } )
           // Reduced motion keeps the warp closed and invisible instead of leaving a black circle.
           gsap.set( '.pocket-iris', {
             xPercent: -50,
@@ -730,12 +538,6 @@ function App ()
             y: 0,
             rotation: 0,
           } )
-          // Start the cue off-screen so scroll progress controls its approach.
-          gsap.set( '.cue-stick', {
-            x: desktop ? '-58vw' : compactLandscape ? '-68vw' : '-96vw',
-            rotation: desktop ? -30 : compactLandscape ? -25 : -47,
-            autoAlpha: 0,
-          } )
           // Start the black-hole iris closed at the pocket; scroll progress opens it.
           gsap.set( '.pocket-iris', {
             xPercent: -50,
@@ -805,51 +607,16 @@ function App ()
               opacity: 0.38,
               duration: 0.7,
             }, 0 )
-            // Approach: bring the cue in while the ball settles at its table position.
-            .to( '.cue-stick', {
-              x: 0,
-              autoAlpha: 1,
-              duration: 0.18,
-            }, 0.34 )
             .to( '.pool-table', {
               scale: 0.84,
               duration: 0.26,
             }, 0.42 )
-            // Contact: push the cue tip into the ball, then compress the ball briefly.
-            .to( '.cue-stick', {
-              x: desktop
-                ? '3.1vw'
-                : compactLandscape
-                  ? '3.8vw'
-                  : '5.8vw',
-              duration: 0.08,
-            }, 0.54 )
-            .to( '.ball-rig', {
-              scaleX: 0.88,
-              scaleY: 1.08,
-              duration: 0.04,
-            }, 0.56 )
-            .to( '.ball-rig', {
-              scaleX: 1,
-              scaleY: 1,
-              duration: 0.05,
-            }, 0.6 )
-            // Recoil: pull the cue away as the ball rolls toward the pocket path.
-            .to( '.cue-stick', {
-              x: desktop
-                ? '-7vw'
-                : compactLandscape
-                  ? '-8vw'
-                  : '-12vw',
-              autoAlpha: 0,
-              duration: 0.14,
-            }, 0.62 )
             .to( '.ball-rig', {
               x: pocketX,
               y: pocketY,
               rotation: 910,
-              duration: 0.14,
-            }, 0.64 )
+              duration: 0.24,
+            }, 0.54 )
             .to( '.ball-rig', {
               scale: 0.35,
               autoAlpha: 0,
@@ -977,7 +744,6 @@ function App ()
           />
 
           <PoolTable />
-          <div className="cue-stick" aria-hidden="true"><span className="cue-mark">8BS</span></div>
           <EightBall />
           {/* Expands from the target pocket to mask the transition into Studio. */}
           <div className="pocket-iris" aria-hidden="true" />
