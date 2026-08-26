@@ -38,6 +38,10 @@ const CUE_PROGRESS_EPSILON = 0.0005
 // Damp input during the pool-table sequence so the heavy ball cannot race ahead of the scroll.
 const DRAFT2_HANDOFF_DURATION = 0.46
 const DRAFT2_TRANSITION_READY_STORY_PROGRESS = DRAFT2_TIMING_CONTRACT.transitionReady / 3
+// Start the Studio page indicator just after its title fade begins, so it never leads a hidden title.
+const DRAFT2_STUDIO_PAGE_BOUNDARY_EPSILON = 0.0005
+const DRAFT2_STUDIO_PAGE_START_PROGRESS =
+  DRAFT2_TRANSITION_READY_STORY_PROGRESS + DRAFT2_STUDIO_PAGE_BOUNDARY_EPSILON
 const INTRO_SCROLL_WEIGHT = 0.72
 // Give Draft 1 enough fixed time to show the strike, spread, and full cut into Studio.
 const CINEMATIC_BREAK_TRANSITION_DURATION = 1.8
@@ -45,7 +49,7 @@ const easeCinematicBreakTransition = ( progress ) =>
   progress * progress * ( 3 - 2 * progress )
 const getStudioStartProgress = ( draftId ) =>
   draftId === 'webgl'
-    ? DRAFT2_TRANSITION_READY_STORY_PROGRESS
+    ? DRAFT2_STUDIO_PAGE_START_PROGRESS
     : STORY_PAGES[ 1 ].startProgress
 
 const getDraft2ExitProgress = ( progress ) =>
@@ -261,6 +265,7 @@ function App ()
     let pointerY = 0
     let ballLayerIsPromoted = false
     let cueGateState = 'armed'
+    let draft2HandoffTargetScroll = null
     const hasFinePointer = window.matchMedia( '(hover: hover) and (pointer: fine)' ).matches
     const prefersReducedMotion = window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches
 
@@ -347,6 +352,11 @@ function App ()
         const currentProgress = getStoryProgress( currentScroll, metrics )
         const candidateProgress = getStoryProgress( candidateTarget, metrics )
 
+        if ( effectiveDeltaY < 0 || currentProgress >= studioProgress - CUE_PROGRESS_EPSILON )
+        {
+          draft2HandoffTargetScroll = null
+        }
+
         if (
           effectiveDeltaY > 0 &&
           currentProgress < studioProgress - CUE_PROGRESS_EPSILON &&
@@ -354,6 +364,17 @@ function App ()
         )
         {
           const studioScroll = Math.round( metrics.top + metrics.range * studioProgress )
+
+          // One continuous gesture can emit many packets; memo the assist target so
+          // later packets do not restart its easing or create a second-swipe gate.
+          if ( draft2HandoffTargetScroll === studioScroll )
+          {
+            if ( isTouch ) return consumeCueInput( event )
+            return true
+          }
+          // Stop browser-native touch scrolling from racing the programmatic handoff.
+          if ( isTouch && event.cancelable ) event.preventDefault()
+          draft2HandoffTargetScroll = studioScroll
 
           // The qualifying gesture already crossed the rack-spread boundary. Let its
           // remaining momentum finish the short handoff without locking reverse input.
