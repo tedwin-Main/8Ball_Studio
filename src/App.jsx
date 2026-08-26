@@ -44,12 +44,12 @@ const STORY_PAGES = [
 const CUE_READY_PROGRESS_BY_DRAFT = Object.freeze( {
   cinematic: toStoryProgress( STORY_TIMING.cue.ready ),
 } )
-const CUE_PROGRESS_EPSILON = 0.0005
+const CUE_PROGRESS_EPSILON = STORY_TIMING.progressEpsilon
 // Damp input during the pool-table sequence so the heavy ball cannot race ahead of the scroll.
 // Keep the final camera cut short so a soft swipe reaches the full Studio page quickly.
 const DRAFT2_TRANSITION_READY_STORY_PROGRESS = toStoryProgress( STORY_TIMING.intro.draft2.transitionReady )
 // Start the Studio page indicator just after its title fade begins, so it never leads a hidden title.
-const DRAFT2_STUDIO_PAGE_BOUNDARY_EPSILON = 0.0005
+const DRAFT2_STUDIO_PAGE_BOUNDARY_EPSILON = STORY_TIMING.progressEpsilon
 const DRAFT2_STUDIO_PAGE_START_PROGRESS =
   DRAFT2_TRANSITION_READY_STORY_PROGRESS + DRAFT2_STUDIO_PAGE_BOUNDARY_EPSILON
 // Cut the shared 8-ball before its old pocket-drop path starts; Draft 1 keeps its original animation.
@@ -996,8 +996,8 @@ function App ()
               scale: 0.965,
               yPercent: -2,
               autoAlpha: 0,
-              duration: 0.46,
-            }, 1.2 )
+              duration: STORY_TIMING.pages.projectsFadeDuration,
+            }, STORY_TIMING.pages.projectsStart + STORY_TIMING.pages.projectsFadeDelay )
             .to( '.projects-title-line > span', {
               yPercent: 0,
               duration: 0.22,
@@ -1009,14 +1009,14 @@ function App ()
             .to( '.contact-screen', {
               yPercent: 0,
               autoAlpha: 1,
-              duration: STORY_TIMING.pages.projectsRevealDuration,
+              duration: STORY_TIMING.pages.contactRevealDuration,
             }, STORY_TIMING.pages.contactStart )
             .to( '.projects-screen', {
               scale: 0.965,
               yPercent: -2,
               autoAlpha: 0,
-              duration: STORY_TIMING.pages.pageTransitionDuration,
-            }, 2.18 )
+              duration: STORY_TIMING.pages.contactFadeDuration,
+            }, STORY_TIMING.pages.contactStart + STORY_TIMING.pages.contactFadeDelay )
             .to( '.contact-title-line > span', {
               yPercent: 0,
               duration: 0.24,
@@ -1029,7 +1029,7 @@ function App ()
               stagger: 0.05,
             }, STORY_TIMING.pages.contactStart + STORY_TIMING.pages.contactItemsDelay )
             // This empty tween makes the complete timeline exactly three units long.
-            .to( {}, { duration: 0.01 }, STORY_TIMING.totalTimelineUnits - 0.01 )
+            .to( {}, { duration: STORY_TIMING.pages.timelineEndEpsilon }, STORY_TIMING.totalTimelineUnits - STORY_TIMING.pages.timelineEndEpsilon )
             .addLabel( 'contact', STORY_TIMING.pages.contactStable )
         },
       )
@@ -1062,7 +1062,13 @@ function App ()
       className={ `experience draft-${activeDraft}${activePage === 2 ? ' is-projects-active' : ''}` }
       ref={ rootRef }
     >
-      <section className="story" ref={ storyRef } aria-label="Interactive 8 Ball Studio introduction">
+      {/* Keep the physical scroll range in lockstep with the editable timeline length. */}
+      <section
+        className="story"
+        ref={ storyRef }
+        style={ { '--story-height': `${ STORY_TIMING.totalTimelineUnits + 1 }svh` } }
+        aria-label="Interactive 8 Ball Studio introduction"
+      >
         <div className="stage">
           <div className="pointer-glow" aria-hidden="true" />
           <div className="camera-grid" aria-hidden="true" />

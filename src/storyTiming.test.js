@@ -10,6 +10,8 @@ test( 'resolves semantic intro and page milestones in order', () =>
   assert.equal( STORY_TIMING.intro.draft2.exitEnd, 0.74 )
   assert.equal( STORY_TIMING.pages.cinematicStudioStart, 0.76 )
   assert.equal( STORY_TIMING.pages.contactStart, 2.14 )
+  assert.equal( STORY_TIMING.pages.projectsFadeDuration, 0.46 )
+  assert.equal( STORY_TIMING.pages.contactRevealDuration, 0.56 )
   assert.equal( toTimelineUnits( toStoryProgress( STORY_TIMING.pages.projectsStart ) ), STORY_TIMING.pages.projectsStart )
   assert.ok( STORY_TIMING.pages.studioStart < STORY_TIMING.pages.projectsStart )
   assert.ok( STORY_TIMING.pages.projectsStart < STORY_TIMING.pages.contactStart )
@@ -24,6 +26,9 @@ test( 'changing one duration derives every dependent milestone', () =>
   assert.equal( timing.intro.draft2.transitionReady, 0.62 )
   assert.equal( timing.intro.draft2.exitEnd, 0.66 )
   assert.equal( timing.pages.studioStart, 0.62 )
+
+  const laterPageTiming = resolveStoryTiming( { pages: { projectsFadeDuration: 0.22 } } )
+  assert.equal( laterPageTiming.pages.projectsFadeDuration, 0.22 )
 } )
 
 test( 'rejects invalid duration contracts', () =>
@@ -39,5 +44,17 @@ test( 'rejects invalid duration contracts', () =>
   assert.throws(
     () => resolveStoryTiming( { totalTimelineUnits: 0 } ),
     /greater than zero/,
+  )
+  assert.throws(
+    () => resolveStoryTiming( { intro: { draft2PocketCutLead: 0.8 } } ),
+    /pocket cut/,
+  )
+  assert.throws(
+    () => resolveStoryTiming( { intro: { approachDuration: 0.1 } } ),
+    /before impact/,
+  )
+  assert.throws(
+    () => resolveStoryTiming( { pages: { timelineEndEpsilon: 4 } } ),
+    /timelineEndEpsilon/,
   )
 } )

@@ -23,6 +23,8 @@ const freeze = ( value ) => Object.freeze( value )
 export const STORY_TIMING_DEFAULTS = freeze( {
   // Timeline units map to normalized story progress through totalTimelineUnits.
   totalTimelineUnits: 3,
+  // Shared progress tolerance keeps cue gates and page indicators from disagreeing at boundaries.
+  progressEpsilon: 0.0005,
   // Scroll input controls are deliberately separate from animation phase lengths.
   scroll: freeze( {
     introWeight: 0.72,
@@ -51,12 +53,19 @@ export const STORY_TIMING_DEFAULTS = freeze( {
     // Studio occupies timeline unit 1; these are the readable holds before later pages.
     studioHold: 0.16,
     studioRevealDuration: 0.52,
+    // Delay before the Studio title starts fading as Projects appears.
+    projectsFadeDelay: 0.04,
+    projectsFadeDuration: 0.46,
     projectsTitleDelay: 0.41,
     projectsHold: 0.14,
-    projectsRevealDuration: 0.56,
+    // Contact reveal is measured from the Projects stable mark.
+    contactRevealDuration: 0.56,
+    contactFadeDelay: 0.04,
+    contactFadeDuration: 0.5,
     contactTitleDelay: 0.38,
     contactItemsDelay: 0.53,
-    pageTransitionDuration: 0.5,
+    // Keeps the GSAP timeline exactly as long as the configured story.
+    timelineEndEpsilon: 0.01,
   } ),
 } )
 
@@ -85,9 +94,26 @@ const validateSchedule = ( schedule ) =>
     throw new RangeError( 'page starts must be strictly increasing.' )
   }
 
-  if ( schedule.pages.contactStable > schedule.totalTimelineUnits )
+  if ( schedule.pages.cinematicStudioStart >= schedule.pages.projectsStart )
+  {
+    throw new RangeError( 'both intro handoffs must finish before Projects.' )
+  }
+
+  const milestones = [
+    schedule.pages.studioStart,
+    schedule.pages.cinematicStudioStart,
+    schedule.pages.projectsStart,
+    schedule.pages.contactStart,
+    schedule.pages.contactStable,
+  ]
+  if ( milestones.some( ( value ) => value > schedule.totalTimelineUnits ) )
   {
     throw new RangeError( 'page schedule must fit inside totalTimelineUnits.' )
+  }
+
+  if ( schedule.pages.timelineEndEpsilon > schedule.totalTimelineUnits )
+  {
+    throw new RangeError( 'pages.timelineEndEpsilon must fit inside totalTimelineUnits.' )
   }
 }
 
@@ -96,6 +122,7 @@ export const resolveStoryTiming = ( overrides = {} ) =>
 {
   const input = merge( overrides )
   finiteNonNegative( input.totalTimelineUnits, 'totalTimelineUnits' )
+  assertProgress( input.progressEpsilon, 'progressEpsilon' )
 
   Object.entries( input.scroll ).forEach( ( [ name, value ] ) =>
   {
@@ -131,6 +158,18 @@ export const resolveStoryTiming = ( overrides = {} ) =>
     draft2TransitionReady + input.intro.draft2TransitionDuration,
     'intro.draft2 transition end',
   )
+  const draft2PocketCut = finiteNonNegative(
+    draft2TransitionReady - input.intro.draft2PocketCutLead,
+    'intro.draft2 pocket cut',
+  )
+  if ( cueReady > approachEnd )
+  {
+    throw new RangeError( 'intro.cueReady must occur before impact.' )
+  }
+  const cueRelease = assertProgress(
+    cueReady + input.intro.cueReleaseEpsilon,
+    'cue.release',
+  )
   const projectsStart = 1 + finiteNonNegative( input.pages.studioHold, 'pages.studioHold' )
   // Each later page owns one full timeline unit; holds are measured from that page's stable mark.
   const contactStart = 2 + finiteNonNegative( input.pages.projectsHold, 'pages.projectsHold' )
@@ -144,16 +183,11 @@ export const resolveStoryTiming = ( overrides = {} ) =>
     contactStable: input.totalTimelineUnits,
   }
 
-  Object.entries( input.pages ).forEach( ( [ name, value ] ) =>
-  {
-    finiteNonNegative( value, `pages.${name}` )
-  } )
-
   const schedule = freeze( {
     ...input,
     cue: freeze( {
       ready: cueReady,
-      release: cueReady + input.intro.cueReleaseEpsilon,
+      release: cueRelease,
     } ),
     intro: freeze( {
       ...input.intro,
@@ -174,10 +208,10 @@ export const resolveStoryTiming = ( overrides = {} ) =>
         exitStart: draft2TransitionReady,
         exitEnd: draft2ExitEnd,
         studioHandoff: draft2ExitEnd,
-        pocketCut: draft2TransitionReady - input.intro.draft2PocketCutLead,
+        pocketCut: draft2PocketCut,
       } ),
     } ),
-    pages: freeze( pageSchedule ),
+    pages: freeze( { ...input.pages, ...pageSchedule } ),
   } )
 
   validateSchedule( schedule )
@@ -187,7 +221,10 @@ export const resolveStoryTiming = ( overrides = {} ) =>
 export const STORY_TIMING = resolveStoryTiming()
 
 export const toStoryProgress = ( timelineUnit ) =>
-  finiteNonNegative( timelineUnit, 'timelineUnit' ) / STORY_TIMING.totalTimelineUnits
+  assertProgress(
+    finiteNonNegative( timelineUnit, 'timelineUnit' ) / STORY_TIMING.totalTimelineUnits,
+    'storyProgress',
+  )
 
 // Convert normalized ScrollTrigger progress back to the GSAP timeline units used by draft controllers.
 export const toTimelineUnits = ( storyProgress ) =>
