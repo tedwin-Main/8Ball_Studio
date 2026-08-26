@@ -108,7 +108,9 @@ const createQualityMonitor = ( initialTier, signals, applyTier ) =>
   let slowSamples = 0
   let healthySamples = 0
   const renderDurations = []
-  const upgradesLocked = signals.coarsePointer || signals.isSmallViewport || signals.lowPower
+  const isUpgradeLocked = ( currentSignals ) =>
+    currentSignals.coarsePointer || currentSignals.isSmallViewport || currentSignals.lowPower
+  let upgradesLocked = isUpgradeLocked( signals )
 
   const setPendingTier = ( nextTier ) =>
   {
@@ -122,6 +124,9 @@ const createQualityMonitor = ( initialTier, signals, applyTier ) =>
 
   const suggestFromSignals = ( nextSignals ) =>
   {
+    // Recompute the lock after every resize so a desktop scene cannot later
+    // promote itself while the viewport is small, coarse-pointer, or low-power.
+    upgradesLocked = isUpgradeLocked( nextSignals )
     const suggestedTier = selectDraft2QualityTier( nextSignals )
     const currentRank = getQualityRank( currentTier )
     const suggestedRank = getQualityRank( suggestedTier )
@@ -478,11 +483,13 @@ const createLogoTexture = ( anisotropy, requestRender ) =>
   const context = canvas.getContext( '2d' )
   const image = new Image()
   const texture = new THREE.CanvasTexture( canvas )
+  let disposed = false
   texture.colorSpace = THREE.SRGBColorSpace
   texture.anisotropy = anisotropy
 
   const paint = () =>
   {
+    if ( disposed ) return
     context.clearRect( 0, 0, canvas.width, canvas.height )
     context.save()
     context.beginPath()
@@ -494,10 +501,23 @@ const createLogoTexture = ( anisotropy, requestRender ) =>
     requestRender?.()
   }
 
-  image.addEventListener( 'load', paint, { once: true } )
+  const handleLoad = () =>
+  {
+    image.removeEventListener( 'load', handleLoad )
+    paint()
+  }
+  image.addEventListener( 'load', handleLoad )
   image.src = brandLogo
   if ( image.complete ) paint()
-  return texture
+  return {
+    texture,
+    dispose ()
+    {
+      disposed = true
+      image.removeEventListener( 'load', handleLoad )
+      image.src = ''
+    },
+  }
 }
 
 /**
@@ -900,7 +920,8 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
 
   // Cue / Striker 8-Ball with double-sided front and back brand decals
   // Texture readiness is a render invalidation, so the scheduler can repaint once the logo is available.
-  const logoTexture = createLogoTexture( maxAnisotropy, onTextureReady )
+  const logoAsset = createLogoTexture( maxAnisotropy, onTextureReady )
+  const logoTexture = logoAsset.texture
   ownTextures( logoTexture )
   const strikerGroup = new THREE.Group()
   const strikerMaterial = createBallMaterial( '#070807', null )
@@ -1112,6 +1133,7 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
 
   const dispose = () =>
   {
+    logoAsset.dispose()
     // Shared ball and shadow assets occur on many meshes; dispose each GPU resource once.
     const geometries = new Set()
     const materials = new Set( disposableMaterials )
