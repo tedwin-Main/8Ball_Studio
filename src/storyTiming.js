@@ -54,9 +54,9 @@ export const STORY_TIMING_DEFAULTS = freeze( {
   // Programmatic autoplay and gesture qualification live here so every input source
   // uses the same stable-page contract. Durations are seconds; threshold/reset are px/ms.
   navigation: freeze( {
-    // Intro includes the readable pool break before the Studio title settles.
-    introToStudioSeconds: 1.8,
-    // Reverse Intro playback gets a slightly shorter weighted settle.
+    // Studio now settles at the same autoplay speed as the later page edges.
+    introToStudioSeconds: 1.2,
+    // Reverse Intro playback keeps its dedicated weighted settle duration.
     studioToIntroSeconds: 1.6,
     // Later page edges use one consistent autoplay duration.
     defaultEdgeSeconds: 1.2,

@@ -19,7 +19,7 @@ test( 'resolves semantic intro and page milestones in order', () =>
   assert.ok( STORY_TIMING.pages.contactItemsEnd <= STORY_TIMING.pages.contactStable )
   assert.ok( STORY_TIMING.intro.visual.titleLineEnd <= 1 )
   assert.ok( STORY_TIMING.pages.projectsStart < STORY_TIMING.pages.contactStart )
-  assert.equal( STORY_TIMING.navigation.introToStudioSeconds, 1.8 )
+  assert.equal( STORY_TIMING.navigation.introToStudioSeconds, 1.2 )
   assert.equal( STORY_TIMING.navigation.studioToIntroSeconds, 1.6 )
   assert.equal( STORY_TIMING.navigation.defaultEdgeSeconds, 1.2 )
   assert.equal( STORY_TIMING.navigation.gestureThresholdPx, 14 )

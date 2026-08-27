@@ -188,7 +188,7 @@ export function useStoryPager ( {
       return true
     }
 
-    // Intro gets a longer curve so the rack impact and spread remain readable.
+    // Intro uses the same weighted curve and autoplay speed as the later page edges.
     let duration = STORY_TIMING.navigation.defaultEdgeSeconds
     let easing = easeStoryTransition
 

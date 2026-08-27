@@ -40,10 +40,10 @@ test( 'navigation timings are positive and non-zero', () =>
   assert.ok( STORY_TIMING.navigation.gestureResetMs > 0 )
 } )
 
-test( 'Intro-to-Studio has longer duration than standard page transitions', () =>
+test( 'Intro-to-Studio uses the same duration as standard page transitions', () =>
 {
-  assert.ok(
-    STORY_TIMING.navigation.introToStudioSeconds > STORY_TIMING.navigation.defaultEdgeSeconds,
-    'Cinematic pool break requires longer duration for readability',
+  assert.equal(
+    STORY_TIMING.navigation.introToStudioSeconds,
+    STORY_TIMING.navigation.defaultEdgeSeconds,
   )
 } )
