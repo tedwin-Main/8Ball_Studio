@@ -21,6 +21,23 @@ const isEditableTarget = ( target ) =>
   )
 }
 
+// Lenis forwards the native event, so read the finger coordinate directly. This
+// avoids treating touch deltas like wheel deltas when a browser reports signs differently.
+const getTouchY = ( event ) =>
+{
+  const point = event?.touches?.[ 0 ] || event?.changedTouches?.[ 0 ] || event?.targetTouches?.[ 0 ]
+  return Number.isFinite( point?.clientY ) ? point.clientY : null
+}
+
+const resetTouchGesture = ( gesture ) =>
+{
+  gesture.active = false
+  gesture.lastY = null
+  gesture.accumulated = 0
+  gesture.direction = 0
+  gesture.committed = false
+}
+
 export function useStoryPager ( {
   storyRef,
   pages,
@@ -35,6 +52,14 @@ export function useStoryPager ( {
   const accumulatedDeltaRef = useRef( 0 )
   const lastGestureTimeRef = useRef( 0 )
   const transitionCleanupTimerRef = useRef( 0 )
+  const lastScrollProgressRef = useRef( 0 )
+  const touchGestureRef = useRef( {
+    active: false,
+    lastY: null,
+    accumulated: 0,
+    direction: 0,
+    committed: false,
+  } )
 
   useEffect( () =>
   {
@@ -60,8 +85,28 @@ export function useStoryPager ( {
 
     if ( !metrics || !page ) return null
 
+    // Map the stable scene target onto the exact scroll range used by ScrollTrigger.
     return Math.round( metrics.top + metrics.range * page.targetProgress )
   }, [ getStoryMetrics, pages ] )
+
+  const getScrollProgress = useCallback( () =>
+  {
+    const metrics = getStoryMetrics()
+    if ( !metrics || metrics.range === 0 ) return 0
+
+    const lenisScroll = typeof window !== 'undefined' ? window.lenis?.scroll : null
+    const scrollPosition = Number.isFinite( lenisScroll ) ? lenisScroll : window.scrollY
+
+    return Math.min(
+      1,
+      Math.max( 0, ( scrollPosition - metrics.top ) / metrics.range ),
+    )
+  }, [ getStoryMetrics ] )
+
+  const rememberScrollProgress = useCallback( () =>
+  {
+    lastScrollProgressRef.current = getScrollProgress()
+  }, [ getScrollProgress ] )
 
   const getNearestPageIndex = useCallback( () =>
   {
@@ -88,16 +133,28 @@ export function useStoryPager ( {
     activePageRef.current = destinationIndex
     targetPageRef.current = destinationIndex
     accumulatedDeltaRef.current = 0
+    resetTouchGesture( touchGestureRef.current )
     onPageChange?.( destinationIndex )
   }, [ onPageChange ] )
 
   const goToPage = useCallback( ( requestedIndex, options = {} ) =>
   {
-    const fromIndex = activePageRef.current
+    // Input received during forced autoplay belongs to the active gesture and is consumed.
+    if ( isTransitioningRef.current && options.immediate !== true ) return false
+
+    const fromIndex = isTransitioningRef.current
+      ? targetPageRef.current
+      : activePageRef.current
     const destinationIndex = clampPageIndex( requestedIndex, pages.length )
     const targetY = getTargetY( destinationIndex )
 
     if ( targetY === null ) return false
+
+    if ( destinationIndex === fromIndex && options.immediate !== true )
+    {
+      onPageChange?.( destinationIndex )
+      return true
+    }
 
     const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia(
       '(prefers-reduced-motion: reduce)',
@@ -105,11 +162,12 @@ export function useStoryPager ( {
 
     const isImmediate = options.immediate === true || prefersReducedMotion
 
-    // Lock incoming gestures immediately to prevent skipping
+    // Lock incoming gestures immediately so one touch or wheel burst cannot skip a page.
     isTransitioningRef.current = !isImmediate
     setIsTransitioning( !isImmediate )
     targetPageRef.current = destinationIndex
     accumulatedDeltaRef.current = 0
+    resetTouchGesture( touchGestureRef.current )
 
     if ( isImmediate )
     {
@@ -130,7 +188,7 @@ export function useStoryPager ( {
       return true
     }
 
-    // Determine per-edge duration and easing curve
+    // Intro gets a longer curve so the rack impact and spread remain readable.
     let duration = STORY_TIMING.navigation.defaultEdgeSeconds
     let easing = easeStoryTransition
 
@@ -163,10 +221,9 @@ export function useStoryPager ( {
     else
     {
       window.scrollTo( { top: targetY, left: 0, behavior: 'smooth' } )
-      completeTransition( destinationIndex )
     }
 
-    // Safety timeout ensures input re-arms even if frame loop is throttled
+    // Safety timeout re-arms input if a backgrounded tab pauses Lenis' frame loop.
     window.clearTimeout( transitionCleanupTimerRef.current )
     transitionCleanupTimerRef.current = window.setTimeout( () =>
     {
@@ -174,24 +231,121 @@ export function useStoryPager ( {
       {
         completeTransition( destinationIndex )
       }
-    }, Math.round( ( duration + 0.25 ) * 1000 ) )
+    }, Math.round( ( duration + 0.35 ) * 1000 ) )
 
     return true
-  }, [ completeTransition, getTargetY, pages.length ] )
+  }, [ completeTransition, getTargetY, onPageChange, pages.length ] )
 
-  const handleVirtualScroll = useCallback( ( scrollInput ) =>
+  const handleVirtualScroll = useCallback( ( scrollInput = {} ) =>
   {
-    const { deltaY, event } = scrollInput
-    const isWheel = event?.type?.includes( 'wheel' )
-    const isTouch = event?.type?.includes( 'touch' )
+    const { deltaY = 0, event } = scrollInput
+    const eventType = event?.type || ''
+    const isWheel = eventType.includes( 'wheel' )
+    const isTouch = eventType.includes( 'touch' )
 
     if ( !( isWheel || isTouch ) ) return true
 
-    // Consume all scroll input during in-flight transition
+    const metrics = getStoryMetrics()
+    if ( !metrics ) return true
+
+    const storyEnd = metrics.top + metrics.range
+    const isStoryActive =
+      window.scrollY >= metrics.top - 2 && window.scrollY <= storyEnd + 2
+
+    if ( !isStoryActive ) return true
+
+    // Let Lenis observe touchend while its lock is active so it can clear isTouching.
     if ( isTransitioningRef.current )
     {
+      if ( isTouch && eventType === 'touchend' )
+      {
+        resetTouchGesture( touchGestureRef.current )
+        return true
+      }
+
       if ( event?.cancelable ) event.preventDefault()
       return false
+    }
+
+    if ( isTouch )
+    {
+      const touchGesture = touchGestureRef.current
+
+      if ( eventType === 'touchstart' )
+      {
+        touchGesture.active = true
+        touchGesture.lastY = getTouchY( event )
+        touchGesture.accumulated = 0
+        touchGesture.direction = 0
+        touchGesture.committed = false
+        accumulatedDeltaRef.current = 0
+        lastGestureTimeRef.current = Date.now()
+        return true
+      }
+
+      if ( eventType === 'touchcancel' )
+      {
+        resetTouchGesture( touchGesture )
+        accumulatedDeltaRef.current = 0
+        return true
+      }
+
+      if ( !touchGesture.active )
+      {
+        touchGesture.active = true
+        touchGesture.lastY = null
+      }
+
+      const currentY = getTouchY( event )
+      const fingerDelta = currentY !== null && touchGesture.lastY !== null
+        ? touchGesture.lastY - currentY
+        : Number.isFinite( deltaY ) ? deltaY : 0
+
+      if ( currentY !== null ) touchGesture.lastY = currentY
+
+      if ( fingerDelta !== 0 )
+      {
+        const direction = Math.sign( fingerDelta )
+
+        // A reversal before qualification starts a fresh intent inside this touch sequence.
+        if ( touchGesture.direction !== 0 && direction !== touchGesture.direction )
+        {
+          touchGesture.accumulated = 0
+        }
+
+        touchGesture.direction = direction
+        touchGesture.accumulated += fingerDelta
+        accumulatedDeltaRef.current = touchGesture.accumulated
+      }
+
+      if ( Math.abs( touchGesture.accumulated ) >= STORY_TIMING.navigation.gestureThresholdPx )
+      {
+        const currentPage = activePageRef.current
+        const nextTarget = currentPage + ( touchGesture.accumulated > 0 ? 1 : -1 )
+
+        if ( nextTarget < 0 || nextTarget >= pages.length )
+        {
+          resetTouchGesture( touchGesture )
+          accumulatedDeltaRef.current = 0
+          if ( event?.cancelable ) event.preventDefault()
+          return false
+        }
+
+        if ( event?.cancelable ) event.preventDefault()
+        touchGesture.committed = true
+        const didStart = goToPage( nextTarget )
+
+        if ( !didStart ) resetTouchGesture( touchGesture )
+        return false
+      }
+
+      if ( eventType === 'touchend' )
+      {
+        // Let Lenis apply its normal bounded inertia only when no page intent qualified.
+        resetTouchGesture( touchGesture )
+      }
+
+      return true
     }
 
     const now = Date.now()
@@ -201,36 +355,25 @@ export function useStoryPager ( {
     }
     lastGestureTimeRef.current = now
 
-    // Support touch-end inertia and continuous wheel delta
-    const isTouchEnd = event?.type === 'touchend'
-    const effectiveDelta = isTouchEnd && window.lenis
-      ? Math.sign( window.lenis.velocity ) * Math.pow(
-        Math.abs( window.lenis.velocity ),
-        window.lenis.options?.touchInertiaExponent ?? 1,
-      )
-      : deltaY
+    if ( !Number.isFinite( deltaY ) || deltaY === 0 ) return true
 
-    if ( effectiveDelta === 0 ) return true
-
-    // Reset accumulated delta if user reverses gesture direction
+    // Wheel and trackpad deltas already use the browser convention: positive is forward.
     if (
       accumulatedDeltaRef.current !== 0 &&
-      Math.sign( accumulatedDeltaRef.current ) !== Math.sign( effectiveDelta )
+      Math.sign( accumulatedDeltaRef.current ) !== Math.sign( deltaY )
     )
     {
       accumulatedDeltaRef.current = 0
     }
 
-    accumulatedDeltaRef.current += effectiveDelta
+    accumulatedDeltaRef.current += deltaY
 
-    const threshold = STORY_TIMING.navigation.gestureThresholdPx
-    if ( Math.abs( accumulatedDeltaRef.current ) >= threshold )
+    if ( Math.abs( accumulatedDeltaRef.current ) >= STORY_TIMING.navigation.gestureThresholdPx )
     {
-      const forward = accumulatedDeltaRef.current > 0
       const currentPage = activePageRef.current
-      const nextTarget = forward ? currentPage + 1 : currentPage - 1
+      const nextTarget = currentPage + ( accumulatedDeltaRef.current > 0 ? 1 : -1 )
 
-      // Clamp boundary input without overscrolling
+      // Consume boundary input without allowing the browser to leave the story unexpectedly.
       if ( nextTarget < 0 || nextTarget >= pages.length )
       {
         accumulatedDeltaRef.current = 0
@@ -244,7 +387,7 @@ export function useStoryPager ( {
     }
 
     return true
-  }, [ goToPage, pages.length ] )
+  }, [ getStoryMetrics, goToPage, pages.length ] )
 
   useEffect( () =>
   {
@@ -252,6 +395,12 @@ export function useStoryPager ( {
     if ( !story ) return undefined
 
     let resizeTimer = 0
+    const lenis = typeof window !== 'undefined' ? window.lenis : null
+
+    // Keep the current playhead so a viewport change does not snap an in-progress scene to page zero.
+    rememberScrollProgress()
+    window.addEventListener( 'scroll', rememberScrollProgress, { passive: true } )
+    lenis?.on?.( 'scroll', rememberScrollProgress )
 
     const isStoryActive = () =>
     {
@@ -306,6 +455,7 @@ export function useStoryPager ( {
 
       if ( requestedIndex === null ) return
 
+      // Always stop the browser's native page jump for handled keys.
       event.preventDefault()
       goToPage( requestedIndex )
     }
@@ -319,8 +469,15 @@ export function useStoryPager ( {
           ? targetPageRef.current
           : activePageRef.current
 
-        const newTargetY = getTargetY( destination )
-        if ( newTargetY !== null && window.lenis )
+        const metrics = getStoryMetrics()
+        const newTargetY = isTransitioningRef.current
+          ? getTargetY( destination )
+          : metrics
+            ? Math.round( metrics.top + metrics.range * lastScrollProgressRef.current )
+            : null
+        if ( newTargetY === null ) return
+
+        if ( window.lenis )
         {
           window.lenis.scrollTo( newTargetY, {
             immediate: true,
@@ -328,10 +485,14 @@ export function useStoryPager ( {
             programmatic: true,
           } )
         }
+        else
+        {
+          window.scrollTo( { top: newTargetY, left: 0, behavior: 'auto' } )
+        }
       }, RESIZE_SETTLE_MS )
     }
 
-    // Initial page load: resolve to nearest stable page immediately
+    // Initial page load resolves to the nearest stable page without autoplay.
     const initialPageIndex = getNearestPageIndex()
     activePageRef.current = initialPageIndex
     targetPageRef.current = initialPageIndex
@@ -344,8 +505,11 @@ export function useStoryPager ( {
     {
       window.removeEventListener( 'keydown', handleKeyDown )
       window.removeEventListener( 'resize', settleAfterResize )
+      window.removeEventListener( 'scroll', rememberScrollProgress )
+      lenis?.off?.( 'scroll', rememberScrollProgress )
       window.clearTimeout( resizeTimer )
       window.clearTimeout( transitionCleanupTimerRef.current )
+      resetTouchGesture( touchGestureRef.current )
     }
   }, [
     getNearestPageIndex,
@@ -354,6 +518,7 @@ export function useStoryPager ( {
     goToPage,
     onPageChange,
     pages.length,
+    rememberScrollProgress,
     storyRef,
   ] )
 
@@ -361,6 +526,8 @@ export function useStoryPager ( {
     goToPage,
     handleVirtualScroll,
     isTransitioning,
+    // App animation callbacks use this stable ref to avoid changing page state mid-autoplay.
+    isTransitioningRef,
     targetPage: targetPageRef.current,
   }
 }

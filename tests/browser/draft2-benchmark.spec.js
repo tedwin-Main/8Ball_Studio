@@ -409,13 +409,13 @@ test( 'Draft 2 page controls reach Projects and Contact', async ( { browser, bas
     await projectsButton.click()
     await expect( projectsButton ).toHaveAttribute( 'aria-current', 'page' )
     await expect( page.locator( '.projects-screen' ) ).toHaveCSS( 'opacity', '1' )
-    await expect( page.locator( '.projects-title-line' ) ).toContainText( 'Projects' )
+    await expect( page.getByRole( 'heading', { name: 'Our Projects' } ) ).toBeVisible()
 
     const contactButton = page.getByRole( 'button', { name: 'Go to Contact page' } )
     await contactButton.click()
     await expect( contactButton ).toHaveAttribute( 'aria-current', 'page' )
     await expect( page.locator( '.contact-screen' ) ).toHaveCSS( 'opacity', '1' )
-    await expect( page.locator( '.contact-title-line' ) ).toContainText( 'Contact' )
+    await expect( page.getByRole( 'heading', { name: 'Contact Us' } ) ).toBeVisible()
   }
   finally
   {

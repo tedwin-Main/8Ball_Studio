@@ -50,17 +50,18 @@ export const STORY_TIMING_DEFAULTS = freeze( {
     lerp: 0.085,
     syncTouchLerp: 0.06,
   } ),
-  // Programmatic autoplay durations and gesture threshold settings per story edge
+  // Programmatic autoplay and gesture qualification live here so every input source
+  // uses the same stable-page contract. Durations are seconds; threshold/reset are px/ms.
   navigation: freeze( {
-    // Autoplay duration in seconds from Intro to Studio (cinematic pool break)
+    // Intro includes the readable pool break before the Studio title settles.
     introToStudioSeconds: 1.8,
-    // Autoplay duration in seconds for reverse transition from Studio to Intro
+    // Reverse Intro playback gets a slightly shorter weighted settle.
     studioToIntroSeconds: 1.6,
-    // Autoplay duration in seconds for subsequent adjacent story pages
+    // Later page edges use one consistent autoplay duration.
     defaultEdgeSeconds: 1.2,
-    // Minimum physical gesture delta in pixels to trigger a page transition
+    // Small touch/wheel noise must not start a page transition.
     gestureThresholdPx: 14,
-    // Idle time in ms before resetting accumulated gesture delta
+    // Reset a wheel burst after input has gone idle.
     gestureResetMs: 120,
   } ),
   intro: freeze( {
@@ -450,11 +451,11 @@ export const resolveStoryTiming = ( overrides = {} ) =>
 
 export const STORY_TIMING = resolveStoryTiming()
 
-// Cinematic ease for Intro-to-Studio transition with smooth break pacing
+// Cinematic easing keeps the pool break weighted while still reaching its target.
 export const easeCinematicBreakTransition = ( progress ) =>
   progress * progress * ( 3 - 2 * progress )
 
-// Standard weighted cubic bezier easing for story page transitions
+// Later page edges use the same normalized weighted curve.
 export const easeStoryTransition = ( progress ) =>
   progress * progress * ( 3 - 2 * progress )
 

@@ -40,15 +40,10 @@ const STORY_PAGES = [
   },
 ]
 
-const CUE_PROGRESS_EPSILON = STORY_TIMING.progressEpsilon
-// Damp input during the pool-table sequence so the heavy ball cannot race ahead of the scroll.
-// Keep the final camera cut short so a soft swipe reaches the full Studio page quickly.
+// Keep the Draft 2 camera cut aligned with the shared intro timeline.
 const DRAFT2_TRANSITION_READY_STORY_PROGRESS = toStoryProgress( STORY_TIMING.intro.draft2.transitionReady )
 // Cut the shared 8-ball before its old pocket-drop path starts; Draft 1 keeps its original animation.
 const DRAFT2_POCKET_CUT_STORY_PROGRESS = toStoryProgress( STORY_TIMING.intro.draft2.pocketCut )
-const INTRO_SCROLL_WEIGHT = STORY_TIMING.scroll.introWeight
-const easeCinematicBreakTransition = ( progress ) =>
-  progress * progress * ( 3 - 2 * progress )
 const getStudioStartProgress = ( draftId ) =>
   draftId === 'webgl'
     ? toStoryProgress( STORY_TIMING.pages.draft2StudioStart )
@@ -247,12 +242,13 @@ function App ()
     return () => window.cancelAnimationFrame( refreshFrame )
   }, [ activeDraft ] )
 
-  const { goToPage, handleVirtualScroll, isTransitioning } = useStoryPager( {
+  const { goToPage, handleVirtualScroll, isTransitioning, isTransitioningRef } = useStoryPager( {
     storyRef,
     pages: STORY_PAGES,
     activePage,
     onPageChange: setActivePage,
   } )
+
   const pagerVirtualScrollRef = useRef( handleVirtualScroll )
   useEffect( () =>
   {
@@ -271,11 +267,12 @@ function App ()
     let pointerY = 0
     let ballLayerIsPromoted = false
     const hasFinePointer = window.matchMedia( '(hover: hover) and (pointer: fine)' ).matches
+    const prefersReducedMotion = window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches
 
     // A low lerp value lets the page carry momentum and settle like a weighted camera move.
     const lenis = new Lenis( {
       wheelMultiplier: STORY_TIMING.scroll.wheelMultiplier,
-      // Route touch movement and touch-end inertia through the unified story pager coordinator.
+      // Route touch movement and touch-end inertia through the same virtual-scroll gate.
       syncTouch: true,
       syncTouchLerp: STORY_TIMING.scroll.syncTouchLerp,
       infinite: false,
@@ -283,6 +280,7 @@ function App ()
       lerp: STORY_TIMING.scroll.lerp,
       autoRaf: false,
       autoResize: true,
+      // Keep all wheel, trackpad, and touch intent in the story pager coordinator.
       virtualScroll: ( input ) => pagerVirtualScrollRef.current( input ),
     } )
 
@@ -387,6 +385,8 @@ function App ()
 
     const updateActivePage = ( progress ) =>
     {
+      // Keep page indicators on the source page until the forced autoplay settles.
+      if ( isTransitioningRef.current ) return
       const nextPage = getPageIndex( progress )
       setActivePage( ( currentPage ) => ( currentPage === nextPage ? currentPage : nextPage ) )
     }
@@ -769,11 +769,11 @@ function App ()
       data-story-state={ isTransitioning ? 'transitioning' : 'settled' }
       data-story-transitioning={ String( isTransitioning ) }
     >
-      {/* Keep the physical scroll range in lockstep with the editable timeline length. */}
+      {/* Keep one viewport of physical scroll distance per editable timeline unit. */}
       <section
         className="story"
         ref={ storyRef }
-        style={ { '--story-height': `${ STORY_TIMING.totalTimelineUnits + 1 }svh` } }
+        style={ { '--story-height': `${ ( STORY_TIMING.totalTimelineUnits + 1 ) * 100 }svh` } }
         aria-label="Interactive 8 Ball Studio introduction"
         data-story-page={ activePage }
         data-story-state={ isTransitioning ? 'transitioning' : 'settled' }
