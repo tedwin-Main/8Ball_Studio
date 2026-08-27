@@ -247,12 +247,17 @@ function App ()
     return () => window.cancelAnimationFrame( refreshFrame )
   }, [ activeDraft ] )
 
-  const { goToPage } = useStoryPager( {
+  const { goToPage, handleVirtualScroll, isTransitioning } = useStoryPager( {
     storyRef,
     pages: STORY_PAGES,
     activePage,
     onPageChange: setActivePage,
   } )
+  const pagerVirtualScrollRef = useRef( handleVirtualScroll )
+  useEffect( () =>
+  {
+    pagerVirtualScrollRef.current = handleVirtualScroll
+  }, [ handleVirtualScroll ] )
 
   useLayoutEffect( () =>
   {
@@ -265,134 +270,12 @@ function App ()
     let pointerX = 0
     let pointerY = 0
     let ballLayerIsPromoted = false
-    let draft2HandoffTargetScroll = null
     const hasFinePointer = window.matchMedia( '(hover: hover) and (pointer: fine)' ).matches
-    const prefersReducedMotion = window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches
-
-    const getStoryMetrics = () =>
-    {
-      const story = storyRef.current
-
-      if ( !story ) return null
-
-      const bounds = story.getBoundingClientRect()
-
-      return {
-        top: window.scrollY + bounds.top,
-        range: Math.max( 0, story.offsetHeight - window.innerHeight ),
-      }
-    }
-
-    const getStoryProgress = ( scrollValue, metrics ) =>
-    {
-      if ( !metrics || metrics.range === 0 ) return 0
-
-      return Math.min(
-        1,
-        Math.max( 0, ( scrollValue - metrics.top ) / metrics.range ),
-      )
-    }
-
-    const consumeCueInput = ( event ) =>
-    {
-      // Returning false skips Lenis; preventDefault also blocks native touch scrolling.
-      if ( event.cancelable ) event.preventDefault()
-      return false
-    }
-
-    const handleVirtualScroll = ( scrollInput ) =>
-    {
-      let { deltaY } = scrollInput
-      const { event } = scrollInput
-      const isWheel = event.type.includes( 'wheel' )
-      const isTouch = event.type.includes( 'touch' )
-
-      if ( !( isWheel || isTouch ) ) return true
-
-      const isDraft2 = activeDraftRef.current === 'webgl'
-      const introWeightLimit = isDraft2 ? STORY_TIMING.intro.draft2.transitionReady : STORY_TIMING.intro.draft1.exitEnd
-      if ( toTimelineUnits( storyProgressRef.current ) < introWeightLimit )
-      {
-        // Smoothly balance wheel and touch travel during the 8-ball sequence.
-        scrollInput.deltaY *= INTRO_SCROLL_WEIGHT
-        deltaY = scrollInput.deltaY
-      }
-
-      // Draft 1 and the original draft continue immediately; only Draft 2 needs
-      // the short handoff assist once its rack reaches the readable spread.
-      if ( !isDraft2 ) return true
-
-      const isTouchEnd = event.type === 'touchend'
-
-      if ( deltaY === 0 ) return true
-
-      const metrics = getStoryMetrics()
-
-      if ( !metrics || metrics.range === 0 ) return true
-
-      // Lenis replaces touchend delta with velocity-based inertia before scrolling.
-      const effectiveDeltaY = isTouchEnd
-        ? Math.sign( lenis.velocity ) * Math.pow(
-          Math.abs( lenis.velocity ),
-          lenis.options.touchInertiaExponent,
-        )
-        : deltaY
-
-      if ( effectiveDeltaY === 0 ) return true
-      if ( isDraft2 )
-      {
-        const studioProgress = STORY_PAGES[ 1 ].targetProgress
-        const currentScroll = lenis.scroll
-        const candidateTarget = lenis.targetScroll + effectiveDeltaY
-        const currentProgress = getStoryProgress( currentScroll, metrics )
-        const candidateProgress = getStoryProgress( candidateTarget, metrics )
-
-        if ( effectiveDeltaY < 0 || currentProgress >= studioProgress - CUE_PROGRESS_EPSILON )
-        {
-          draft2HandoffTargetScroll = null
-        }
-
-        if (
-          effectiveDeltaY > 0 &&
-          currentProgress < studioProgress - CUE_PROGRESS_EPSILON &&
-          candidateProgress >= DRAFT2_TRANSITION_READY_STORY_PROGRESS
-        )
-        {
-          const studioScroll = Math.round( metrics.top + metrics.range * studioProgress )
-
-          // One continuous gesture can emit many packets; memo the assist target so
-          // later packets do not restart its easing or create a second-swipe gate.
-          if ( draft2HandoffTargetScroll === studioScroll )
-          {
-            if ( isTouch ) return consumeCueInput( event )
-            return true
-          }
-          // Stop browser-native touch scrolling from racing the programmatic handoff.
-          if ( isTouch && event.cancelable ) event.preventDefault()
-          draft2HandoffTargetScroll = studioScroll
-
-          // The qualifying gesture already crossed the rack-spread boundary. Let its
-          // remaining momentum finish the short handoff without locking reverse input.
-          lenis.scrollTo( studioScroll, {
-            duration: prefersReducedMotion ? 0 : STORY_TIMING.intro.draft2HandoffSeconds,
-            easing: easeCinematicBreakTransition,
-            immediate: prefersReducedMotion,
-            force: true,
-            programmatic: true,
-          } )
-          return false
-        }
-
-        return true
-      }
-
-      return true
-    }
 
     // A low lerp value lets the page carry momentum and settle like a weighted camera move.
     const lenis = new Lenis( {
       wheelMultiplier: STORY_TIMING.scroll.wheelMultiplier,
-      // Route touch movement and touch-end inertia through the same virtual-scroll gate.
+      // Route touch movement and touch-end inertia through the unified story pager coordinator.
       syncTouch: true,
       syncTouchLerp: STORY_TIMING.scroll.syncTouchLerp,
       infinite: false,
@@ -400,7 +283,7 @@ function App ()
       lerp: STORY_TIMING.scroll.lerp,
       autoRaf: false,
       autoResize: true,
-      virtualScroll: handleVirtualScroll,
+      virtualScroll: ( input ) => pagerVirtualScrollRef.current( input ),
     } )
 
     // Expose the one scroll controller so buttons and keyboard navigation use the same physics.
@@ -882,6 +765,9 @@ function App ()
     <main
       className={ `experience draft-${activeDraft}${activePage === 2 ? ' is-projects-active' : ''}` }
       ref={ rootRef }
+      data-story-page={ activePage }
+      data-story-state={ isTransitioning ? 'transitioning' : 'settled' }
+      data-story-transitioning={ String( isTransitioning ) }
     >
       {/* Keep the physical scroll range in lockstep with the editable timeline length. */}
       <section
@@ -889,6 +775,9 @@ function App ()
         ref={ storyRef }
         style={ { '--story-height': `${ STORY_TIMING.totalTimelineUnits + 1 }svh` } }
         aria-label="Interactive 8 Ball Studio introduction"
+        data-story-page={ activePage }
+        data-story-state={ isTransitioning ? 'transitioning' : 'settled' }
+        data-story-transitioning={ String( isTransitioning ) }
       >
         <div className="stage">
           <div className="pointer-glow" aria-hidden="true" />

@@ -50,6 +50,19 @@ export const STORY_TIMING_DEFAULTS = freeze( {
     lerp: 0.085,
     syncTouchLerp: 0.06,
   } ),
+  // Programmatic autoplay durations and gesture threshold settings per story edge
+  navigation: freeze( {
+    // Autoplay duration in seconds from Intro to Studio (cinematic pool break)
+    introToStudioSeconds: 1.8,
+    // Autoplay duration in seconds for reverse transition from Studio to Intro
+    studioToIntroSeconds: 1.6,
+    // Autoplay duration in seconds for subsequent adjacent story pages
+    defaultEdgeSeconds: 1.2,
+    // Minimum physical gesture delta in pixels to trigger a page transition
+    gestureThresholdPx: 14,
+    // Idle time in ms before resetting accumulated gesture delta
+    gestureResetMs: 120,
+  } ),
   intro: freeze( {
     // Legacy cue values remain available for compatibility; the live scene now rolls on the first swipe.
     // Duration from story start to the historical cue-ready checkpoint.
@@ -135,6 +148,7 @@ const merge = ( overrides = {} ) => ( {
   ...STORY_TIMING_DEFAULTS,
   ...overrides,
   scroll: { ...STORY_TIMING_DEFAULTS.scroll, ...overrides.scroll },
+  navigation: { ...STORY_TIMING_DEFAULTS.navigation, ...overrides.navigation },
   intro: {
     ...STORY_TIMING_DEFAULTS.intro,
     ...overrides.intro,
@@ -220,6 +234,11 @@ const validateSchedule = ( schedule ) =>
   {
     throw new RangeError( 'pages.timelineEndEpsilon must fit inside totalTimelineUnits.' )
   }
+
+  Object.entries( schedule.navigation ).forEach( ( [ name, value ] ) =>
+  {
+    finiteNonNegative( value, `navigation.${name}` )
+  } )
 }
 
 // Resolve once at module load or when an override is supplied; never rebuild this in render loops.
@@ -232,6 +251,11 @@ export const resolveStoryTiming = ( overrides = {} ) =>
   Object.entries( input.scroll ).forEach( ( [ name, value ] ) =>
   {
     finiteNonNegative( value, `scroll.${name}` )
+  } )
+
+  Object.entries( input.navigation ).forEach( ( [ name, value ] ) =>
+  {
+    finiteNonNegative( value, `navigation.${name}` )
   } )
 
   Object.entries( input.intro ).forEach( ( [ name, value ] ) =>
@@ -379,6 +403,7 @@ export const resolveStoryTiming = ( overrides = {} ) =>
 
   const schedule = freeze( {
     ...input,
+    navigation: freeze( { ...input.navigation } ),
     cue: freeze( {
       ready: cueReady,
       release: cueRelease,
@@ -424,6 +449,14 @@ export const resolveStoryTiming = ( overrides = {} ) =>
 }
 
 export const STORY_TIMING = resolveStoryTiming()
+
+// Cinematic ease for Intro-to-Studio transition with smooth break pacing
+export const easeCinematicBreakTransition = ( progress ) =>
+  progress * progress * ( 3 - 2 * progress )
+
+// Standard weighted cubic bezier easing for story page transitions
+export const easeStoryTransition = ( progress ) =>
+  progress * progress * ( 3 - 2 * progress )
 
 export const toStoryProgress = ( timelineUnit ) =>
   assertProgress(

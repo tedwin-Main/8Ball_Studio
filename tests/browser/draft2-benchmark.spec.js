@@ -302,7 +302,7 @@ const dispatchPortraitTouchGesture = async ( context ) =>
 const waitForStudioHandoff = async ( page ) =>
 {
   const startedAt = Date.now()
-  const completionBudgetMs = 1_200
+  const completionBudgetMs = 2_500
   await expect( page.getByRole( 'button', { name: 'Go to Studio page' } ) )
     .toHaveAttribute( 'aria-current', 'page', { timeout: 10_000 } )
   await expect( page.locator( '.title-screen' ) ).toBeVisible()
