@@ -23,6 +23,22 @@ test( 'sampleCinematicBreakState (Draft 1) rolls 8-ball forward immediately on f
   assert.notDeepEqual( scatteredApex, initialApex )
 } )
 
+test( 'the intro 8-ball approach carries weight before impact', () =>
+{
+  const simulation = getBreakSimulation()
+  const approachEnd = STORY_TIMING.intro.approachEnd
+  const start = sampleCinematicBreakState( 0, simulation ).balls[ 0 ].position
+  const impact = sampleCinematicBreakState( approachEnd, simulation ).balls[ 0 ].position
+  const earlyProgress = approachEnd * 0.25
+  const early = sampleCinematicBreakState( earlyProgress, simulation ).balls[ 0 ].position
+  const linearFraction = 0.25
+  const actualFraction = ( start.z - early.z ) / ( start.z - impact.z )
+
+  // A weighted curve holds the ball back at the start of a light swipe.
+  assert.ok( actualFraction < linearFraction )
+  assert.ok( Math.abs( impact.z - simulation.initial.strikerImpact.z ) < 1e-12 )
+} )
+
 test( 'the cinematic timeline keeps the existing exit fade timing', () =>
 {
   const simulation = getBreakSimulation()

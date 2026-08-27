@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {
   STORY_TIMING,
   easeCinematicBreakTransition,
+  easeWeightedProgress,
   easeStoryTransition,
 } from '../storyTiming.js'
 
@@ -20,6 +21,14 @@ test( 'easeStoryTransition produces smooth normalized curve', () =>
   assert.equal( easeStoryTransition( 0 ), 0 )
   assert.equal( easeStoryTransition( 1 ), 1 )
   assert.equal( easeStoryTransition( 0.5 ), 0.5 )
+} )
+
+test( 'easeWeightedProgress lets the intro ball weight be edited without changing endpoints', () =>
+{
+  assert.equal( easeWeightedProgress( 0.25, 0 ), 0.25 )
+  assert.equal( easeWeightedProgress( 0, STORY_TIMING.scroll.introWeight ), 0 )
+  assert.equal( easeWeightedProgress( 1, STORY_TIMING.scroll.introWeight ), 1 )
+  assert.ok( easeWeightedProgress( 0.25, STORY_TIMING.scroll.introWeight ) < 0.25 )
 } )
 
 test( 'navigation timings are positive and non-zero', () =>

@@ -1,5 +1,5 @@
 // This module has no DOM or renderer dependency, so the cached break can be tested in Node.
-import { STORY_TIMING } from '../storyTiming.js'
+import { STORY_TIMING, easeWeightedProgress } from '../storyTiming.js'
 
 const clamp = ( value, min = 0, max = 1 ) => Math.min( max, Math.max( min, value ) )
 const lerp = ( start, end, progress ) => start + ( end - start ) * progress
@@ -1014,8 +1014,8 @@ const sampleBreakStateWithTiming = ( suppliedProgress, simulation, timing ) =>
 
   if ( progress <= timing.approachEnd )
   {
-    // Start the roll on the first gesture; the timing contract controls its endpoint.
-    const approachProgress = progress / timing.approachEnd
+    // Start with resistance, then build momentum into impact while preserving the exact endpoint.
+    const approachProgress = easeWeightedProgress( progress / timing.approachEnd )
     const x = lerp( initial.strikerStart.x, initial.strikerImpact.x, approachProgress )
     const z = lerp( initial.strikerStart.z, initial.strikerImpact.z, approachProgress )
     const distance = magnitude2( x - initial.strikerStart.x, z - initial.strikerStart.z )

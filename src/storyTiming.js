@@ -45,6 +45,7 @@ export const STORY_TIMING_DEFAULTS = freeze( {
   progressEpsilon: 0.0005,
   // Scroll input controls are deliberately separate from animation phase lengths.
   scroll: freeze( {
+    // Blend the 8-ball's approach between linear and the shared weighted curve (0 = linear, 1 = full curve).
     introWeight: 0.72,
     wheelMultiplier: 0.4,
     lerp: 0.085,
@@ -458,6 +459,16 @@ export const easeCinematicBreakTransition = ( progress ) =>
 // Later page edges use the same normalized weighted curve.
 export const easeStoryTransition = ( progress ) =>
   progress * progress * ( 3 - 2 * progress )
+
+// Blend a normalized playhead toward the shared curve so the 8-ball gains momentum without overshooting impact.
+export const easeWeightedProgress = ( progress, weight = STORY_TIMING.scroll.introWeight ) =>
+{
+  const normalizedProgress = assertProgress( progress, 'progress' )
+  const normalizedWeight = Math.min( 1, Math.max( 0, finiteNonNegative( weight, 'weight' ) ) )
+  const easedProgress = easeStoryTransition( normalizedProgress )
+
+  return normalizedProgress + ( easedProgress - normalizedProgress ) * normalizedWeight
+}
 
 export const toStoryProgress = ( timelineUnit ) =>
   assertProgress(
