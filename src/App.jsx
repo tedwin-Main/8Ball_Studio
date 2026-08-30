@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import Lenis from 'lenis'
 import { useStoryPager } from './hooks/useStoryPager'
 import { DraftSwitcher } from './components/DraftSwitcher'
 import { PoolPovDraft } from './drafts/PoolPovDraft'
 import { WebglPoolDraft } from './drafts/WebglPoolDraft'
 import { STORY_TIMING, toStoryProgress, toTimelineUnits } from './storyTiming'
+import { getStoryPages } from './storySchedule'
 // One V4 asset supplies both the header brand mark and animated 8-ball surface.
 import brandLogo from './assets/8BALL-V4.jpg'
 // The PNG has a baked checkerboard; CSS clips its square to the logo circle at render time.
@@ -17,37 +17,10 @@ import shopeeLogo from './assets/shopee-logo.svg'
 
 gsap.registerPlugin( ScrollTrigger )
 
-const STORY_PAGES = [
-  // Scene starts activate dots; stable targets land clicks after each transition finishes.
-  { id: 'page-intro', label: 'Intro', startProgress: 0, targetProgress: 0 },
-  {
-    id: 'page-studio',
-    label: 'Studio',
-    startProgress: toStoryProgress( STORY_TIMING.pages.cinematicStudioStart ),
-    targetProgress: toStoryProgress( STORY_TIMING.pages.studioStable ),
-  },
-  {
-    id: 'page-projects',
-    label: 'Projects',
-    startProgress: toStoryProgress( STORY_TIMING.pages.projectsStart ),
-    targetProgress: toStoryProgress( STORY_TIMING.pages.projectsStable ),
-  },
-  {
-    id: 'page-contact',
-    label: 'Contact',
-    startProgress: toStoryProgress( STORY_TIMING.pages.contactStart ),
-    targetProgress: toStoryProgress( STORY_TIMING.pages.contactStable ),
-  },
-]
-
 // Keep the Draft 2 camera cut aligned with the shared intro timeline.
 const DRAFT2_TRANSITION_READY_STORY_PROGRESS = toStoryProgress( STORY_TIMING.intro.draft2.transitionReady )
 // Cut the shared 8-ball before its old pocket-drop path starts; Draft 1 keeps its original animation.
 const DRAFT2_POCKET_CUT_STORY_PROGRESS = toStoryProgress( STORY_TIMING.intro.draft2.pocketCut )
-const getStudioStartProgress = ( draftId ) =>
-  draftId === 'webgl'
-    ? toStoryProgress( STORY_TIMING.pages.draft2StudioStart )
-    : STORY_PAGES[ 1 ].startProgress
 
 const getDraft2ExitProgress = ( progress ) =>
   Math.min( 1, Math.max( 0, ( progress - DRAFT2_TRANSITION_READY_STORY_PROGRESS ) /
@@ -178,7 +151,8 @@ function App ()
   const storyProgressRef = useRef( 0 )
   const activeDraftRef = useRef( getInitialDraft() )
   const [ activeDraft, setActiveDraft ] = useState( getInitialDraft )
-  const [ activePage, setActivePage ] = useState( 0 )
+  const [ activePage, setActivePage ] = useState( 'intro' )
+  const storyPages = useMemo( () => getStoryPages( activeDraft ), [ activeDraft ] )
 
   const registerDraftController = useCallback( ( draftId, controller ) =>
   {
@@ -242,18 +216,12 @@ function App ()
     return () => window.cancelAnimationFrame( refreshFrame )
   }, [ activeDraft ] )
 
-  const { goToPage, handleVirtualScroll, isTransitioning, isTransitioningRef } = useStoryPager( {
+  const { goToPage, isTransitioning } = useStoryPager( {
     storyRef,
-    pages: STORY_PAGES,
+    pages: storyPages,
     activePage,
     onPageChange: setActivePage,
   } )
-
-  const pagerVirtualScrollRef = useRef( handleVirtualScroll )
-  useEffect( () =>
-  {
-    pagerVirtualScrollRef.current = handleVirtualScroll
-  }, [ handleVirtualScroll ] )
 
   useLayoutEffect( () =>
   {
@@ -268,82 +236,6 @@ function App ()
     let ballLayerIsPromoted = false
     const hasFinePointer = window.matchMedia( '(hover: hover) and (pointer: fine)' ).matches
     const prefersReducedMotion = window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches
-
-    // A low lerp value lets the page carry momentum and settle like a weighted camera move.
-    const lenis = new Lenis( {
-      wheelMultiplier: STORY_TIMING.scroll.wheelMultiplier,
-      // Route touch movement and touch-end inertia through the same virtual-scroll gate.
-      syncTouch: true,
-      syncTouchLerp: STORY_TIMING.scroll.syncTouchLerp,
-      infinite: false,
-      gestureOrientation: 'vertical',
-      lerp: STORY_TIMING.scroll.lerp,
-      autoRaf: false,
-      autoResize: true,
-      // Keep all wheel, trackpad, and touch intent in the story pager coordinator.
-      virtualScroll: ( input ) => pagerVirtualScrollRef.current( input ),
-    } )
-
-    // Expose the one scroll controller so buttons and keyboard navigation use the same physics.
-    window.lenis = lenis
-
-    const handleLenisScroll = () =>
-    {
-      // ScrollTrigger reads the eased Lenis position and scrubs the scene on every frame.
-      ScrollTrigger.update()
-    }
-
-    const driveLenis = ( time ) =>
-    {
-      // GSAP ticker time is seconds; Lenis expects milliseconds.
-      lenis.raf( time * 1000 )
-    }
-
-    ScrollTrigger.scrollerProxy( document.body, {
-      scrollTop ( value )
-      {
-        if ( arguments.length ) lenis.scrollTo( value )
-        return window.scrollY
-      },
-      getBoundingClientRect ()
-      {
-        return {
-          top: 0,
-          left: 0,
-          width: window.innerWidth,
-          height: window.innerHeight,
-        }
-      },
-    } )
-    lenis.on( 'scroll', handleLenisScroll )
-    gsap.ticker.add( driveLenis )
-    // Disable GSAP's lag smoothing so scroll physics do not jump after a delayed frame.
-    gsap.ticker.lagSmoothing( 0 )
-    let resizeFrame = 0
-    const refreshScroll = () =>
-    {
-      const preservedProgress = storyProgressRef.current
-      if ( resizeFrame ) window.cancelAnimationFrame( resizeFrame )
-      resizeFrame = window.requestAnimationFrame( () =>
-      {
-        resizeFrame = 0
-        ScrollTrigger.refresh()
-        const story = storyRef.current
-        if ( !story ) return
-
-        // A refresh changes the pixel scroll range. Seek the same normalized chapter
-        // position afterward so camera, cue phase, and Draft 2 progress do not jump.
-        const storyTop = window.scrollY + story.getBoundingClientRect().top
-        const range = Math.max( 0, story.offsetHeight - window.innerHeight )
-        lenis.scrollTo( storyTop + range * preservedProgress, {
-          immediate: true,
-          force: true,
-          programmatic: true,
-        } )
-        ScrollTrigger.update()
-      } )
-    }
-    window.addEventListener( 'resize', refreshScroll )
 
     const moveCursorDotX = hasFinePointer
       ? gsap.quickTo( cursorDot, 'x', { duration: 0.05 } )
@@ -371,24 +263,6 @@ function App ()
         x: window.innerWidth * 0.5,
         y: window.innerHeight * 0.5,
       } )
-    }
-
-    const getPageIndex = ( progress ) =>
-    {
-      const studioStartProgress = getStudioStartProgress( activeDraftRef.current )
-      return STORY_PAGES.reduce(
-        ( currentIndex, page, index ) =>
-          progress >= ( index === 1 ? studioStartProgress : page.startProgress ) ? index : currentIndex,
-        0,
-      )
-    }
-
-    const updateActivePage = ( progress ) =>
-    {
-      // Keep page indicators on the source page until the forced autoplay settles.
-      if ( isTransitioningRef.current ) return
-      const nextPage = getPageIndex( progress )
-      setActivePage( ( currentPage ) => ( currentPage === nextPage ? currentPage : nextPage ) )
     }
 
     const updateDraftProgress = ( progress ) =>
@@ -442,14 +316,14 @@ function App ()
         {
           // Reduced-motion scenes use the same entry points as their active pagination dots.
           updateDraftProgress( progress )
-          const studioStartProgress = getStudioStartProgress( activeDraftRef.current )
+          const reducedPages = getStoryPages( activeDraftRef.current )
+          const studioStartProgress = reducedPages[ 1 ].startProgress
           const showIntro = progress < studioStartProgress
-          const showStudio = progress >= studioStartProgress && progress < STORY_PAGES[ 2 ].startProgress
-          const showProjects = progress >= STORY_PAGES[ 2 ].startProgress && progress < STORY_PAGES[ 3 ].startProgress
-          const showContact = progress >= STORY_PAGES[ 3 ].startProgress
+          const showStudio = progress >= studioStartProgress && progress < reducedPages[ 2 ].startProgress
+          const showProjects = progress >= reducedPages[ 2 ].startProgress && progress < reducedPages[ 3 ].startProgress
+          const showContact = progress >= reducedPages[ 3 ].startProgress
           const showEndScreen = showStudio || showProjects || showContact
 
-          updateActivePage( progress )
           gsap.set( '.pool-table', {
             xPercent: -50,
             yPercent: -50,
@@ -606,13 +480,11 @@ function App ()
                 updateDraftProgress( progress )
                 setBallLayerPromotion( progress > 0.001 && progress < 0.999 )
                 syncDraft2Handoff( progress )
-                updateActivePage( progress )
               },
               onRefresh: ( { progress } ) =>
               {
                 updateDraftProgress( progress )
                 syncDraft2Handoff( progress )
-                updateActivePage( progress )
               },
             },
           } )
@@ -744,26 +616,19 @@ function App ()
     return () =>
     {
       if ( pointerFrame ) window.cancelAnimationFrame( pointerFrame )
-      if ( resizeFrame ) window.cancelAnimationFrame( resizeFrame )
       if ( hasFinePointer ) window.removeEventListener( 'pointermove', movePointer )
-      window.removeEventListener( 'resize', refreshScroll )
-      lenis.off( 'scroll', handleLenisScroll )
-      gsap.ticker.remove( driveLenis )
-      lenis.destroy()
-      ScrollTrigger.scrollerProxy( document.body, null )
-      if ( window.lenis === lenis ) delete window.lenis
       gsap.killTweensOf( [ cursorDot, cursorRing, pointerGlow ] )
       ballRig.style.removeProperty( 'will-change' )
       animationContext.revert()
     }
   }, [] )
 
-  // Top is an intentional direct jump, so it targets the first page index.
-  const replay = () => goToPage( 0 )
+  // Top is an intentional direct jump, so it targets the Intro Page.
+  const replay = () => goToPage( 'intro' )
 
   return (
     <main
-      className={ `experience draft-${activeDraft}${activePage === 2 ? ' is-projects-active' : ''}` }
+      className={ `experience draft-${activeDraft}${activePage === 'projects' ? ' is-projects-active' : ''}` }
       ref={ rootRef }
       data-story-page={ activePage }
       data-story-state={ isTransitioning ? 'transitioning' : 'settled' }
@@ -813,7 +678,7 @@ function App ()
                 {
                   // Stop the browser jump so the pager can land on the stable Projects target.
                   event.preventDefault()
-                  goToPage( 2 )
+                  goToPage( 'projects' )
                 } }
               >
                 Our Projects
@@ -825,7 +690,7 @@ function App ()
                 {
                   // Use the same Lenis motion as pagination for the stable Contact target.
                   event.preventDefault()
-                  goToPage( 3 )
+                  goToPage( 'contact' )
                 } }
               >
                 Contact Us
@@ -928,13 +793,13 @@ function App ()
       <DraftSwitcher activeDraft={ activeDraft } onChange={ switchDraft } />
 
       <nav className="page-dots" aria-label="Story page navigation">
-        { STORY_PAGES.map( ( page, index ) => (
+        { storyPages.map( ( page ) => (
           <button
-            className={ `page-dot${activePage === index ? ' is-active' : ''}` }
+            className={ `page-dot${activePage === page.id ? ' is-active' : ''}` }
             type="button"
             aria-label={ `Go to ${page.label} page` }
-            aria-current={ activePage === index ? 'page' : undefined }
-            onClick={ () => goToPage( index ) }
+            aria-current={ activePage === page.id ? 'page' : undefined }
+            onClick={ () => goToPage( page.id ) }
             key={ page.id }
           >
             <span>{ page.label }</span>

@@ -192,10 +192,17 @@ const waitForDraftTwo = async ( page ) =>
     'false',
     { timeout: 30_000 },
   )
+  await expect( page.locator( '.story' ) ).toHaveAttribute(
+    'data-story-navigation-ready',
+    'true',
+    { timeout: 30_000 },
+  )
+  // Production code keeps Lenis private to the browser adapter; only the benchmark seam is public.
+  expect( await page.evaluate( () => Object.prototype.hasOwnProperty.call( window, 'lenis' ) ) ).toBe( false )
   await page.waitForFunction( () =>
   {
     const canvas = document.querySelector( '.webgl-pool-canvas' )
-    return Boolean( canvas && canvas.width > 0 && canvas.height > 0 && window.lenis )
+    return Boolean( canvas && canvas.width > 0 && canvas.height > 0 && window.__storyNavigationBenchmark )
   } )
 }
 
@@ -505,25 +512,8 @@ const driveStoryProgress = async ( page, progress ) =>
 {
   const target = await page.evaluate( ( nextProgress ) =>
   {
-    const story = document.querySelector( '.story' )
-    if ( !story || !window.lenis ) throw new Error( 'Draft 2 scroll controller is not ready.' )
-
-    const bounds = story.getBoundingClientRect()
-    const range = Math.max( 0, story.offsetHeight - window.innerHeight )
-    const storyTop = window.scrollY + bounds.top
-    const targetScroll = storyTop + range * nextProgress
-
-    // Use the public Lenis scroll controller so benchmark inputs match visitors.
-    window.lenis.scrollTo( targetScroll, {
-      immediate: true,
-      force: true,
-      programmatic: true,
-    } )
-
-    return {
-      targetScroll,
-      currentScroll: window.lenis.scroll,
-    }
+    if ( !window.__storyNavigationBenchmark ) throw new Error( 'Story navigation benchmark seam is not ready.' )
+    return window.__storyNavigationBenchmark.seekProgress( nextProgress )
   }, progress )
 
   await page.waitForTimeout( 2 )
@@ -532,25 +522,16 @@ const driveStoryProgress = async ( page, progress ) =>
 
 const driveDraftTwoRenderBurst = ( page, sampleCount = 32 ) => page.evaluate( async ( count ) =>
 {
-  const story = document.querySelector( ".story" )
-  if ( !story || !window.lenis ) throw new Error( "Draft 2 scroll controller is not ready." )
+  if ( !window.__storyNavigationBenchmark ) throw new Error( "Story navigation benchmark seam is not ready." )
 
-  const bounds = story.getBoundingClientRect()
-  const range = Math.max( 0, story.offsetHeight - window.innerHeight )
-  const storyTop = window.scrollY + bounds.top
-
-  // One public Lenis update per browser frame produces a measurable sequence of real Draft 2 paints.
+  // One benchmark progress seek per browser frame produces a measurable sequence of real Draft 2 paints.
   await new Promise( ( resolve ) =>
   {
     let index = 0
     const driveNext = () =>
     {
       const progress = 0.12 + 0.68 * ( index / Math.max( 1, count - 1 ) )
-      window.lenis.scrollTo( storyTop + range * progress, {
-        immediate: true,
-        force: true,
-        programmatic: true,
-      } )
+      window.__storyNavigationBenchmark.seekProgress( progress )
       index += 1
       if ( index < count )
       {
@@ -669,6 +650,8 @@ for ( const viewport of VIEWPORTS )
       await page.waitForFunction( ( expectedQuality ) =>
         document.querySelector( ".draft-layer-webgl" )?.dataset.webglQuality === expectedQuality,
       resourcesBeforeLifecycle.quality )
+      // Wait for the debounced Story resize restore before reading the retained playhead.
+      await page.waitForTimeout( 500 )
       const restored = await readDraftDiagnostics( page )
 
       const renderIntervals = toIntervals( performanceMeasured.draftRenderTimes )
