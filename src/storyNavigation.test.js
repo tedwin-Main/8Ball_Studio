@@ -158,6 +158,7 @@ const createFixture = ( options = {} ) =>
   const clock = options.clock || new FakeClock()
   let range = 1000
   const changedPages = []
+  const indicatorPages = []
   const transitionStates = []
   const navigation = createStoryNavigation( {
     pages: PAGES,
@@ -171,6 +172,7 @@ const createFixture = ( options = {} ) =>
     gestureResetMs: 120,
     prefersReducedMotion: options.prefersReducedMotion || ( () => false ),
     onPageChange: ( page ) => changedPages.push( page ),
+    onIndicatorPageChange: ( page ) => indicatorPages.push( page ),
     onTransitionChange: ( isTransitioning ) => transitionStates.push( isTransitioning ),
   } )
 
@@ -181,6 +183,7 @@ const createFixture = ( options = {} ) =>
     clock,
     navigation,
     changedPages,
+    indicatorPages,
     transitionStates,
     setRange: ( nextRange ) => { range = nextRange },
   }
@@ -228,6 +231,46 @@ test( 'page navigation locks input until adapter completion and settles by Page 
   assert.equal( fixture.navigation.getState().isTransitioning, false )
   assert.deepEqual( fixture.changedPages, [ 'intro', 'studio' ] )
   assert.deepEqual( fixture.transitionStates, [ true, false ] )
+} )
+
+test( 'visitor indicator follows the visible Page boundary during forward autoplay', () =>
+{
+  const fixture = createFixture()
+  fixture.navigation.goToPage( 'studio' )
+
+  // Stable Page state remains locked until completion, while the indicator follows
+  // the same activation threshold that starts the Studio reveal.
+  assert.equal( fixture.navigation.getState().activePage, 'intro' )
+  assert.equal( fixture.navigation.getState().indicatorPage, 'intro' )
+  fixture.adapter.position = 210
+  fixture.adapter.emitScroll()
+
+  assert.equal( fixture.navigation.getState().activePage, 'intro' )
+  assert.equal( fixture.navigation.getState().indicatorPage, 'studio' )
+  assert.deepEqual( fixture.indicatorPages, [ 'intro', 'studio' ] )
+
+  fixture.adapter.complete()
+  assert.equal( fixture.navigation.getState().activePage, 'studio' )
+  assert.equal( fixture.navigation.getState().indicatorPage, 'studio' )
+} )
+
+test( 'visitor indicator returns at the same boundary during reverse autoplay', () =>
+{
+  const fixture = createFixture( { position: 300 } )
+  fixture.navigation.goToPage( 'intro' )
+
+  assert.equal( fixture.navigation.getState().activePage, 'studio' )
+  assert.equal( fixture.navigation.getState().indicatorPage, 'studio' )
+  fixture.adapter.position = 150
+  fixture.adapter.emitScroll()
+
+  assert.equal( fixture.navigation.getState().activePage, 'studio' )
+  assert.equal( fixture.navigation.getState().indicatorPage, 'intro' )
+  assert.deepEqual( fixture.indicatorPages, [ 'studio', 'intro' ] )
+
+  fixture.adapter.complete()
+  assert.equal( fixture.navigation.getState().activePage, 'intro' )
+  assert.equal( fixture.navigation.getState().indicatorPage, 'intro' )
 } )
 
 test( 'wheel qualification advances once and direction changes reset accumulated intent', () =>

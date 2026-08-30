@@ -26,6 +26,12 @@ test( 'resolves semantic intro and page milestones in order', () =>
   assert.equal( STORY_TIMING.navigation.gestureResetMs, 120 )
 } )
 
+test( 'Studio title reveal finishes before its Stable Page boundary', () =>
+{
+  assert.ok( STORY_TIMING.intro.visual.titleLineEnd <= STORY_TIMING.pages.studioStable )
+  assert.ok( STORY_TIMING.intro.visual.metaStart + STORY_TIMING.intro.visual.metaDuration <= STORY_TIMING.pages.studioStable )
+} )
+
 test( 'changing one duration derives every dependent milestone', () =>
 {
   const timing = resolveStoryTiming( {

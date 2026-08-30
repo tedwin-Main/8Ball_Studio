@@ -430,6 +430,88 @@ test( 'Draft 2 page controls reach Projects and Contact', async ( { browser, bas
   }
 } )
 
+test( 'Story indicator activates with each visible Page reveal', async ( { browser, baseURL } ) =>
+{
+  const context = await browser.newContext( { viewport: { width: 1280, height: 800 } } )
+  const page = await context.newPage()
+
+  const readPagination = () => page.evaluate( () =>
+  {
+    const dots = [ ...document.querySelectorAll( '.page-dot' ) ]
+    const activeDots = dots.filter( ( dot ) => dot.classList.contains( 'is-active' ) )
+    const currentDots = dots.filter( ( dot ) => dot.getAttribute( 'aria-current' ) === 'page' )
+    const root = document.querySelector( 'main' )
+    return {
+      activeCount: activeDots.length,
+      currentCount: currentDots.length,
+      activeLabel: activeDots[ 0 ]?.getAttribute( 'aria-label' ) || null,
+      currentLabel: currentDots[ 0 ]?.getAttribute( 'aria-label' ) || null,
+      labelsMatch: activeDots[ 0 ]?.getAttribute( 'aria-label' ) === currentDots[ 0 ]?.getAttribute( 'aria-label' ),
+      stablePage: root?.dataset.storyPage || null,
+      indicatorPage: root?.dataset.storyIndicatorPage || null,
+      state: root?.dataset.storyState || null,
+    }
+  } )
+
+  const expectMidTransition = async ( destinationPage, sourcePage ) =>
+  {
+    // Poll one DOM snapshot so the indicator and Stable Page assertions cannot straddle a render.
+    await expect.poll( readPagination, { timeout: 2_000 } ).toMatchObject( {
+      indicatorPage: destinationPage,
+      stablePage: sourcePage,
+      state: 'transitioning',
+      activeCount: 1,
+      currentCount: 1,
+      labelsMatch: true,
+    } )
+  }
+
+  const expectSettledPage = async ( pageId ) =>
+  {
+    await expect.poll( async () => ( await readPagination() ).stablePage, { timeout: 2_000 } ).toBe( pageId )
+    await expect( page.locator( 'main' ) ).toHaveAttribute( 'data-story-state', 'settled' )
+  }
+
+  try
+  {
+    await page.goto( `${baseURL}/?draft=webgl&benchmark=draft2`, { waitUntil: 'domcontentloaded' } )
+    await waitForDraftTwo( page )
+    await expect( page.getByRole( 'button', { name: 'Go to Intro page' } ) ).toHaveAttribute( 'aria-current', 'page' )
+
+    const studioButton = page.getByRole( 'button', { name: 'Go to Studio page' } )
+    await studioButton.click()
+    await expectMidTransition( 'studio', 'intro' )
+    await expect( studioButton ).toHaveAttribute( 'aria-current', 'page' )
+    await expect( page.locator( '.title-screen' ) ).toBeVisible()
+    await expect.poll( async () => page.locator( '.final-title-line > span' ).evaluate( ( node ) =>
+    {
+      const transform = getComputedStyle( node ).transform.replace( /\s/g, '' )
+      return transform === 'none' || transform === 'matrix(1,0,0,1,0,0)'
+    } ) ).toBe( true )
+    await expectSettledPage( 'studio' )
+
+    const projectsButton = page.getByRole( 'button', { name: 'Go to Projects page' } )
+    await projectsButton.click()
+    await expectMidTransition( 'projects', 'studio' )
+    await expect( projectsButton ).toHaveAttribute( 'aria-current', 'page' )
+    await expectSettledPage( 'projects' )
+
+    const contactButton = page.getByRole( 'button', { name: 'Go to Contact page' } )
+    await contactButton.click()
+    await expectMidTransition( 'contact', 'projects' )
+    await expect( contactButton ).toHaveAttribute( 'aria-current', 'page' )
+    await expectSettledPage( 'contact' )
+
+    await studioButton.click()
+    await expectMidTransition( 'studio', 'contact' )
+    await expect( studioButton ).toHaveAttribute( 'aria-current', 'page' )
+  }
+  finally
+  {
+    await context.close()
+  }
+} )
+
 test( 'Draft 2 cuts the pocket drop before the Studio crossfade', async ( { browser, baseURL } ) =>
 {
   const context = await browser.newContext( {

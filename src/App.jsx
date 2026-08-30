@@ -5,7 +5,7 @@ import { useStoryPager } from './hooks/useStoryPager'
 import { DraftSwitcher } from './components/DraftSwitcher'
 import { PoolPovDraft } from './drafts/PoolPovDraft'
 import { WebglPoolDraft } from './drafts/WebglPoolDraft'
-import { STORY_TIMING, toStoryProgress, toTimelineUnits } from './storyTiming'
+import { STORY_TIMING, easeWeightedProgress, toStoryProgress, toTimelineUnits } from './storyTiming'
 import { getStoryPages } from './storySchedule'
 // One V4 asset supplies both the header brand mark and animated 8-ball surface.
 import brandLogo from './assets/8BALL-V4.jpg'
@@ -152,6 +152,7 @@ function App ()
   const activeDraftRef = useRef( getInitialDraft() )
   const [ activeDraft, setActiveDraft ] = useState( getInitialDraft )
   const [ activePage, setActivePage ] = useState( 'intro' )
+  const [ indicatorPage, setIndicatorPage ] = useState( 'intro' )
   const storyPages = useMemo( () => getStoryPages( activeDraft ), [ activeDraft ] )
 
   const registerDraftController = useCallback( ( draftId, controller ) =>
@@ -221,6 +222,7 @@ function App ()
     pages: storyPages,
     activePage,
     onPageChange: setActivePage,
+    onIndicatorPageChange: setIndicatorPage,
   } )
 
   useLayoutEffect( () =>
@@ -504,6 +506,8 @@ function App ()
               x: holdX,
               y: holdY,
               rotation: 0,
+              // Intro Draft 3 uses the same resistant-to-momentum curve as the shared ball sampler.
+              ease: easeWeightedProgress,
               duration: STORY_TIMING.intro.approachDuration,
             }, 0 )
             .to( '.hero-copy', {
@@ -628,9 +632,10 @@ function App ()
 
   return (
     <main
-      className={ `experience draft-${activeDraft}${activePage === 'projects' ? ' is-projects-active' : ''}` }
+      className={ `experience draft-${activeDraft}${indicatorPage === 'projects' ? ' is-projects-active' : ''}` }
       ref={ rootRef }
       data-story-page={ activePage }
+      data-story-indicator-page={ indicatorPage }
       data-story-state={ isTransitioning ? 'transitioning' : 'settled' }
       data-story-transitioning={ String( isTransitioning ) }
     >
@@ -641,6 +646,7 @@ function App ()
         style={ { '--story-height': `${ ( STORY_TIMING.totalTimelineUnits + 1 ) * 100 }svh` } }
         aria-label="Interactive 8 Ball Studio introduction"
         data-story-page={ activePage }
+        data-story-indicator-page={ indicatorPage }
         data-story-state={ isTransitioning ? 'transitioning' : 'settled' }
         data-story-transitioning={ String( isTransitioning ) }
       >
@@ -795,10 +801,10 @@ function App ()
       <nav className="page-dots" aria-label="Story page navigation">
         { storyPages.map( ( page ) => (
           <button
-            className={ `page-dot${activePage === page.id ? ' is-active' : ''}` }
+            className={ `page-dot${indicatorPage === page.id ? ' is-active' : ''}` }
             type="button"
             aria-label={ `Go to ${page.label} page` }
-            aria-current={ activePage === page.id ? 'page' : undefined }
+            aria-current={ indicatorPage === page.id ? 'page' : undefined }
             onClick={ () => goToPage( page.id ) }
             key={ page.id }
           >

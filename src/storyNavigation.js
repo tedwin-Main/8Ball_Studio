@@ -94,6 +94,7 @@ export function createStoryNavigation ( {
   gestureThresholdPx = 14,
   gestureResetMs = 120,
   onPageChange,
+  onIndicatorPageChange,
   onTransitionChange,
   onProgress,
 } = {} )
@@ -107,6 +108,9 @@ export function createStoryNavigation ( {
   let pages = normalizePages( suppliedPages )
   let activePage = typeof initialPage === 'string' ? initialPage : null
   let targetPage = activePage
+  // Stable Page state owns navigation locking; indicatorPage follows the visible
+  // Page activation boundary so pagination does not wait for autoplay completion.
+  let indicatorPage = activePage
   let transitioning = false
   let mounted = false
   let destroyed = false
@@ -141,6 +145,13 @@ export function createStoryNavigation ( {
     pages[ 0 ],
   )
 
+  const setIndicatorPage = ( nextPage ) =>
+  {
+    if ( !nextPage || nextPage.id === indicatorPage ) return
+    indicatorPage = nextPage.id
+    onIndicatorPageChange?.( indicatorPage )
+  }
+
   const getProgress = () =>
   {
     const metrics = getMetrics()
@@ -167,9 +178,13 @@ export function createStoryNavigation ( {
     if ( !preservingResizeProgress ) lastScrollProgress = progress
     onProgress?.( progress )
 
+    // The visible Page and its indicator share the same scheduled activation
+    // threshold, even while Stable Page state remains locked during autoplay.
+    const nextPage = pageAtProgress( progress )
+    setIndicatorPage( nextPage )
+
     if ( !transitioning )
     {
-      const nextPage = pageAtProgress( progress )
       if ( nextPage && nextPage.id !== activePage )
       {
         activePage = nextPage.id
@@ -185,7 +200,7 @@ export function createStoryNavigation ( {
   {
     if ( transitioning === nextTransitioning ) return
     transitioning = nextTransitioning
-    onTransitionChange?.( transitioning, { activePage, targetPage } )
+    onTransitionChange?.( transitioning, { activePage, targetPage, indicatorPage } )
   }
 
   const clearTransitionTimer = () =>
@@ -202,6 +217,7 @@ export function createStoryNavigation ( {
     setTransitioning( false )
     activePage = destinationId
     targetPage = destinationId
+    setIndicatorPage( resolvePage( destinationId ) )
     accumulatedDelta = 0
     resetTouchGesture( touchGesture )
     onPageChange?.( destinationId )
@@ -224,6 +240,7 @@ export function createStoryNavigation ( {
     {
       activePage = destination.id
       targetPage = destination.id
+      setIndicatorPage( destination )
       onPageChange?.( destination.id )
       return true
     }
@@ -522,6 +539,8 @@ export function createStoryNavigation ( {
     const initial = pageAtProgress( getProgress() ) || resolvePage( initialPage ) || pages[ 0 ]
     activePage = initial.id
     targetPage = initial.id
+    indicatorPage = initial.id
+    onIndicatorPageChange?.( indicatorPage )
     onPageChange?.( initial.id )
     notifyProgress()
   }
@@ -554,6 +573,7 @@ export function createStoryNavigation ( {
     getState: () => ( {
       activePage,
       targetPage,
+      indicatorPage,
       isTransitioning: transitioning,
       progress: getProgress(),
     } ),

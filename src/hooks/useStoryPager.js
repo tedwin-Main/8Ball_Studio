@@ -49,6 +49,7 @@ export function useStoryPager ( {
   pages,
   activePage,
   onPageChange,
+  onIndicatorPageChange,
 } )
 {
   const controllerRef = useRef( null )
@@ -86,6 +87,7 @@ export function useStoryPager ( {
         targetPageRef.current = pageId
         onPageChange?.( pageId )
       },
+      onIndicatorPageChange,
       onTransitionChange: ( nextTransitioning, state ) =>
       {
         isTransitioningRef.current = nextTransitioning
@@ -119,7 +121,7 @@ export function useStoryPager ( {
       isTransitioningRef.current = false
       setIsTransitioning( false )
     }
-  }, [ onPageChange, storyRef ] )
+  }, [ onIndicatorPageChange, onPageChange, storyRef ] )
 
   const goToPage = ( requestedPage, options = {} ) =>
     controllerRef.current?.goToPage( requestedPage, options ) ?? false
