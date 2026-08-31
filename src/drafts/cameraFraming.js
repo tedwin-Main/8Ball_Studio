@@ -120,7 +120,6 @@ export const createPointerParallax = ( {
   }
 
   return {
-    capability,
     state,
     reset,
     syncCapability,
