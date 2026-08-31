@@ -21,7 +21,10 @@ import {
   DRAFT2_SCENE_SCALE,
   resolveIntroCameraFraming,
 } from './cameraFraming'
-import { publishFramingDiagnostics } from './framingDiagnostics'
+import {
+  isFramingDiagnosticsEnabled,
+  publishFramingDiagnostics,
+} from './framingDiagnostics'
 
 const clamp = ( value, min = 0, max = 1 ) => Math.min( max, Math.max( min, value ) )
 const lerp = ( start, end, progress ) => start + ( end - start ) * progress
@@ -1226,6 +1229,7 @@ export function WebglPoolDraft ( {
     let renderFrame = () => {}
     let lastRenderedProgress = null
     let stableProgressFrames = 0
+    const diagnosticsEnabled = isFramingDiagnosticsEnabled( window )
 
     // One RAF owns every WebGL repaint; callers only mark the latest state dirty.
     const requestRender = () =>
@@ -1336,13 +1340,16 @@ export function WebglPoolDraft ( {
       world.camera.fov = framing.fov
       world.camera.updateProjectionMatrix()
       world.camera.updateMatrixWorld( true )
-      publishFramingDiagnostics( canvas, world.camera, state.balls.map( ( ball ) => ( {
-        position: {
-          x: ball.position.x * PHYSICS_SCALE,
-          y: ball.position.y * PHYSICS_SCALE,
-          z: ball.position.z * PHYSICS_SCALE,
-        },
-      } ) ), BALL_RADIUS, framing )
+      if ( diagnosticsEnabled )
+      {
+        publishFramingDiagnostics( canvas, world.camera, state.balls.map( ( ball ) => ( {
+          position: {
+            x: ball.position.x * PHYSICS_SCALE,
+            y: ball.position.y * PHYSICS_SCALE,
+            z: ball.position.z * PHYSICS_SCALE,
+          },
+        } ) ), BALL_RADIUS, framing )
+      }
 
       // Overall layer fade at chapter exit
       canvas.style.opacity = String( 1 - exitProgress )
@@ -1356,8 +1363,6 @@ export function WebglPoolDraft ( {
       requestRender()
     }
 
-    // Stop requesting frames when parallax is visually settled; the tolerance avoids sub-pixel churn.
-    const pointerSettleTolerance = 0.0015
     renderFrame = () =>
     {
       frame = 0
@@ -1430,7 +1435,6 @@ export function WebglPoolDraft ( {
     {
       pointer.addListeners()
     }
-    pointerCapability.addListener?.( handlePointerCapabilityChange )
 
     return () =>
     {
@@ -1438,7 +1442,6 @@ export function WebglPoolDraft ( {
       if ( frame ) window.cancelAnimationFrame( frame )
       frame = 0
       pointer.removeListeners()
-      pointerCapability.removeListener?.( handlePointerCapabilityChange )
       onController?.( null )
       if ( controllerRef.current === controller ) controllerRef.current = null
       world?.dispose()

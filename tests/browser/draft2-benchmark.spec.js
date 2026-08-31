@@ -278,12 +278,22 @@ test( 'Draft 1 and Draft 2 share foreground framing at Intro milestones', async 
     const draftOneCanvas = '.pool-pov-balls-canvas'
     const draftTwoCanvas = '.webgl-pool-canvas'
     await waitForFramingSnapshot( page, draftOneCanvas )
+    const photoPlate = page.locator( '.pool-pov-photo' )
+    const portraitPlate = page.locator( '.pool-pov-visual source' )
+    await expect( photoPlate ).toHaveAttribute( 'src', /pool-pov-landscape/ )
+    await expect( portraitPlate ).toHaveAttribute( 'srcset', /pool-pov-portrait/ )
+    await expect( photoPlate ).toHaveCSS( 'object-fit', 'cover' )
+    await expect( photoPlate ).toHaveCSS( 'object-position', '50% 50%' )
 
     for ( const milestone of FRAMING_MILESTONES )
     {
       await driveStoryProgress( page, toStoryProgress( milestone.progress ) )
       await waitForFramingSnapshot( page, draftOneCanvas )
       const draftOne = await readFramingSnapshot( page, draftOneCanvas )
+      if ( milestone.name === 'start' )
+      {
+        expect( Number.isFinite( draftOne.photoRegistration?.anchorError ) ).toBe( true )
+      }
 
       await page.getByRole( 'button', { name: '02 3D Break' } ).click()
       await driveStoryProgress( page, toStoryProgress( milestone.progress ) )

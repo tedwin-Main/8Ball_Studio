@@ -14,7 +14,10 @@ import {
   DRAFT2_SCENE_SCALE,
   resolveIntroCameraFraming,
 } from './cameraFraming'
-import { publishFramingDiagnostics } from './framingDiagnostics'
+import {
+  isFramingDiagnosticsEnabled,
+  publishFramingDiagnostics,
+} from './framingDiagnostics'
 
 const clamp = ( value, min = 0, max = 1 ) => Math.min( max, Math.max( min, value ) )
 const lerp = ( start, end, progress ) => start + ( end - start ) * progress
@@ -87,6 +90,48 @@ const PLATE_CALIBRATIONS = Object.freeze( {
     ] ),
   } ),
 } )
+
+const adaptReferenceUv = ( uv, calibration, aspect ) => [
+  0.5 + ( uv[ 0 ] - 0.5 ) * calibration.referenceAspect / aspect,
+  uv[ 1 ],
+]
+
+// Keep the existing photo anchor measurement available to benchmark checks after camera sharing.
+const getPhotoRegistration = ( camera, simulation, radius, calibration, aspect, width, height ) =>
+{
+  const project = ( point ) =>
+  {
+    const projected = point.clone().project( camera )
+    return {
+      x: ( projected.x + 1 ) / 2,
+      y: ( 1 - projected.y ) / 2,
+    }
+  }
+  const rackApex = project( new THREE.Vector3(
+    simulation.config.rack.apexX,
+    radius,
+    simulation.config.rack.apexZ,
+  ) )
+  const strikerContact = project( new THREE.Vector3(
+    simulation.initial.strikerImpact.x,
+    radius,
+    simulation.initial.strikerImpact.z,
+  ) )
+  const expectedRackApex = adaptReferenceUv( calibration.projectedAnchors.rackApex, calibration, aspect )
+  const expectedStrikerContact = adaptReferenceUv( calibration.projectedAnchors.strikerContact, calibration, aspect )
+  const distance = ( actual, expected ) => Math.hypot(
+    ( actual.x - expected[ 0 ] ) * width,
+    ( actual.y - expected[ 1 ] ) * height,
+  )
+  return {
+    anchorError: Math.max(
+      distance( rackApex, expectedRackApex ),
+      distance( strikerContact, expectedStrikerContact ),
+    ),
+    rackApex,
+    strikerContact,
+  }
+}
 
 const createPoolBallTexture = ( color, number, anisotropy ) =>
 {
@@ -395,6 +440,7 @@ export function PoolPovDraft ( { active, onController } )
     let resizePending = true
     let destroyed = false
     let renderFrame = () => {}
+    const diagnosticsEnabled = isFramingDiagnosticsEnabled( window )
 
     try
     {
@@ -406,24 +452,6 @@ export function PoolPovDraft ( { active, onController } )
       // The photo remains visible if WebGL setup fails, so the opening is still usable.
       root.dataset.webglError = 'true'
       console.warn( 'Cinematic pool overlay unavailable:', error )
-    }
-
-    // Cursorless devices always start and stay on the neutral table centerline.
-    const resetPointer = () =>
-    {
-      pointerX = 0
-      pointerY = 0
-      pointerTargetX = 0
-      pointerTargetY = 0
-    }
-
-    const syncPointerCapability = () =>
-    {
-      const nextPointerEnabled = pointerCapability.matches
-      if ( nextPointerEnabled === pointerEnabled ) return false
-      pointerEnabled = nextPointerEnabled
-      resetPointer()
-      return true
     }
 
     const requestRender = () =>
@@ -473,7 +501,31 @@ export function PoolPovDraft ( { active, onController } )
         world.camera.lookAt( ...framing.target )
         world.camera.updateProjectionMatrix()
         world.camera.updateMatrixWorld( true )
-        publishFramingDiagnostics( canvas, world.camera, state.balls, world.radius, framing )
+        if ( diagnosticsEnabled )
+        {
+          const width = Math.max( 1, canvas.clientWidth || window.innerWidth )
+          const height = Math.max( 1, canvas.clientHeight || window.innerHeight )
+          const calibration = PLATE_CALIBRATIONS[ canvas.dataset.plate ]
+          const photoRegistration = calibration
+            ? getPhotoRegistration(
+              world.camera,
+              simulation,
+              world.radius,
+              calibration,
+              world.camera.aspect,
+              width,
+              height,
+            )
+            : null
+          publishFramingDiagnostics(
+            canvas,
+            world.camera,
+            state.balls,
+            world.radius,
+            framing,
+            photoRegistration,
+          )
+        }
         world.render()
       }
 

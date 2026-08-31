@@ -1,5 +1,9 @@
 import * as THREE from 'three'
 
+// Keep viewport projection serialization out of normal visitor renders; the browser benchmark opts in explicitly.
+export const isFramingDiagnosticsEnabled = ( windowObject = globalThis.window ) =>
+  new URLSearchParams( windowObject?.location?.search || '' ).get( 'benchmark' ) === 'draft2'
+
 const projectViewportPoint = ( point, camera ) =>
 {
   const projected = point.clone().project( camera )
@@ -10,7 +14,7 @@ const projectViewportPoint = ( point, camera ) =>
 }
 
 // Keep the browser seam limited to visitor-visible viewport facts, never scene objects.
-export const publishFramingDiagnostics = ( canvas, camera, balls, radius, framing ) =>
+export const publishFramingDiagnostics = ( canvas, camera, balls, radius, framing, photoRegistration = null ) =>
 {
   const width = Math.max( 1, canvas.clientWidth || window.innerWidth )
   const height = Math.max( 1, canvas.clientHeight || window.innerHeight )
@@ -54,6 +58,7 @@ export const publishFramingDiagnostics = ( canvas, camera, balls, radius, framin
     eightBall: eightBallPoint,
     rackApex,
     rackBounds,
+    photoRegistration,
     eightBallDiameter: Math.hypot(
       ( ballEdgePoint.x - eightBallPoint.x ) * width,
       ( ballEdgePoint.y - eightBallPoint.y ) * height,
@@ -64,4 +69,5 @@ export const publishFramingDiagnostics = ( canvas, camera, balls, radius, framin
     ),
   }
   canvas.dataset.framing = JSON.stringify( snapshot )
+  if ( photoRegistration ) canvas.dataset.anchorError = photoRegistration.anchorError.toFixed( 2 )
 }
