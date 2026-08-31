@@ -206,6 +206,195 @@ const waitForDraftTwo = async ( page ) =>
   } )
 }
 
+const readFramingSnapshot = ( page, selector ) => page.locator( selector ).evaluate( ( canvas ) =>
+{
+  const value = canvas.dataset.framing
+  if ( !value ) throw new Error( `Framing diagnostics are not ready for ${selector}.` )
+  return JSON.parse( value )
+} )
+
+const waitForFramingSnapshot = async ( page, selector ) =>
+{
+  await page.waitForFunction( ( targetSelector ) =>
+  {
+    return Boolean( document.querySelector( targetSelector )?.dataset.framing )
+  }, selector )
+}
+
+const expectMatchingFraming = ( first, second ) =>
+{
+  expect( second.fov ).toBeCloseTo( first.fov, 6 )
+  expect( second.trackProgress ).toBeCloseTo( first.trackProgress, 6 )
+  expect( second.eightBall.x ).toBeCloseTo( first.eightBall.x, 3 )
+  expect( second.eightBall.y ).toBeCloseTo( first.eightBall.y, 3 )
+  expect( second.rackApex.x ).toBeCloseTo( first.rackApex.x, 3 )
+  expect( second.rackApex.y ).toBeCloseTo( first.rackApex.y, 3 )
+  expect( second.eightBallDiameter ).toBeCloseTo( first.eightBallDiameter, 1 )
+  expect( second.centerlineError ).toBeCloseTo( first.centerlineError, 4 )
+}
+
+const dispatchPortraitTap = async ( context, page, x, y ) =>
+{
+  const client = await context.newCDPSession( page )
+  const touchPoint = {
+    x,
+    y,
+    radiusX: 1,
+    radiusY: 1,
+    force: 1,
+    id: 1,
+  }
+  await client.send( 'Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [ touchPoint ],
+    modifiers: 0,
+  } )
+  await client.send( 'Input.dispatchTouchEvent', {
+    type: 'touchEnd',
+    touchPoints: [],
+    modifiers: 0,
+  } )
+}
+
+const FRAMING_MILESTONES = [
+  { name: 'start', progress: 0 },
+  { name: 'approach', progress: STORY_TIMING.intro.approachEnd * 0.5 },
+  { name: 'impact', progress: STORY_TIMING.intro.impact },
+  { name: 'scatter', progress: STORY_TIMING.intro.draft2.transitionReady },
+]
+
+test( 'Draft 1 and Draft 2 share foreground framing at Intro milestones', async ( { browser, baseURL } ) =>
+{
+  const context = await browser.newContext( {
+    viewport: { width: 1280, height: 800 },
+    deviceScaleFactor: 1,
+  } )
+  const page = await context.newPage()
+
+  try
+  {
+    await page.goto( `${baseURL}/?draft=cinematic&benchmark=draft2`, { waitUntil: 'domcontentloaded' } )
+    await waitForDraftTwo( page )
+    const draftOneCanvas = '.pool-pov-balls-canvas'
+    const draftTwoCanvas = '.webgl-pool-canvas'
+    await waitForFramingSnapshot( page, draftOneCanvas )
+
+    for ( const milestone of FRAMING_MILESTONES )
+    {
+      await driveStoryProgress( page, toStoryProgress( milestone.progress ) )
+      await waitForFramingSnapshot( page, draftOneCanvas )
+      const draftOne = await readFramingSnapshot( page, draftOneCanvas )
+
+      await page.getByRole( 'button', { name: '02 3D Break' } ).click()
+      await driveStoryProgress( page, toStoryProgress( milestone.progress ) )
+      await waitForFramingSnapshot( page, draftTwoCanvas )
+      const draftTwo = await readFramingSnapshot( page, draftTwoCanvas )
+      expectMatchingFraming( draftOne, draftTwo )
+
+      await page.getByRole( 'button', { name: '01 3D POV' } ).click()
+      await waitForFramingSnapshot( page, draftOneCanvas )
+    }
+  }
+  finally
+  {
+    await context.close()
+  }
+} )
+
+test( 'Draft 1 and Draft 2 stay centered after touch input on portrait', async ( { browser, baseURL } ) =>
+{
+  const context = await browser.newContext( {
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 1,
+    hasTouch: true,
+    isMobile: true,
+  } )
+  const page = await context.newPage()
+
+  try
+  {
+    await page.goto( `${baseURL}/?draft=cinematic&benchmark=draft2`, { waitUntil: 'domcontentloaded' } )
+    await waitForDraftTwo( page )
+    const draftOneCanvas = '.pool-pov-balls-canvas'
+    const draftTwoCanvas = '.webgl-pool-canvas'
+    await waitForFramingSnapshot( page, draftOneCanvas )
+    const draftOneBaseline = await readFramingSnapshot( page, draftOneCanvas )
+    expect( draftOneBaseline.pointerEnabled ).toBe( false )
+    expect( draftOneBaseline.centerlineError ).toBeLessThan( 0.002 )
+
+    for ( const [ x, y ] of [ [ 20, 110 ], [ 370, 110 ], [ 20, 790 ], [ 370, 790 ] ] )
+    {
+      await dispatchPortraitTap( context, page, x, y )
+      await page.waitForTimeout( 40 )
+      expectMatchingFraming( draftOneBaseline, await readFramingSnapshot( page, draftOneCanvas ) )
+    }
+
+    await page.getByRole( 'button', { name: '02 3D Break' } ).click()
+    await waitForFramingSnapshot( page, draftTwoCanvas )
+    const draftTwoBaseline = await readFramingSnapshot( page, draftTwoCanvas )
+    expect( draftTwoBaseline.pointerEnabled ).toBe( false )
+    expect( draftTwoBaseline.centerlineError ).toBeLessThan( 0.002 )
+    expectMatchingFraming( draftOneBaseline, draftTwoBaseline )
+
+    for ( const [ x, y ] of [ [ 20, 110 ], [ 370, 110 ], [ 20, 790 ], [ 370, 790 ] ] )
+    {
+      await dispatchPortraitTap( context, page, x, y )
+      await page.waitForTimeout( 40 )
+      expectMatchingFraming( draftTwoBaseline, await readFramingSnapshot( page, draftTwoCanvas ) )
+    }
+  }
+  finally
+  {
+    await context.close()
+  }
+} )
+
+test( 'fine-pointer parallax remains bounded and returns to shared center', async ( { browser, baseURL } ) =>
+{
+  const context = await browser.newContext( {
+    viewport: { width: 1280, height: 800 },
+    deviceScaleFactor: 1,
+  } )
+  const page = await context.newPage()
+
+  try
+  {
+    await page.goto( `${baseURL}/?draft=cinematic&benchmark=draft2`, { waitUntil: 'domcontentloaded' } )
+    await waitForDraftTwo( page )
+    const draftOneCanvas = '.pool-pov-balls-canvas'
+    const draftTwoCanvas = '.webgl-pool-canvas'
+    await driveStoryProgress( page, toStoryProgress( STORY_TIMING.intro.approachEnd * 0.5 ) )
+    await waitForFramingSnapshot( page, draftOneCanvas )
+    await page.mouse.move( 640, 400 )
+    await page.waitForTimeout( 300 )
+    const draftOneCenter = await readFramingSnapshot( page, draftOneCanvas )
+    await page.mouse.move( 1270, 400 )
+    await page.waitForTimeout( 500 )
+    const draftOneMoved = await readFramingSnapshot( page, draftOneCanvas )
+    const draftOneDelta = draftOneMoved.eightBall.x - draftOneCenter.eightBall.x
+    expect( Math.abs( draftOneDelta ) ).toBeGreaterThan( 0.001 )
+    expect( Math.abs( draftOneDelta ) ).toBeLessThan( 0.02 )
+
+    await page.getByRole( 'button', { name: '02 3D Break' } ).click()
+    await page.mouse.move( 640, 400 )
+    await page.waitForTimeout( 500 )
+    const draftTwoCenter = await readFramingSnapshot( page, draftTwoCanvas )
+    await page.mouse.move( 1270, 400 )
+    await page.waitForTimeout( 500 )
+    const draftTwoMoved = await readFramingSnapshot( page, draftTwoCanvas )
+    const draftTwoDelta = draftTwoMoved.eightBall.x - draftTwoCenter.eightBall.x
+    expect( draftTwoDelta ).toBeCloseTo( draftOneDelta, 3 )
+
+    await page.mouse.move( 640, 400 )
+    await page.waitForTimeout( 700 )
+    expectMatchingFraming( draftOneCenter, await readFramingSnapshot( page, draftTwoCanvas ) )
+  }
+  finally
+  {
+    await context.close()
+  }
+} )
+
 
 const installGestureProbe = async ( page ) =>
 {

@@ -16,6 +16,13 @@ import {
   getBreakSimulation,
   sampleDraft2BreakState,
 } from './poolBreakPhysics'
+import {
+  CAMERA_POINTER_QUERY,
+  CAMERA_POINTER_DAMPING,
+  DRAFT2_SCENE_SCALE,
+  resolveIntroCameraFraming,
+} from './cameraFraming'
+import { publishFramingDiagnostics } from './framingDiagnostics'
 
 const clamp = ( value, min = 0, max = 1 ) => Math.min( max, Math.max( min, value ) )
 const lerp = ( start, end, progress ) => start + ( end - start ) * progress
@@ -204,7 +211,7 @@ const RACK_BALL_NUMBERS = [
 // Dimensions aligned with standard 9-foot tournament table proportions scaled for WebGL scene
 const TABLE_WIDTH = 9.6
 const TABLE_LENGTH = 19.2
-const PHYSICS_SCALE = TABLE_LENGTH / 2.54 // Scale factor between SI-unit physics (2.54m) and WebGL table (19.2)
+const PHYSICS_SCALE = DRAFT2_SCENE_SCALE // Scale factor between SI-unit physics (2.54m) and WebGL table (19.2)
 const BALL_RADIUS = 0.035 * PHYSICS_SCALE // Scale ball radius proportionally (approx 0.2646)
 const POCKET_RADIUS = 0.54
 const ROOM_FLOOR_Z = -4
@@ -636,9 +643,14 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
   scene.background = new THREE.Color( '#040605' )
   scene.fog = new THREE.FogExp2( '#040605', 0.018 )
 
-  const camera = new THREE.PerspectiveCamera( 38, 1, 0.1, 100 )
-  camera.position.set( 0, 0.78, 0.5 * PHYSICS_SCALE + 2.05 )
-  camera.lookAt( 0, 0.18, -2.6 )
+  const initialFraming = resolveIntroCameraFraming( {
+    progress: 0,
+    aspect: 1,
+    sourceScale: 1,
+  } )
+  const camera = new THREE.PerspectiveCamera( initialFraming.fov, 1, 0.1, 100 )
+  camera.position.set( ...initialFraming.camera )
+  camera.lookAt( ...initialFraming.target )
 
   const renderer = new THREE.WebGLRenderer( {
     canvas,
@@ -1116,7 +1128,6 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
     const pixelRatio = Math.min( window.devicePixelRatio || 1, pixelRatioCap )
 
     camera.aspect = width / height
-    camera.fov = width / height < 0.8 ? 44 : 38
     camera.updateProjectionMatrix()
     renderer.setPixelRatio( pixelRatio )
     renderer.setSize( width, height, false )
@@ -1215,11 +1226,31 @@ export function WebglPoolDraft ( {
     let pointerY = 0
     let pointerTargetX = 0
     let pointerTargetY = 0
+    const pointerCapability = window.matchMedia( CAMERA_POINTER_QUERY )
+    let pointerEnabled = pointerCapability.matches
     let resizePending = true
     let destroyed = false
     let renderFrame = () => {}
     let lastRenderedProgress = null
     let stableProgressFrames = 0
+
+    // Touch, coarse, and no-hover input never supplies camera coordinates.
+    const resetPointer = () =>
+    {
+      pointerX = 0
+      pointerY = 0
+      pointerTargetX = 0
+      pointerTargetY = 0
+    }
+
+    const syncPointerCapability = () =>
+    {
+      const nextPointerEnabled = pointerCapability.matches
+      if ( nextPointerEnabled === pointerEnabled ) return false
+      pointerEnabled = nextPointerEnabled
+      resetPointer()
+      return true
+    }
 
     // One RAF owns every WebGL repaint; callers only mark the latest state dirty.
     const requestRender = () =>
@@ -1304,28 +1335,32 @@ export function WebglPoolDraft ( {
         }
       } )
 
-      // Camera starts locked behind 8-ball and smoothly tracks forward down-table on first swipe as ball rolls and breaks
-      const portraitMix = clamp( ( 0.86 - world.camera.aspect ) / 0.36 )
-      const trackProgress = clamp( progress / STORY_TIMING.intro.draft2.transitionReady )
-      const trackEase = trackProgress * trackProgress * ( 3 - 2 * trackProgress )
+      // Both Drafts consume the same semantic camera path; this renderer stays in Draft 2 scene units.
+      const framing = resolveIntroCameraFraming( {
+        progress,
+        transitionReadyProgress: STORY_TIMING.intro.draft2.transitionReady,
+        aspect: world.camera.aspect,
+        sourceScale: 1,
+        pointerX,
+        pointerY,
+        pointerEnabled,
+      } )
 
-      const camY = THREE.MathUtils.lerp( 0.78 + portraitMix * 0.45, 1.35 + portraitMix * 0.55, trackEase )
-      const camZ = THREE.MathUtils.lerp( 0.5 * PHYSICS_SCALE + 2.05 + portraitMix * 1.2, 1.2 + portraitMix * 1.0, trackEase )
-      const targetZ = THREE.MathUtils.lerp( -2.6, -5.4, trackEase )
-
-      cameraPosition.set(
-        pointerX * 0.12,
-        camY + pointerY * 0.05,
-        camZ,
-      )
-      cameraTarget.set(
-        pointerX * 0.05,
-        0.18 + pointerY * 0.02,
-        targetZ,
-      )
+      cameraPosition.set( ...framing.camera )
+      cameraTarget.set( ...framing.target )
 
       world.camera.position.copy( cameraPosition )
       world.camera.lookAt( cameraTarget )
+      world.camera.fov = framing.fov
+      world.camera.updateProjectionMatrix()
+      world.camera.updateMatrixWorld( true )
+      publishFramingDiagnostics( canvas, world.camera, state.balls.map( ( ball ) => ( {
+        position: {
+          x: ball.position.x * PHYSICS_SCALE,
+          y: ball.position.y * PHYSICS_SCALE,
+          z: ball.position.z * PHYSICS_SCALE,
+        },
+      } ) ), BALL_RADIUS, framing )
 
       // Overall layer fade at chapter exit
       canvas.style.opacity = String( 1 - exitProgress )
@@ -1341,7 +1376,8 @@ export function WebglPoolDraft ( {
 
     const handlePointerMove = ( event ) =>
     {
-      if ( !isActive ) return
+      syncPointerCapability()
+      if ( !isActive || !pointerEnabled ) return
       pointerTargetX = ( event.clientX / window.innerWidth - 0.5 ) * 2
       pointerTargetY = ( event.clientY / window.innerHeight - 0.5 ) * -2
       requestRender()
@@ -1349,8 +1385,15 @@ export function WebglPoolDraft ( {
 
     const handleResize = () =>
     {
+      syncPointerCapability()
+      if ( !pointerEnabled ) resetPointer()
       resizePending = true
       requestRender()
+    }
+
+    const handlePointerCapabilityChange = () =>
+    {
+      if ( syncPointerCapability() ) requestRender()
     }
 
     // Stop requesting frames when parallax is visually settled; the tolerance avoids sub-pixel churn.
@@ -1368,8 +1411,8 @@ export function WebglPoolDraft ( {
 
       const progressChanged = lastRenderedProgress === null || Math.abs( progress - lastRenderedProgress ) > 0.0005
       stableProgressFrames = progressChanged ? 0 : stableProgressFrames + 1
-      pointerX += ( pointerTargetX - pointerX ) * 0.045
-      pointerY += ( pointerTargetY - pointerY ) * 0.045
+      pointerX += ( pointerTargetX - pointerX ) * CAMERA_POINTER_DAMPING
+      pointerY += ( pointerTargetY - pointerY ) * CAMERA_POINTER_DAMPING
       const renderStartedAt = performance.now()
       renderScene()
       world.render()
@@ -1413,11 +1456,11 @@ export function WebglPoolDraft ( {
         {
           if ( frame ) window.cancelAnimationFrame( frame )
           frame = 0
-          pointerTargetX = 0
-          pointerTargetY = 0
+          resetPointer()
           return
         }
 
+        syncPointerCapability()
         // Activation paints the latest progress on the next frame, then idles again when settled.
         requestRender()
       },
@@ -1432,6 +1475,8 @@ export function WebglPoolDraft ( {
       window.addEventListener( 'resize', handleResize )
       window.addEventListener( 'pointermove', handlePointerMove, { passive: true } )
     }
+    pointerCapability.addEventListener?.( 'change', handlePointerCapabilityChange )
+    pointerCapability.addListener?.( handlePointerCapabilityChange )
 
     return () =>
     {
@@ -1443,6 +1488,8 @@ export function WebglPoolDraft ( {
         window.removeEventListener( 'resize', handleResize )
         window.removeEventListener( 'pointermove', handlePointerMove )
       }
+      pointerCapability.removeEventListener?.( 'change', handlePointerCapabilityChange )
+      pointerCapability.removeListener?.( handlePointerCapabilityChange )
       onController?.( null )
       if ( controllerRef.current === controller ) controllerRef.current = null
       world?.dispose()

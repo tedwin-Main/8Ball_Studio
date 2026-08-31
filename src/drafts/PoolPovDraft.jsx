@@ -8,6 +8,14 @@ import {
   getBreakSimulation,
   sampleCinematicBreakState,
 } from './poolBreakPhysics'
+import { STORY_TIMING } from '../storyTiming'
+import {
+  CAMERA_POINTER_QUERY,
+  CAMERA_POINTER_DAMPING,
+  DRAFT2_SCENE_SCALE,
+  resolveIntroCameraFraming,
+} from './cameraFraming'
+import { publishFramingDiagnostics } from './framingDiagnostics'
 
 const clamp = ( value, min = 0, max = 1 ) => Math.min( max, Math.max( min, value ) )
 const lerp = ( start, end, progress ) => start + ( end - start ) * progress
@@ -27,20 +35,10 @@ const RACK_BALL_NUMBERS = [
   9, 12, 15, 6, 7,
 ]
 
-// Scale Draft 2's opening camera into Draft 1 units so the 8-ball dominates the foreground.
-const CLOSE_THIRD_PERSON_FOV = 38
-const CLOSE_THIRD_PERSON_CAMERA = Object.freeze( {
-  position: Object.freeze( [ 0, 0.103, 0.771 ] ),
-  // Keep the far rack locked to the photographic table while moving closer to the 8-ball.
-  target: Object.freeze( [ 0, -0.0312, -0.344 ] ),
-} )
-
 // Each plate stores its table, light, rail, and projected pocket measurements together.
 const PLATE_CALIBRATIONS = Object.freeze( {
   landscape: Object.freeze( {
     referenceAspect: 1.6,
-    fov: CLOSE_THIRD_PERSON_FOV,
-    camera: CLOSE_THIRD_PERSON_CAMERA,
     tablePlane: Object.freeze( {
       position: Object.freeze( [ 0, 0, 0 ] ),
       rotation: Object.freeze( [ 0, 0, 0 ] ),
@@ -66,8 +64,6 @@ const PLATE_CALIBRATIONS = Object.freeze( {
   } ),
   portrait: Object.freeze( {
     referenceAspect: 390 / 844,
-    fov: CLOSE_THIRD_PERSON_FOV,
-    camera: CLOSE_THIRD_PERSON_CAMERA,
     tablePlane: Object.freeze( {
       position: Object.freeze( [ 0, 0, 0 ] ),
       rotation: Object.freeze( [ 0, 0, 0 ] ),
@@ -92,17 +88,6 @@ const PLATE_CALIBRATIONS = Object.freeze( {
     ] ),
   } ),
 } )
-
-const adaptReferenceUv = ( uv, calibration, aspect ) => [
-  0.5 + ( uv[ 0 ] - 0.5 ) * calibration.referenceAspect / aspect,
-  uv[ 1 ],
-]
-
-const projectUv = ( point, camera ) =>
-{
-  const projected = point.clone().project( camera )
-  return [ ( projected.x + 1 ) / 2, ( 1 - projected.y ) / 2 ]
-}
 
 const createPoolBallTexture = ( color, number, anisotropy ) =>
 {
@@ -345,11 +330,7 @@ const buildWorld = ( canvas, simulation ) =>
     const plane = calibration.tablePlane
 
     camera.aspect = aspect
-    camera.fov = calibration.fov
-    camera.position.set( ...calibration.camera.position )
-    camera.lookAt( ...calibration.camera.target )
     camera.updateProjectionMatrix()
-    camera.updateMatrixWorld()
 
     tableRoot.position.set( ...plane.position )
     tableRoot.rotation.set( ...plane.rotation )
@@ -362,43 +343,9 @@ const buildWorld = ( canvas, simulation ) =>
     renderer.setPixelRatio( pixelRatio )
     renderer.setSize( width, height, false )
 
-    const apex = new THREE.Vector3(
-      simulation.config.rack.apexX,
-      radius,
-      simulation.config.rack.apexZ,
-    )
-    const contact = new THREE.Vector3(
-      simulation.initial.strikerImpact.x,
-      radius,
-      simulation.initial.strikerImpact.z,
-    )
-    const expectedApex = adaptReferenceUv(
-      calibration.projectedAnchors.rackApex,
-      calibration,
-      aspect,
-    )
-    const expectedContact = adaptReferenceUv(
-      calibration.projectedAnchors.strikerContact,
-      calibration,
-      aspect,
-    )
-    const actualApex = projectUv( apex, camera )
-    const actualContact = projectUv( contact, camera )
-    const anchorError = Math.max(
-      Math.hypot(
-        ( actualApex[ 0 ] - expectedApex[ 0 ] ) * width,
-        ( actualApex[ 1 ] - expectedApex[ 1 ] ) * height,
-      ),
-      Math.hypot(
-        ( actualContact[ 0 ] - expectedContact[ 0 ] ) * width,
-        ( actualContact[ 1 ] - expectedContact[ 1 ] ) * height,
-      ),
-    )
     canvas.dataset.plate = mode
-    canvas.dataset.anchorError = anchorError.toFixed( 2 )
     canvas.dataset.farRail = `${calibration.farRailAnchors.left.join( ',' )};${calibration.farRailAnchors.right.join( ',' )}`
     canvas.dataset.pockets = calibration.pocketProjection.length
-    render()
   }
 
   const dispose = () =>
@@ -419,6 +366,8 @@ const buildWorld = ( canvas, simulation ) =>
   }
 
   return {
+    camera,
+    radius,
     ballMeshes,
     renderer,
     resize,
@@ -443,6 +392,16 @@ export function PoolPovDraft ( { active, onController } )
     let world = null
     let isActive = active
     let progress = 0
+    let frame = 0
+    let resizePending = true
+    let destroyed = false
+    let pointerX = 0
+    let pointerY = 0
+    let pointerTargetX = 0
+    let pointerTargetY = 0
+    const pointerCapability = window.matchMedia( CAMERA_POINTER_QUERY )
+    let pointerEnabled = pointerCapability.matches
+    let renderFrame = () => {}
 
     try
     {
@@ -456,9 +415,32 @@ export function PoolPovDraft ( { active, onController } )
       console.warn( 'Cinematic pool overlay unavailable:', error )
     }
 
-    const updateScene = ( nextProgress ) =>
+    // Cursorless devices always start and stay on the neutral table centerline.
+    const resetPointer = () =>
     {
-      progress = clamp( nextProgress )
+      pointerX = 0
+      pointerY = 0
+      pointerTargetX = 0
+      pointerTargetY = 0
+    }
+
+    const syncPointerCapability = () =>
+    {
+      const nextPointerEnabled = pointerCapability.matches
+      if ( nextPointerEnabled === pointerEnabled ) return false
+      pointerEnabled = nextPointerEnabled
+      resetPointer()
+      return true
+    }
+
+    const requestRender = () =>
+    {
+      if ( destroyed || !isActive || !world || frame ) return
+      frame = window.requestAnimationFrame( renderFrame )
+    }
+
+    const renderScene = () =>
+    {
       const state = sampleCinematicBreakState( progress, simulation )
 
       if ( world )
@@ -477,6 +459,21 @@ export function PoolPovDraft ( { active, onController } )
           mesh.visible = ball.visibility
         } )
 
+        const framing = resolveIntroCameraFraming( {
+          progress,
+          transitionReadyProgress: STORY_TIMING.intro.draft1.transitionReady,
+          aspect: world.camera.aspect,
+          sourceScale: 1 / DRAFT2_SCENE_SCALE,
+          pointerX,
+          pointerY,
+          pointerEnabled,
+        } )
+        world.camera.fov = framing.fov
+        world.camera.position.set( ...framing.camera )
+        world.camera.lookAt( ...framing.target )
+        world.camera.updateProjectionMatrix()
+        world.camera.updateMatrixWorld( true )
+        publishFramingDiagnostics( canvas, world.camera, state.balls, world.radius, framing )
         world.render()
       }
 
@@ -485,10 +482,32 @@ export function PoolPovDraft ( { active, onController } )
       root.dataset.phase = state.phase
     }
 
+    const updateScene = ( nextProgress ) =>
+    {
+      progress = clamp( nextProgress )
+      // Keep the selected Draft's Story playhead observable even while its render is demand-driven.
+      root.dataset.webglProgress = progress.toFixed( 4 )
+      requestRender()
+    }
+
     const handleResize = () =>
     {
-      world?.resize()
-      updateScene( progress )
+      syncPointerCapability()
+      if ( !pointerEnabled ) resetPointer()
+      resizePending = true
+      requestRender()
+    }
+    const handlePointerMove = ( event ) =>
+    {
+      syncPointerCapability()
+      if ( !isActive || !pointerEnabled ) return
+      pointerTargetX = ( event.clientX / window.innerWidth - 0.5 ) * 2
+      pointerTargetY = ( event.clientY / window.innerHeight - 0.5 ) * -2
+      requestRender()
+    }
+    const handlePointerCapabilityChange = () =>
+    {
+      if ( syncPointerCapability() ) requestRender()
     }
     const handleContextLost = ( event ) =>
     {
@@ -497,27 +516,69 @@ export function PoolPovDraft ( { active, onController } )
     }
 
     const controller = {
-      setProgress: updateScene,
+      setProgress ( nextProgress )
+      {
+        updateScene( nextProgress )
+      },
       setActive ( nextActive )
       {
         isActive = nextActive
         root.classList.toggle( 'is-active', isActive )
         root.setAttribute( 'aria-hidden', String( !isActive ) )
-        if ( isActive ) updateScene( progress )
+        if ( !isActive )
+        {
+          if ( frame ) window.cancelAnimationFrame( frame )
+          frame = 0
+          resetPointer()
+          return
+        }
+
+        syncPointerCapability()
+        updateScene( progress )
       },
+    }
+
+    const pointerSettleTolerance = 0.0015
+    renderFrame = () =>
+    {
+      frame = 0
+      if ( destroyed || !isActive || !world ) return
+
+      if ( resizePending )
+      {
+        world.resize()
+        resizePending = false
+      }
+
+      pointerX += ( pointerTargetX - pointerX ) * CAMERA_POINTER_DAMPING
+      pointerY += ( pointerTargetY - pointerY ) * CAMERA_POINTER_DAMPING
+      renderScene()
+
+      const pointerSettled =
+        Math.abs( pointerTargetX - pointerX ) <= pointerSettleTolerance &&
+        Math.abs( pointerTargetY - pointerY ) <= pointerSettleTolerance
+      if ( !pointerSettled ) requestRender()
     }
 
     controllerRef.current = controller
     onController?.( controller )
     canvas.addEventListener( 'webglcontextlost', handleContextLost )
     window.addEventListener( 'resize', handleResize )
-    world?.resize()
+    window.addEventListener( 'pointermove', handlePointerMove, { passive: true } )
+    pointerCapability.addEventListener?.( 'change', handlePointerCapabilityChange )
+    pointerCapability.addListener?.( handlePointerCapabilityChange )
     controller.setProgress( progress )
     controller.setActive( active )
 
     return () =>
     {
+      destroyed = true
+      if ( frame ) window.cancelAnimationFrame( frame )
+      frame = 0
       window.removeEventListener( 'resize', handleResize )
+      window.removeEventListener( 'pointermove', handlePointerMove )
+      pointerCapability.removeEventListener?.( 'change', handlePointerCapabilityChange )
+      pointerCapability.removeListener?.( handlePointerCapabilityChange )
       canvas.removeEventListener( 'webglcontextlost', handleContextLost )
       onController?.( null )
       if ( controllerRef.current === controller ) controllerRef.current = null
