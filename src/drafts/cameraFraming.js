@@ -32,7 +32,103 @@ const CAMERA_SOURCE = Object.freeze( {
   } ),
 } )
 
+// This damping keeps desktop parallax tactile without making the camera jump to each pointer event.
 export const CAMERA_POINTER_DAMPING = 0.045
+// Stop the pointer loop once the remaining offset is below a visually sub-pixel tolerance.
+const CAMERA_POINTER_SETTLE_TOLERANCE = 0.0015
+
+// Keep pointer capability, touch reset, and interpolation behavior identical in both renderers.
+export const createPointerParallax = ( {
+  windowObject = globalThis.window,
+  isActive = () => true,
+  requestRender = () => {},
+  onResize = () => {},
+} = {} ) =>
+{
+  const capability = windowObject?.matchMedia?.( CAMERA_POINTER_QUERY ) || { matches: false }
+  const state = {
+    enabled: Boolean( capability.matches ),
+    x: 0,
+    y: 0,
+    targetX: 0,
+    targetY: 0,
+  }
+
+  const reset = () =>
+  {
+    state.x = 0
+    state.y = 0
+    state.targetX = 0
+    state.targetY = 0
+  }
+
+  const syncCapability = () =>
+  {
+    const nextEnabled = Boolean( capability.matches )
+    if ( nextEnabled === state.enabled ) return false
+    state.enabled = nextEnabled
+    reset()
+    return true
+  }
+
+  const handlePointerMove = ( event ) =>
+  {
+    syncCapability()
+    if ( !isActive() || !state.enabled ) return
+    const width = windowObject?.innerWidth || 1
+    const height = windowObject?.innerHeight || 1
+    state.targetX = ( event.clientX / width - 0.5 ) * 2
+    state.targetY = ( event.clientY / height - 0.5 ) * -2
+    requestRender()
+  }
+
+  const handleResize = () =>
+  {
+    syncCapability()
+    if ( !state.enabled ) reset()
+    onResize()
+    requestRender()
+  }
+
+  const handleCapabilityChange = () =>
+  {
+    if ( syncCapability() ) requestRender()
+  }
+
+  const addListeners = () =>
+  {
+    windowObject?.addEventListener?.( 'pointermove', handlePointerMove, { passive: true } )
+    windowObject?.addEventListener?.( 'resize', handleResize )
+    capability.addEventListener?.( 'change', handleCapabilityChange )
+    if ( !capability.addEventListener ) capability.addListener?.( handleCapabilityChange )
+  }
+
+  const removeListeners = () =>
+  {
+    windowObject?.removeEventListener?.( 'pointermove', handlePointerMove )
+    windowObject?.removeEventListener?.( 'resize', handleResize )
+    capability.removeEventListener?.( 'change', handleCapabilityChange )
+    if ( !capability.removeEventListener ) capability.removeListener?.( handleCapabilityChange )
+  }
+
+  const advance = () =>
+  {
+    state.x += ( state.targetX - state.x ) * CAMERA_POINTER_DAMPING
+    state.y += ( state.targetY - state.y ) * CAMERA_POINTER_DAMPING
+    return Math.abs( state.targetX - state.x ) <= CAMERA_POINTER_SETTLE_TOLERANCE &&
+      Math.abs( state.targetY - state.y ) <= CAMERA_POINTER_SETTLE_TOLERANCE
+  }
+
+  return {
+    capability,
+    state,
+    reset,
+    syncCapability,
+    addListeners,
+    removeListeners,
+    advance,
+  }
+}
 
 const scaleVector = ( vector, scale ) => vector.map( ( value ) => value * scale )
 

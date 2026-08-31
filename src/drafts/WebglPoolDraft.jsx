@@ -17,8 +17,7 @@ import {
   sampleDraft2BreakState,
 } from './poolBreakPhysics'
 import {
-  CAMERA_POINTER_QUERY,
-  CAMERA_POINTER_DAMPING,
+  createPointerParallax,
   DRAFT2_SCENE_SCALE,
   resolveIntroCameraFraming,
 } from './cameraFraming'
@@ -1222,35 +1221,11 @@ export function WebglPoolDraft ( {
     let isActive = active
     let progress = 0
     let failed = false
-    let pointerX = 0
-    let pointerY = 0
-    let pointerTargetX = 0
-    let pointerTargetY = 0
-    const pointerCapability = window.matchMedia( CAMERA_POINTER_QUERY )
-    let pointerEnabled = pointerCapability.matches
     let resizePending = true
     let destroyed = false
     let renderFrame = () => {}
     let lastRenderedProgress = null
     let stableProgressFrames = 0
-
-    // Touch, coarse, and no-hover input never supplies camera coordinates.
-    const resetPointer = () =>
-    {
-      pointerX = 0
-      pointerY = 0
-      pointerTargetX = 0
-      pointerTargetY = 0
-    }
-
-    const syncPointerCapability = () =>
-    {
-      const nextPointerEnabled = pointerCapability.matches
-      if ( nextPointerEnabled === pointerEnabled ) return false
-      pointerEnabled = nextPointerEnabled
-      resetPointer()
-      return true
-    }
 
     // One RAF owns every WebGL repaint; callers only mark the latest state dirty.
     const requestRender = () =>
@@ -1258,6 +1233,13 @@ export function WebglPoolDraft ( {
       if ( destroyed || failed || !world || !isActive || frame ) return
       frame = window.requestAnimationFrame( renderFrame )
     }
+
+    const pointer = createPointerParallax( {
+      windowObject: window,
+      isActive: () => isActive,
+      requestRender,
+      onResize: () => { resizePending = true },
+    } )
 
     try
     {
@@ -1341,9 +1323,9 @@ export function WebglPoolDraft ( {
         transitionReadyProgress: STORY_TIMING.intro.draft2.transitionReady,
         aspect: world.camera.aspect,
         sourceScale: 1,
-        pointerX,
-        pointerY,
-        pointerEnabled,
+        pointerX: pointer.state.x,
+        pointerY: pointer.state.y,
+        pointerEnabled: pointer.state.enabled,
       } )
 
       cameraPosition.set( ...framing.camera )
@@ -1374,28 +1356,6 @@ export function WebglPoolDraft ( {
       requestRender()
     }
 
-    const handlePointerMove = ( event ) =>
-    {
-      syncPointerCapability()
-      if ( !isActive || !pointerEnabled ) return
-      pointerTargetX = ( event.clientX / window.innerWidth - 0.5 ) * 2
-      pointerTargetY = ( event.clientY / window.innerHeight - 0.5 ) * -2
-      requestRender()
-    }
-
-    const handleResize = () =>
-    {
-      syncPointerCapability()
-      if ( !pointerEnabled ) resetPointer()
-      resizePending = true
-      requestRender()
-    }
-
-    const handlePointerCapabilityChange = () =>
-    {
-      if ( syncPointerCapability() ) requestRender()
-    }
-
     // Stop requesting frames when parallax is visually settled; the tolerance avoids sub-pixel churn.
     const pointerSettleTolerance = 0.0015
     renderFrame = () =>
@@ -1411,8 +1371,6 @@ export function WebglPoolDraft ( {
 
       const progressChanged = lastRenderedProgress === null || Math.abs( progress - lastRenderedProgress ) > 0.0005
       stableProgressFrames = progressChanged ? 0 : stableProgressFrames + 1
-      pointerX += ( pointerTargetX - pointerX ) * CAMERA_POINTER_DAMPING
-      pointerY += ( pointerTargetY - pointerY ) * CAMERA_POINTER_DAMPING
       const renderStartedAt = performance.now()
       renderScene()
       world.render()
@@ -1425,9 +1383,7 @@ export function WebglPoolDraft ( {
       const renderDurationMs = performance.now() - renderStartedAt
       lastRenderedProgress = progress
 
-      const pointerSettled =
-        Math.abs( pointerTargetX - pointerX ) <= pointerSettleTolerance &&
-        Math.abs( pointerTargetY - pointerY ) <= pointerSettleTolerance
+      const pointerSettled = pointer.advance()
       const sceneSettled = stableProgressFrames >= 4 && pointerSettled && !resizePending
       if ( world.observeRender( renderDurationMs, sceneSettled ) )
       {
@@ -1456,11 +1412,11 @@ export function WebglPoolDraft ( {
         {
           if ( frame ) window.cancelAnimationFrame( frame )
           frame = 0
-          resetPointer()
+          pointer.reset()
           return
         }
 
-        syncPointerCapability()
+        pointer.syncCapability()
         // Activation paints the latest progress on the next frame, then idles again when settled.
         requestRender()
       },
@@ -1472,10 +1428,8 @@ export function WebglPoolDraft ( {
     controller.setActive( active )
     if ( world )
     {
-      window.addEventListener( 'resize', handleResize )
-      window.addEventListener( 'pointermove', handlePointerMove, { passive: true } )
+      pointer.addListeners()
     }
-    pointerCapability.addEventListener?.( 'change', handlePointerCapabilityChange )
     pointerCapability.addListener?.( handlePointerCapabilityChange )
 
     return () =>
@@ -1483,12 +1437,7 @@ export function WebglPoolDraft ( {
       destroyed = true
       if ( frame ) window.cancelAnimationFrame( frame )
       frame = 0
-      if ( world )
-      {
-        window.removeEventListener( 'resize', handleResize )
-        window.removeEventListener( 'pointermove', handlePointerMove )
-      }
-      pointerCapability.removeEventListener?.( 'change', handlePointerCapabilityChange )
+      pointer.removeListeners()
       pointerCapability.removeListener?.( handlePointerCapabilityChange )
       onController?.( null )
       if ( controllerRef.current === controller ) controllerRef.current = null

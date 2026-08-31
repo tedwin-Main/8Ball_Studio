@@ -10,8 +10,7 @@ import {
 } from './poolBreakPhysics'
 import { STORY_TIMING } from '../storyTiming'
 import {
-  CAMERA_POINTER_QUERY,
-  CAMERA_POINTER_DAMPING,
+  createPointerParallax,
   DRAFT2_SCENE_SCALE,
   resolveIntroCameraFraming,
 } from './cameraFraming'
@@ -395,12 +394,6 @@ export function PoolPovDraft ( { active, onController } )
     let frame = 0
     let resizePending = true
     let destroyed = false
-    let pointerX = 0
-    let pointerY = 0
-    let pointerTargetX = 0
-    let pointerTargetY = 0
-    const pointerCapability = window.matchMedia( CAMERA_POINTER_QUERY )
-    let pointerEnabled = pointerCapability.matches
     let renderFrame = () => {}
 
     try
@@ -439,6 +432,13 @@ export function PoolPovDraft ( { active, onController } )
       frame = window.requestAnimationFrame( renderFrame )
     }
 
+    const pointer = createPointerParallax( {
+      windowObject: window,
+      isActive: () => isActive,
+      requestRender,
+      onResize: () => { resizePending = true },
+    } )
+
     const renderScene = () =>
     {
       const state = sampleCinematicBreakState( progress, simulation )
@@ -464,9 +464,9 @@ export function PoolPovDraft ( { active, onController } )
           transitionReadyProgress: STORY_TIMING.intro.draft1.transitionReady,
           aspect: world.camera.aspect,
           sourceScale: 1 / DRAFT2_SCENE_SCALE,
-          pointerX,
-          pointerY,
-          pointerEnabled,
+          pointerX: pointer.state.x,
+          pointerY: pointer.state.y,
+          pointerEnabled: pointer.state.enabled,
         } )
         world.camera.fov = framing.fov
         world.camera.position.set( ...framing.camera )
@@ -490,25 +490,6 @@ export function PoolPovDraft ( { active, onController } )
       requestRender()
     }
 
-    const handleResize = () =>
-    {
-      syncPointerCapability()
-      if ( !pointerEnabled ) resetPointer()
-      resizePending = true
-      requestRender()
-    }
-    const handlePointerMove = ( event ) =>
-    {
-      syncPointerCapability()
-      if ( !isActive || !pointerEnabled ) return
-      pointerTargetX = ( event.clientX / window.innerWidth - 0.5 ) * 2
-      pointerTargetY = ( event.clientY / window.innerHeight - 0.5 ) * -2
-      requestRender()
-    }
-    const handlePointerCapabilityChange = () =>
-    {
-      if ( syncPointerCapability() ) requestRender()
-    }
     const handleContextLost = ( event ) =>
     {
       event.preventDefault()
@@ -529,16 +510,15 @@ export function PoolPovDraft ( { active, onController } )
         {
           if ( frame ) window.cancelAnimationFrame( frame )
           frame = 0
-          resetPointer()
+          pointer.reset()
           return
         }
 
-        syncPointerCapability()
+        pointer.syncCapability()
         updateScene( progress )
       },
     }
 
-    const pointerSettleTolerance = 0.0015
     renderFrame = () =>
     {
       frame = 0
@@ -550,23 +530,15 @@ export function PoolPovDraft ( { active, onController } )
         resizePending = false
       }
 
-      pointerX += ( pointerTargetX - pointerX ) * CAMERA_POINTER_DAMPING
-      pointerY += ( pointerTargetY - pointerY ) * CAMERA_POINTER_DAMPING
       renderScene()
 
-      const pointerSettled =
-        Math.abs( pointerTargetX - pointerX ) <= pointerSettleTolerance &&
-        Math.abs( pointerTargetY - pointerY ) <= pointerSettleTolerance
-      if ( !pointerSettled ) requestRender()
+      if ( !pointer.advance() ) requestRender()
     }
 
     controllerRef.current = controller
     onController?.( controller )
     canvas.addEventListener( 'webglcontextlost', handleContextLost )
-    window.addEventListener( 'resize', handleResize )
-    window.addEventListener( 'pointermove', handlePointerMove, { passive: true } )
-    pointerCapability.addEventListener?.( 'change', handlePointerCapabilityChange )
-    pointerCapability.addListener?.( handlePointerCapabilityChange )
+    pointer.addListeners()
     controller.setProgress( progress )
     controller.setActive( active )
 
@@ -575,10 +547,7 @@ export function PoolPovDraft ( { active, onController } )
       destroyed = true
       if ( frame ) window.cancelAnimationFrame( frame )
       frame = 0
-      window.removeEventListener( 'resize', handleResize )
-      window.removeEventListener( 'pointermove', handlePointerMove )
-      pointerCapability.removeEventListener?.( 'change', handlePointerCapabilityChange )
-      pointerCapability.removeListener?.( handlePointerCapabilityChange )
+      pointer.removeListeners()
       canvas.removeEventListener( 'webglcontextlost', handleContextLost )
       onController?.( null )
       if ( controllerRef.current === controller ) controllerRef.current = null
