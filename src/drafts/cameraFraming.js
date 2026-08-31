@@ -192,6 +192,7 @@ export const resolveIntroCameraFraming = ( {
   target[ 1 ] += normalizedPointerY * CAMERA_SOURCE.pointer.target[ 1 ]
 
   return Object.freeze( {
+    // Keep the controller's timeline-unit playhead in diagnostics so browser checks can reject stale frames.
     progress: clamp( progress ),
     fov: lerp( CAMERA_SOURCE.fov.landscape, CAMERA_SOURCE.fov.portrait, portraitMix ),
     portraitMix,
