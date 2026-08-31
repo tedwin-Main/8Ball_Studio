@@ -213,12 +213,24 @@ const readFramingSnapshot = ( page, selector ) => page.locator( selector ).evalu
   return JSON.parse( value )
 } )
 
-const waitForFramingSnapshot = async ( page, selector ) =>
+const waitForFramingSnapshot = async ( page, selector, expectedProgress = null ) =>
 {
-  await page.waitForFunction( ( targetSelector ) =>
+  // A canvas stays mounted while drafts switch, so match the requested playhead instead of trusting stale diagnostics.
+  await page.waitForFunction( ( { targetSelector, targetProgress } ) =>
   {
-    return Boolean( document.querySelector( targetSelector )?.dataset.framing )
-  }, selector )
+    const raw = document.querySelector( targetSelector )?.dataset.framing
+    if ( !raw ) return false
+    if ( targetProgress === null ) return true
+    try
+    {
+      const snapshot = JSON.parse( raw )
+      return Math.abs( snapshot.progress - targetProgress ) <= 0.0005
+    }
+    catch
+    {
+      return false
+    }
+  }, { targetSelector: selector, targetProgress: expectedProgress } )
 }
 
 const expectMatchingFraming = ( first, second ) =>
@@ -287,8 +299,9 @@ test( 'Draft 1 and Draft 2 share foreground framing at Intro milestones', async 
 
     for ( const milestone of FRAMING_MILESTONES )
     {
-      await driveStoryProgress( page, toStoryProgress( milestone.progress ) )
-      await waitForFramingSnapshot( page, draftOneCanvas )
+      const storyProgress = toStoryProgress( milestone.progress )
+      await driveStoryProgress( page, storyProgress )
+      await waitForFramingSnapshot( page, draftOneCanvas, storyProgress )
       const draftOne = await readFramingSnapshot( page, draftOneCanvas )
       if ( milestone.name === 'start' )
       {
@@ -297,13 +310,13 @@ test( 'Draft 1 and Draft 2 share foreground framing at Intro milestones', async 
       }
 
       await page.getByRole( 'button', { name: '02 3D Break' } ).click()
-      await driveStoryProgress( page, toStoryProgress( milestone.progress ) )
-      await waitForFramingSnapshot( page, draftTwoCanvas )
+      await driveStoryProgress( page, storyProgress )
+      await waitForFramingSnapshot( page, draftTwoCanvas, storyProgress )
       const draftTwo = await readFramingSnapshot( page, draftTwoCanvas )
       expectMatchingFraming( draftOne, draftTwo )
 
       await page.getByRole( 'button', { name: '01 3D POV' } ).click()
-      await waitForFramingSnapshot( page, draftOneCanvas )
+      await waitForFramingSnapshot( page, draftOneCanvas, storyProgress )
     }
   }
   finally
@@ -341,7 +354,7 @@ test( 'Draft 1 and Draft 2 stay centered after touch input on portrait', async (
     }
 
     await page.getByRole( 'button', { name: '02 3D Break' } ).click()
-    await waitForFramingSnapshot( page, draftTwoCanvas )
+    await waitForFramingSnapshot( page, draftTwoCanvas, draftOneBaseline.progress )
     const draftTwoBaseline = await readFramingSnapshot( page, draftTwoCanvas )
     expect( draftTwoBaseline.pointerEnabled ).toBe( false )
     expect( draftTwoBaseline.centerlineError ).toBeLessThan( 0.002 )
@@ -375,7 +388,7 @@ test( 'fine-pointer parallax remains bounded and returns to shared center', asyn
     const draftOneCanvas = '.pool-pov-balls-canvas'
     const draftTwoCanvas = '.webgl-pool-canvas'
     await driveStoryProgress( page, toStoryProgress( STORY_TIMING.intro.approachEnd * 0.5 ) )
-    await waitForFramingSnapshot( page, draftOneCanvas )
+    await waitForFramingSnapshot( page, draftOneCanvas, toStoryProgress( STORY_TIMING.intro.approachEnd * 0.5 ) )
     await page.mouse.move( 640, 400 )
     await page.waitForTimeout( 300 )
     const draftOneCenter = await readFramingSnapshot( page, draftOneCanvas )

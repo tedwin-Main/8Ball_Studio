@@ -10,8 +10,9 @@ export const DRAFT2_SCENE_SCALE = 19.2 / 2.54
 // Camera parallax is opt-in only when the primary input can hover and point precisely.
 export const CAMERA_POINTER_QUERY = '(hover: hover) and (pointer: fine)'
 
-// The shared source is calibrated to the existing Draft 1 plate at the opening rack.
-// This keeps Draft 2 and the photo-backed Draft 1 on one visible table line.
+// This one shared baseline is calibrated to the unchanged Draft 1 plate at the
+// opening rack. Draft 2 still owns the contract; the calibration prevents a
+// per-renderer camera fork from making the two foregrounds visibly disagree.
 const PHOTO_ALIGNED_TARGET_Y = -0.0312 * DRAFT2_SCENE_SCALE
 const PHOTO_ALIGNED_TARGET_Z = -0.344 * DRAFT2_SCENE_SCALE
 const PHOTO_ALIGNED_PORTRAIT_TARGET_Y = -0.348
@@ -20,7 +21,7 @@ const CAMERA_SOURCE = Object.freeze( {
   fov: Object.freeze( { landscape: 38, portrait: 44 } ),
   portrait: Object.freeze( { aspectStart: 0.86, aspectRange: 0.36 } ),
   path: Object.freeze( {
-    // These values are the existing Draft 2 camera, expressed in its scene units.
+    // Draft 2 scene units remain canonical; consumers scale this path as needed.
     start: Object.freeze( {
       camera: Object.freeze( [ 0, 0.78, 0.5 * DRAFT2_SCENE_SCALE + 2.05 ] ),
       target: Object.freeze( [ 0, PHOTO_ALIGNED_TARGET_Y, PHOTO_ALIGNED_TARGET_Z ] ),
@@ -191,6 +192,7 @@ export const resolveIntroCameraFraming = ( {
   target[ 1 ] += normalizedPointerY * CAMERA_SOURCE.pointer.target[ 1 ]
 
   return Object.freeze( {
+    progress: clamp( progress ),
     fov: lerp( CAMERA_SOURCE.fov.landscape, CAMERA_SOURCE.fov.portrait, portraitMix ),
     portraitMix,
     trackProgress,
