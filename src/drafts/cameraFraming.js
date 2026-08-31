@@ -51,11 +51,12 @@ export const createPointerParallax = ( {
   isActive = () => true,
   requestRender = () => {},
   onResize = () => {},
+  enabled = true,
 } = {} ) =>
 {
   const capability = windowObject?.matchMedia?.( CAMERA_POINTER_QUERY ) || { matches: false }
   const state = {
-    enabled: Boolean( capability.matches ),
+    enabled: enabled && Boolean( capability.matches ),
     x: 0,
     y: 0,
     targetX: 0,
@@ -72,7 +73,7 @@ export const createPointerParallax = ( {
 
   const syncCapability = () =>
   {
-    const nextEnabled = Boolean( capability.matches )
+    const nextEnabled = enabled && Boolean( capability.matches )
     if ( nextEnabled === state.enabled ) return false
     state.enabled = nextEnabled
     reset()
@@ -105,7 +106,7 @@ export const createPointerParallax = ( {
 
   const addListeners = () =>
   {
-    windowObject?.addEventListener?.( 'pointermove', handlePointerMove, { passive: true } )
+    if ( enabled ) windowObject?.addEventListener?.( 'pointermove', handlePointerMove, { passive: true } )
     windowObject?.addEventListener?.( 'resize', handleResize )
     capability.addEventListener?.( 'change', handleCapabilityChange )
     if ( !capability.addEventListener ) capability.addListener?.( handleCapabilityChange )
@@ -113,7 +114,7 @@ export const createPointerParallax = ( {
 
   const removeListeners = () =>
   {
-    windowObject?.removeEventListener?.( 'pointermove', handlePointerMove )
+    if ( enabled ) windowObject?.removeEventListener?.( 'pointermove', handlePointerMove )
     windowObject?.removeEventListener?.( 'resize', handleResize )
     capability.removeEventListener?.( 'change', handleCapabilityChange )
     if ( !capability.removeEventListener ) capability.removeListener?.( handleCapabilityChange )
@@ -142,6 +143,7 @@ const scaleVector = ( vector, scale ) => vector.map( ( value ) => value * scale 
 /**
  * Resolve one Intro camera from Story progress, viewport aspect, and input capability.
  * `sourceScale` converts Draft 2 scene units into the consumer renderer's units.
+ * `lockToPlate` keeps a photo-backed renderer on its calibrated table projection.
  */
 export const resolveIntroCameraFraming = ( {
   progress = 0,
@@ -151,6 +153,7 @@ export const resolveIntroCameraFraming = ( {
   pointerX = 0,
   pointerY = 0,
   pointerEnabled = false,
+  lockToPlate = false,
 } = {} ) =>
 {
   const safeAspect = Number.isFinite( aspect ) && aspect > 0 ? aspect : 1
@@ -158,7 +161,8 @@ export const resolveIntroCameraFraming = ( {
   const portraitMix = clamp(
     ( CAMERA_SOURCE.portrait.aspectStart - safeAspect ) / CAMERA_SOURCE.portrait.aspectRange,
   )
-  const trackProgress = clamp( progress / safeTransition )
+  // A CSS photograph has no camera parallax; lock its calibrated projection while balls move on the table plane.
+  const trackProgress = lockToPlate ? 0 : clamp( progress / safeTransition )
   const trackEase = smoothstep( trackProgress )
   const startCamera = CAMERA_SOURCE.path.start.camera
   const endCamera = CAMERA_SOURCE.path.end.camera
@@ -182,7 +186,7 @@ export const resolveIntroCameraFraming = ( {
     ),
     lerp( startTarget[ 2 ], endTarget[ 2 ], trackEase ),
   ]
-  const hasPointer = pointerEnabled === true
+  const hasPointer = pointerEnabled === true && !lockToPlate
   const normalizedPointerX = hasPointer && Number.isFinite( pointerX ) ? pointerX : 0
   const normalizedPointerY = hasPointer && Number.isFinite( pointerY ) ? pointerY : 0
 
@@ -201,6 +205,7 @@ export const resolveIntroCameraFraming = ( {
     pointerEnabled: hasPointer,
     pointerX: normalizedPointerX,
     pointerY: normalizedPointerY,
+    photoPlateLocked: lockToPlate,
     camera: Object.freeze( scaleVector( camera, sourceScale ) ),
     target: Object.freeze( scaleVector( target, sourceScale ) ),
   } )

@@ -465,6 +465,8 @@ export function PoolPovDraft ( { active, onController } )
       isActive: () => isActive,
       requestRender,
       onResize: () => { resizePending = true },
+      // The photo plate is static, so pointer camera offsets would break its table registration.
+      enabled: false,
     } )
 
     const renderScene = () =>
@@ -495,6 +497,7 @@ export function PoolPovDraft ( { active, onController } )
           pointerX: pointer.state.x,
           pointerY: pointer.state.y,
           pointerEnabled: pointer.state.enabled,
+          lockToPlate: true,
         } )
         world.camera.fov = framing.fov
         world.camera.position.set( ...framing.camera )

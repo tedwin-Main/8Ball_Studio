@@ -69,3 +69,40 @@ test( 'fine-pointer parallax uses the shared bounded offsets and damping contrac
   assertClose( moved.target[ 0 ] - centered.target[ 0 ], 0.05 )
   assertClose( moved.target[ 1 ] - centered.target[ 1 ], -0.02 )
 } )
+
+test( 'photo-plate framing keeps table depth fixed while the physical balls roll', () =>
+{
+  const start = resolveIntroCameraFraming( {
+    progress: 0,
+    transitionReadyProgress: 0.5,
+    aspect: 1280 / 800,
+    sourceScale: 1 / DRAFT2_SCENE_SCALE,
+    pointerX: 1,
+    pointerY: -1,
+    pointerEnabled: true,
+    lockToPlate: true,
+  } )
+  const impact = resolveIntroCameraFraming( {
+    progress: 0.28,
+    transitionReadyProgress: 0.5,
+    aspect: 1280 / 800,
+    sourceScale: 1 / DRAFT2_SCENE_SCALE,
+    pointerX: -1,
+    pointerY: 1,
+    pointerEnabled: true,
+    lockToPlate: true,
+  } )
+  const tracked = resolveIntroCameraFraming( {
+    progress: 0.28,
+    transitionReadyProgress: 0.5,
+    aspect: 1280 / 800,
+    sourceScale: 1 / DRAFT2_SCENE_SCALE,
+  } )
+
+  assert.deepEqual( impact.camera, start.camera )
+  assert.deepEqual( impact.target, start.target )
+  assert.equal( start.trackProgress, 0 )
+  assert.equal( impact.trackProgress, 0 )
+  assert.equal( start.pointerEnabled, false )
+  assert.notDeepEqual( tracked.camera, start.camera )
+} )

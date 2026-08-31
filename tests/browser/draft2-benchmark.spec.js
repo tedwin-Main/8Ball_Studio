@@ -275,7 +275,7 @@ const FRAMING_MILESTONES = [
   { name: 'scatter', progress: STORY_TIMING.intro.draft2.transitionReady },
 ]
 
-test( 'Draft 1 and Draft 2 share foreground framing at Intro milestones', async ( { browser, baseURL } ) =>
+test( 'Draft 1 stays registered to the photo table while Draft 2 tracks its 3D table', async ( { browser, baseURL } ) =>
 {
   const context = await browser.newContext( {
     viewport: { width: 1280, height: 800 },
@@ -303,17 +303,24 @@ test( 'Draft 1 and Draft 2 share foreground framing at Intro milestones', async 
       await driveStoryProgress( page, storyProgress )
       await waitForFramingSnapshot( page, draftOneCanvas, milestone.progress )
       const draftOne = await readFramingSnapshot( page, draftOneCanvas )
-      if ( milestone.name === 'start' )
-      {
-        expect( Number.isFinite( draftOne.photoRegistration?.anchorError ) ).toBe( true )
-        expect( draftOne.photoRegistration.anchorError ).toBeLessThan( 2 )
-      }
+      expect( draftOne.photoPlateLocked ).toBe( true )
+      expect( draftOne.pointerEnabled ).toBe( false )
+      expect( Number.isFinite( draftOne.photoRegistration?.anchorError ) ).toBe( true )
+      expect( draftOne.photoRegistration.anchorError ).toBeLessThan( 2 )
 
       await page.getByRole( 'button', { name: '02 3D Break' } ).click()
       await driveStoryProgress( page, storyProgress )
       await waitForFramingSnapshot( page, draftTwoCanvas, milestone.progress )
       const draftTwo = await readFramingSnapshot( page, draftTwoCanvas )
-      expectMatchingFraming( draftOne, draftTwo )
+      if ( milestone.name === 'start' )
+      {
+        // Both drafts share the same opening POV before Draft 2 begins its real camera track.
+        expectMatchingFraming( draftOne, draftTwo )
+      }
+      else
+      {
+        expect( draftTwo.trackProgress ).toBeGreaterThan( draftOne.trackProgress )
+      }
 
       await page.getByRole( 'button', { name: '01 3D POV' } ).click()
       await waitForFramingSnapshot( page, draftOneCanvas, milestone.progress )
@@ -344,6 +351,7 @@ test( 'Draft 1 and Draft 2 stay centered after touch input on portrait', async (
     await waitForFramingSnapshot( page, draftOneCanvas )
     const draftOneBaseline = await readFramingSnapshot( page, draftOneCanvas )
     expect( draftOneBaseline.pointerEnabled ).toBe( false )
+    expect( draftOneBaseline.photoPlateLocked ).toBe( true )
     expect( draftOneBaseline.centerlineError ).toBeLessThan( 0.002 )
 
     for ( const [ x, y ] of [ [ 20, 110 ], [ 370, 110 ], [ 20, 790 ], [ 370, 790 ] ] )
@@ -357,6 +365,7 @@ test( 'Draft 1 and Draft 2 stay centered after touch input on portrait', async (
     await waitForFramingSnapshot( page, draftTwoCanvas, draftOneBaseline.progress )
     const draftTwoBaseline = await readFramingSnapshot( page, draftTwoCanvas )
     expect( draftTwoBaseline.pointerEnabled ).toBe( false )
+    expect( draftTwoBaseline.photoPlateLocked ).toBe( false )
     expect( draftTwoBaseline.centerlineError ).toBeLessThan( 0.002 )
     expectMatchingFraming( draftOneBaseline, draftTwoBaseline )
 
@@ -397,8 +406,7 @@ test( 'fine-pointer parallax remains bounded and returns to shared center', asyn
     await page.waitForTimeout( 500 )
     const draftOneMoved = await readFramingSnapshot( page, draftOneCanvas )
     const draftOneDelta = draftOneMoved.eightBall.x - draftOneCenter.eightBall.x
-    expect( Math.abs( draftOneDelta ) ).toBeGreaterThan( 0.001 )
-    expect( Math.abs( draftOneDelta ) ).toBeLessThan( 0.02 )
+    expect( Math.abs( draftOneDelta ) ).toBeLessThan( 0.0005 )
 
     await page.getByRole( 'button', { name: '02 3D Break' } ).click()
     await page.mouse.move( 640, 400 )
@@ -408,11 +416,14 @@ test( 'fine-pointer parallax remains bounded and returns to shared center', asyn
     await page.waitForTimeout( 500 )
     const draftTwoMoved = await readFramingSnapshot( page, draftTwoCanvas )
     const draftTwoDelta = draftTwoMoved.eightBall.x - draftTwoCenter.eightBall.x
-    expect( draftTwoDelta ).toBeCloseTo( draftOneDelta, 3 )
+    expect( Math.abs( draftTwoDelta ) ).toBeGreaterThan( 0.001 )
+    expect( Math.abs( draftTwoDelta ) ).toBeLessThan( 0.02 )
 
     await page.mouse.move( 640, 400 )
     await page.waitForTimeout( 700 )
-    expectMatchingFraming( draftOneCenter, await readFramingSnapshot( page, draftTwoCanvas ) )
+    const draftTwoSettled = await readFramingSnapshot( page, draftTwoCanvas )
+    expect( draftTwoSettled.eightBall.x ).toBeCloseTo( draftTwoCenter.eightBall.x, 3 )
+    expect( draftTwoSettled.eightBall.y ).toBeCloseTo( draftTwoCenter.eightBall.y, 3 )
   }
   finally
   {

@@ -53,6 +53,7 @@ export const publishFramingDiagnostics = ( canvas, camera, balls, radius, framin
     pointerEnabled: framing.pointerEnabled,
     pointerX: framing.pointerX,
     pointerY: framing.pointerY,
+    photoPlateLocked: framing.photoPlateLocked,
     camera: framing.camera,
     target: framing.target,
     eightBall: eightBallPoint,
