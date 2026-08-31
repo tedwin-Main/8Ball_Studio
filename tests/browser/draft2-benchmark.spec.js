@@ -293,6 +293,7 @@ test( 'Draft 1 and Draft 2 share foreground framing at Intro milestones', async 
       if ( milestone.name === 'start' )
       {
         expect( Number.isFinite( draftOne.photoRegistration?.anchorError ) ).toBe( true )
+        expect( draftOne.photoRegistration.anchorError ).toBeLessThan( 2 )
       }
 
       await page.getByRole( 'button', { name: '02 3D Break' } ).click()

@@ -10,6 +10,12 @@ export const DRAFT2_SCENE_SCALE = 19.2 / 2.54
 // Camera parallax is opt-in only when the primary input can hover and point precisely.
 export const CAMERA_POINTER_QUERY = '(hover: hover) and (pointer: fine)'
 
+// The shared source is calibrated to the existing Draft 1 plate at the opening rack.
+// This keeps Draft 2 and the photo-backed Draft 1 on one visible table line.
+const PHOTO_ALIGNED_TARGET_Y = -0.0312 * DRAFT2_SCENE_SCALE
+const PHOTO_ALIGNED_TARGET_Z = -0.344 * DRAFT2_SCENE_SCALE
+const PHOTO_ALIGNED_PORTRAIT_TARGET_Y = -0.348
+
 const CAMERA_SOURCE = Object.freeze( {
   fov: Object.freeze( { landscape: 38, portrait: 44 } ),
   portrait: Object.freeze( { aspectStart: 0.86, aspectRange: 0.36 } ),
@@ -17,14 +23,15 @@ const CAMERA_SOURCE = Object.freeze( {
     // These values are the existing Draft 2 camera, expressed in its scene units.
     start: Object.freeze( {
       camera: Object.freeze( [ 0, 0.78, 0.5 * DRAFT2_SCENE_SCALE + 2.05 ] ),
-      target: Object.freeze( [ 0, 0.18, -2.6 ] ),
+      target: Object.freeze( [ 0, PHOTO_ALIGNED_TARGET_Y, PHOTO_ALIGNED_TARGET_Z ] ),
     } ),
     end: Object.freeze( {
       camera: Object.freeze( [ 0, 1.35, 1.2 ] ),
-      target: Object.freeze( [ 0, 0.18, -5.4 ] ),
+      target: Object.freeze( [ 0, PHOTO_ALIGNED_TARGET_Y, -5.4 ] ),
     } ),
     portraitStart: Object.freeze( [ 0, 0.45, 1.2 ] ),
     portraitEnd: Object.freeze( [ 0, 0.55, 1.0 ] ),
+    portraitTargetY: PHOTO_ALIGNED_PORTRAIT_TARGET_Y,
   } ),
   pointer: Object.freeze( {
     camera: Object.freeze( [ 0.12, 0.05 ] ),
@@ -167,7 +174,11 @@ export const resolveIntroCameraFraming = ( {
   ]
   const target = [
     lerp( startTarget[ 0 ], endTarget[ 0 ], trackEase ),
-    lerp( startTarget[ 1 ], endTarget[ 1 ], trackEase ),
+    lerp(
+      lerp( startTarget[ 1 ], CAMERA_SOURCE.path.portraitTargetY, portraitMix ),
+      lerp( endTarget[ 1 ], CAMERA_SOURCE.path.portraitTargetY, portraitMix ),
+      trackEase,
+    ),
     lerp( startTarget[ 2 ], endTarget[ 2 ], trackEase ),
   ]
   const hasPointer = pointerEnabled === true
