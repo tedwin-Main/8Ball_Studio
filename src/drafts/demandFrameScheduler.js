@@ -123,7 +123,6 @@ export const createDemandFrameScheduler = ( {
     invalidate,
     setActive,
     destroy,
-    get isScheduled () { return frameHandle !== null },
     get isDirty () { return dirty },
     get isConfirmationPending () { return confirmationPending },
   }

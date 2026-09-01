@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createStoryNavigation } from '../storyNavigation'
 import { createStoryScrollAdapter } from '../storyNavigationBrowser'
 import { STORY_TIMING, easeCinematicBreakTransition, easeStoryTransition } from '../storyTiming'
@@ -50,6 +50,7 @@ export function useStoryPager ( {
   activePage,
   onPageChange,
   onIndicatorPageChange,
+  onProgress,
 } )
 {
   const controllerRef = useRef( null )
@@ -88,6 +89,8 @@ export function useStoryPager ( {
         onPageChange?.( pageId )
       },
       onIndicatorPageChange,
+      // Mirror Lenis progress immediately so draft switches can restore the current playhead.
+      onProgress,
       onTransitionChange: ( nextTransitioning, state ) =>
       {
         isTransitioningRef.current = nextTransitioning
@@ -121,13 +124,23 @@ export function useStoryPager ( {
       isTransitioningRef.current = false
       setIsTransitioning( false )
     }
-  }, [ onIndicatorPageChange, onPageChange, storyRef ] )
+  }, [ onIndicatorPageChange, onPageChange, onProgress, storyRef ] )
 
   const goToPage = ( requestedPage, options = {} ) =>
     controllerRef.current?.goToPage( requestedPage, options ) ?? false
+  // Keep controlled benchmark seeks behind the same adapter boundary as visitor navigation.
+  const seekProgress = useCallback( ( progress ) =>
+    controllerRef.current?.seekProgress( progress ) ?? null,
+  [] )
+  // Read the adapter's normalized playhead so draft switches can preserve it.
+  const getProgress = useCallback( () =>
+    controllerRef.current?.getProgress() ?? 0,
+  [] )
 
   return {
     goToPage,
+    seekProgress,
+    getProgress,
     isTransitioning,
     isTransitioningRef,
     targetPage: targetPageRef.current,

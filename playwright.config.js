@@ -1,8 +1,9 @@
 import { defineConfig } from '@playwright/test'
 
-// Keep benchmark runs serial and headed by the same browser channel on one machine.
-// The final certification ticket owns performance thresholds; this config only makes
-// the baseline repeatable and report-oriented.
+// Keep benchmark runs serial on one browser channel; automated launches stay offscreen
+// unless DRAFT2_HEADLESS_NEW=false is explicitly requested for visual debugging.
+const useOffscreenEdge = process.env.DRAFT2_HEADLESS_NEW !== 'false'
+
 export default defineConfig( {
   testDir: './tests/browser',
   outputDir: 'output/playwright/draft2-benchmark',
@@ -20,8 +21,7 @@ export default defineConfig( {
   use: {
     baseURL: process.env.DRAFT2_BASE_URL || 'http://127.0.0.1:4173',
     channel: process.env.DRAFT2_BENCHMARK_BROWSER || 'msedge',
-    // Draft 2 needs a real WebGL context; headed Edge is the stable local
-    // baseline. Set DRAFT2_HEADLESS=true only where headless WebGL is available.
+    // Draft 2 needs a real WebGL context; Edge's new offscreen mode keeps that path.
     headless: process.env.DRAFT2_HEADLESS === 'true',
     deviceScaleFactor: 1,
     colorScheme: 'dark',
@@ -31,8 +31,13 @@ export default defineConfig( {
     trace: 'off',
   },
   launchOptions: {
-    // Request software ANGLE when the selected browser supports headless WebGL.
-    args: [ '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader' ],
+    // Request software ANGLE and explicitly select new offscreen mode for WebGL.
+    args: [
+      '--use-gl=angle',
+      '--use-angle=swiftshader',
+      '--enable-unsafe-swiftshader',
+      ...(useOffscreenEdge ? [ '--headless=new' ] : []),
+    ],
   },
   webServer: process.env.DRAFT2_BASE_URL
     ? undefined

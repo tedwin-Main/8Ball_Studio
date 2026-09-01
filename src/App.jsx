@@ -149,11 +149,30 @@ function App ()
   const storyRef = useRef( null )
   const draftControllersRef = useRef( {} )
   const storyProgressRef = useRef( 0 )
+  const draftSwitchProgressRef = useRef( null )
   const activeDraftRef = useRef( getInitialDraft() )
   const [ activeDraft, setActiveDraft ] = useState( getInitialDraft )
   const [ activePage, setActivePage ] = useState( 'intro' )
   const [ indicatorPage, setIndicatorPage ] = useState( 'intro' )
   const storyPages = useMemo( () => getStoryPages( activeDraft ), [ activeDraft ] )
+
+  const updateDraftProgress = useCallback( ( progress ) =>
+  {
+    storyProgressRef.current = progress
+    // Drive only the selected intro layer; inactive layers seek when selected later.
+    draftControllersRef.current[ activeDraftRef.current ]?.setProgress(
+      Math.min( 1, toTimelineUnits( progress ) ),
+    )
+  }, [] )
+
+  const { goToPage, seekProgress, getProgress, isTransitioning } = useStoryPager( {
+    storyRef,
+    pages: storyPages,
+    activePage,
+    onPageChange: setActivePage,
+    onIndicatorPageChange: setIndicatorPage,
+    onProgress: updateDraftProgress,
+  } )
 
   const registerDraftController = useCallback( ( draftId, controller ) =>
   {
@@ -181,13 +200,17 @@ function App ()
   {
     if ( !DRAFT_IDS.includes( nextDraft ) ) return
 
+    // Capture Lenis's normalized playhead before the draft-page effect can refresh it.
+    const currentProgress = getProgress()
+    if ( Number.isFinite( currentProgress ) ) draftSwitchProgressRef.current = currentProgress
+
     const url = new URL( window.location.href )
     url.searchParams.set( 'draft', nextDraft )
     // Replace only the query so changing a draft never reloads or adds history entries.
     window.history.replaceState( {}, '', `${url.pathname}${url.search}${url.hash}` )
     activeDraftRef.current = nextDraft
     setActiveDraft( nextDraft )
-  }, [] )
+  }, [ getProgress ] )
 
   const handleWebglUnavailable = useCallback( ( draftId ) =>
   {
@@ -197,6 +220,8 @@ function App ()
 
   useEffect( () =>
   {
+    const preservedProgress = draftSwitchProgressRef.current ?? storyProgressRef.current
+    draftSwitchProgressRef.current = null
     Object.entries( draftControllersRef.current ).forEach( ( [ draftId, controller ] ) =>
     {
       controller.setActive( draftId === activeDraft )
@@ -204,26 +229,31 @@ function App ()
 
     // Seek the selected draft to the existing story position for a seamless switch.
     draftControllersRef.current[ activeDraft ]?.setProgress(
-      Math.min( 1, toTimelineUnits( storyProgressRef.current ) ),
+      Math.min( 1, toTimelineUnits( preservedProgress ) ),
     )
 
     // Reapply the shared GSAP playhead after a draft switch changes CSS visibility rules.
+    let restoreFrame = 0
     const refreshFrame = window.requestAnimationFrame( () =>
     {
       ScrollTrigger.refresh()
+      // ScrollTrigger can read native scroll during refresh; restore Lenis's normalized playhead afterward.
+      seekProgress( preservedProgress )
       ScrollTrigger.update()
+      // A refresh can measure while Lenis is still settling; one follow-up frame closes that race.
+      restoreFrame = window.requestAnimationFrame( () =>
+      {
+        seekProgress( preservedProgress )
+        ScrollTrigger.update()
+      } )
     } )
 
-    return () => window.cancelAnimationFrame( refreshFrame )
-  }, [ activeDraft ] )
-
-  const { goToPage, isTransitioning } = useStoryPager( {
-    storyRef,
-    pages: storyPages,
-    activePage,
-    onPageChange: setActivePage,
-    onIndicatorPageChange: setIndicatorPage,
-  } )
+    return () =>
+    {
+      window.cancelAnimationFrame( refreshFrame )
+      if ( restoreFrame ) window.cancelAnimationFrame( restoreFrame )
+    }
+  }, [ activeDraft, seekProgress ] )
 
   useLayoutEffect( () =>
   {
@@ -265,15 +295,6 @@ function App ()
         x: window.innerWidth * 0.5,
         y: window.innerHeight * 0.5,
       } )
-    }
-
-    const updateDraftProgress = ( progress ) =>
-    {
-      storyProgressRef.current = progress
-      // Drive only the selected intro layer; inactive layers seek when selected later.
-      draftControllersRef.current[ activeDraftRef.current ]?.setProgress(
-        Math.min( 1, toTimelineUnits( progress ) ),
-      )
     }
 
     const setBallLayerPromotion = ( active ) =>

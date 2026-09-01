@@ -47,6 +47,8 @@ export const publishFramingDiagnostics = ( canvas, camera, balls, radius, framin
   const snapshot = {
     width,
     height,
+    // Keep the timeline-unit playhead alongside geometry so browser checks can reject stale frames.
+    progress: framing.progress,
     fov: framing.fov,
     portraitMix: framing.portraitMix,
     trackProgress: framing.trackProgress,

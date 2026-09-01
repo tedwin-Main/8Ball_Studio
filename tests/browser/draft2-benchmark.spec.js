@@ -187,6 +187,8 @@ const installBenchmarkProbe = async ( page ) =>
 
 const waitForDraftTwo = async ( page ) =>
 {
+  // Let the configured load refresh finish before controlled seeks or draft switches.
+  await page.waitForLoadState( 'load' )
   await expect( page.locator( '.draft-layer-webgl' ) ).toHaveAttribute(
     'data-webgl-error',
     'false',
@@ -309,6 +311,9 @@ test( 'Draft 1 stays registered to the photo table while Draft 2 tracks its 3D t
       expect( draftOne.photoRegistration.anchorError ).toBeLessThan( 2 )
 
       await page.getByRole( 'button', { name: '02 3D Break' } ).click()
+      await expect( page.locator( '.draft-layer-webgl' ) ).toHaveClass( /is-active/ )
+      // Let the public draft switch effect finish its ScrollTrigger refresh before seeking the next milestone.
+      await page.waitForTimeout( 50 )
       await driveStoryProgress( page, storyProgress )
       await waitForFramingSnapshot( page, draftTwoCanvas, milestone.progress )
       const draftTwo = await readFramingSnapshot( page, draftTwoCanvas )
@@ -323,6 +328,9 @@ test( 'Draft 1 stays registered to the photo table while Draft 2 tracks its 3D t
       }
 
       await page.getByRole( 'button', { name: '01 3D POV' } ).click()
+      await expect( page.locator( '.draft-layer-2d' ) ).toHaveClass( /is-active/ )
+      // The reactivation callback schedules a demand-driven paint after the switch refresh.
+      await page.waitForTimeout( 50 )
       await waitForFramingSnapshot( page, draftOneCanvas, milestone.progress )
     }
   }
