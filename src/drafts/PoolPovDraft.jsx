@@ -12,6 +12,7 @@ import { STORY_TIMING } from '../storyTiming'
 import {
   createPointerParallax,
   DRAFT2_SCENE_SCALE,
+  resolvePhotoPlateParallax,
   resolveIntroCameraFraming,
   resolvePhotoHoverResponse,
 } from './cameraFraming'
@@ -213,6 +214,28 @@ const createLogoTexture = ( anisotropy, requestRender ) =>
   return texture
 }
 
+// Use the same soft radial contact cue as Draft 2 so every ball reads as resting on felt.
+const createContactShadowTexture = ( anisotropy = 1 ) =>
+{
+  const canvas = document.createElement( 'canvas' )
+  canvas.width = 128
+  canvas.height = 128
+  const context = canvas.getContext( '2d' )
+  const gradient = context.createRadialGradient( 64, 64, 0, 64, 64, 64 )
+  gradient.addColorStop( 0, 'rgba(0, 0, 0, 0.95)' )
+  gradient.addColorStop( 0.28, 'rgba(0, 0, 0, 0.8)' )
+  gradient.addColorStop( 0.62, 'rgba(0, 0, 0, 0.25)' )
+  gradient.addColorStop( 1, 'rgba(0, 0, 0, 0)' )
+  context.fillStyle = gradient
+  context.fillRect( 0, 0, 128, 128 )
+  const texture = new THREE.CanvasTexture( canvas )
+  texture.anisotropy = anisotropy
+  texture.generateMipmaps = true
+  texture.minFilter = THREE.LinearMipmapLinearFilter
+  texture.magFilter = THREE.LinearFilter
+  return texture
+}
+
 const createWarmEnvironment = ( renderer ) =>
 {
   const environmentScene = new THREE.Scene()
@@ -275,7 +298,7 @@ const buildWorld = ( canvas, simulation, requestRender ) =>
   renderer.outputColorSpace = THREE.SRGBColorSpace
   renderer.toneMapping = THREE.ACESFilmicToneMapping
   renderer.toneMappingExposure = 0.95
-  // The photo already carries the table shading, so do not add a second shadow layer.
+  // The photo carries broad table shading; explicit contact planes add ball grounding without a shadow-map pass.
   renderer.shadowMap.enabled = false
 
   const maximumAnisotropy = Math.min( 8, renderer.capabilities.getMaxAnisotropy() )
@@ -290,6 +313,31 @@ const buildWorld = ( canvas, simulation, requestRender ) =>
   const radius = simulation.config.ball.radius
   const ballGeometry = new THREE.SphereGeometry( radius, 48, 32 )
   const ballMeshes = []
+  const contactShadowTexture = createContactShadowTexture( maximumAnisotropy )
+  disposableTextures.add( contactShadowTexture )
+  const contactShadowMaterial = new THREE.MeshBasicMaterial( {
+    map: contactShadowTexture,
+    color: '#020403',
+    transparent: true,
+    opacity: 0.42,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
+  } )
+  const contactShadowGeometry = new THREE.PlaneGeometry( radius * 2.8, radius * 2.8 )
+  contactShadowGeometry.rotateX( -Math.PI / 2 )
+  const shadowGroup = new THREE.Group()
+  tableRoot.add( shadowGroup )
+  const ballShadows = []
+  const addBallShadow = () =>
+  {
+    const shadow = new THREE.Mesh( contactShadowGeometry, contactShadowMaterial )
+    shadow.position.y = 0.001
+    shadow.renderOrder = 1
+    shadowGroup.add( shadow )
+    ballShadows.push( shadow )
+  }
 
   const logoTexture = createLogoTexture( maximumAnisotropy, requestRender )
   disposableTextures.add( logoTexture )
@@ -333,6 +381,7 @@ const buildWorld = ( canvas, simulation, requestRender ) =>
   strikerGroup.add( strikerMesh )
   tableRoot.add( strikerGroup )
   ballMeshes.push( strikerGroup )
+  addBallShadow()
 
   RACK_BALL_NUMBERS.forEach( ( number ) =>
   {
@@ -348,9 +397,10 @@ const buildWorld = ( canvas, simulation, requestRender ) =>
     mesh.receiveShadow = false
     tableRoot.add( mesh )
     ballMeshes.push( mesh )
+    addBallShadow()
   } )
 
-  // The pendant supplies warm specular light; ground shadows stay off against the photo plate.
+  // The pendant supplies warm specular light while the contact planes anchor balls to the photo plate.
   const pendantSpot = new THREE.SpotLight( '#ffe5b5', 18, 7, Math.PI / 3.1, 0.82, 1.35 )
   pendantSpot.castShadow = false
   pendantSpot.target.position.set( 0, 0, simulation.config.rack.apexZ )
@@ -408,20 +458,24 @@ const buildWorld = ( canvas, simulation, requestRender ) =>
     canvas.dataset.plate = mode
     canvas.dataset.farRail = `${calibration.farRailAnchors.left.join( ',' )};${calibration.farRailAnchors.right.join( ',' )}`
     canvas.dataset.pockets = calibration.pocketProjection.length
+    canvas.dataset.contactShadows = String( ballShadows.length )
   }
 
   const dispose = () =>
   {
+    const geometries = new Set()
+    const disposableMaterials = new Set()
     scene.traverse( ( object ) =>
     {
-      if ( object.geometry && object.geometry !== ballGeometry ) object.geometry.dispose()
+      if ( object.geometry ) geometries.add( object.geometry )
       if ( object.material )
       {
-        const materials = Array.isArray( object.material ) ? object.material : [ object.material ]
-        materials.forEach( ( material ) => material.dispose() )
+        const objectMaterials = Array.isArray( object.material ) ? object.material : [ object.material ]
+        objectMaterials.forEach( ( material ) => disposableMaterials.add( material ) )
       }
     } )
-    ballGeometry.dispose()
+    geometries.forEach( ( geometry ) => geometry.dispose() )
+    disposableMaterials.forEach( ( material ) => material.dispose() )
     disposableTextures.forEach( ( texture ) => texture.dispose() )
     environmentTarget.dispose()
     renderer.dispose()
@@ -431,6 +485,7 @@ const buildWorld = ( canvas, simulation, requestRender ) =>
     camera,
     radius,
     ballMeshes,
+    ballShadows,
     renderer,
     resize,
     render,
@@ -494,9 +549,23 @@ export function PoolPovDraft ( { active, onController } )
       enabled: !prefersReducedMotion,
     } )
 
+    const setPhotoPlateParallax = ( response = resolvePhotoPlateParallax() ) =>
+    {
+      // Photo and WebGL layers share this transform, so hover never separates the ball from the felt.
+      root.style.setProperty( '--draft-plate-parallax-x', `${response.x.toFixed( 3 )}px` )
+      root.style.setProperty( '--draft-plate-parallax-y', `${response.y.toFixed( 3 )}px` )
+      root.style.setProperty( '--draft-plate-parallax-scale', String( response.scale ) )
+    }
+
     const renderScene = () =>
     {
       const state = sampleCinematicBreakState( progress, simulation )
+      const plateParallax = resolvePhotoPlateParallax( {
+        pointerX: pointer.state.x,
+        pointerY: pointer.state.y,
+        pointerEnabled: pointer.state.enabled,
+      } )
+      setPhotoPlateParallax( plateParallax )
 
       if ( world )
       {
@@ -512,6 +581,18 @@ export function PoolPovDraft ( { active, onController } )
             ball.quaternion.w,
           )
           mesh.visible = ball.visibility
+
+          const shadow = world.ballShadows[ index ]
+          if ( shadow )
+          {
+            shadow.position.set( ball.position.x, 0.001, ball.position.z )
+            // Keep the shadow on the felt plane, fading it as a ball drops into a pocket.
+            const heightOffset = Math.max( 0, ( ball.position.y - world.radius ) / world.radius )
+            const pocketFade = ball.pocketDepth ? Math.max( 0, 1 - ball.pocketDepth * 4 ) : 1
+            const shadowScale = ( 1 - heightOffset * 0.8 ) * pocketFade
+            shadow.scale.setScalar( Math.max( 0.001, shadowScale ) )
+            shadow.visible = ball.visibility && shadowScale > 0.02
+          }
         } )
 
         const framing = resolveIntroCameraFraming( {
@@ -559,6 +640,7 @@ export function PoolPovDraft ( { active, onController } )
             framing,
             photoRegistration,
             hoverResponse,
+            plateParallax,
           )
         }
         world.render()
@@ -601,6 +683,7 @@ export function PoolPovDraft ( { active, onController } )
           pointer.reset()
           // Clear the hidden Draft's light response so reactivation starts from neutral.
           world?.setHoverResponse( resolvePhotoHoverResponse() )
+          setPhotoPlateParallax( resolvePhotoPlateParallax() )
         }
 
         if ( isActive ) pointer.syncCapability()

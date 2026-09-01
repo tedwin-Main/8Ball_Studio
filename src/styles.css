@@ -1314,6 +1314,9 @@ a.contact-item:focus-visible .contact-icon {
 
 .draft-layer-2d {
   --draft-exit-opacity: 1;
+  --draft-plate-parallax-x: 0px;
+  --draft-plate-parallax-y: 0px;
+  --draft-plate-parallax-scale: 1;
   background: #0a100d;
   /* Scroll owns this opacity exactly, so a CSS transition cannot lag behind reverse sampling. */
   transition: visibility 0s linear 260ms;
@@ -1340,6 +1343,14 @@ a.contact-item:focus-visible .contact-icon {
   z-index: 0;
   display: block;
   overflow: hidden;
+}
+
+/* Move the photo and transparent ball layer together; paired motion preserves table contact. */
+.draft-layer-2d .pool-pov-visual,
+.draft-layer-2d .pool-pov-balls-canvas {
+  transform: translate3d(var(--draft-plate-parallax-x), var(--draft-plate-parallax-y), 0)
+    scale(var(--draft-plate-parallax-scale));
+  transform-origin: 50% 50%;
 }
 
 .pool-pov-photo {
