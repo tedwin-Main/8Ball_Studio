@@ -62,6 +62,7 @@ export const createPointerParallax = ( {
     targetX: 0,
     targetY: 0,
   }
+  let pointerListenersAttached = false
 
   const reset = () =>
   {
@@ -77,12 +78,41 @@ export const createPointerParallax = ( {
     if ( nextEnabled === state.enabled ) return false
     state.enabled = nextEnabled
     reset()
+    if ( nextEnabled ) addPointerListeners()
+    else removePointerListeners()
     return true
+  }
+
+  const isFineHoverPointer = ( event ) =>
+  {
+    // Touch must never become a camera or hover coordinate on hybrid devices.
+    const pointerType = event?.pointerType
+    return !pointerType || pointerType === 'mouse' || pointerType === 'pen'
+  }
+
+  const neutralize = ( { immediate = false } = {} ) =>
+  {
+    const changed = state.targetX !== 0 ||
+      state.targetY !== 0 ||
+      ( immediate && ( state.x !== 0 || state.y !== 0 ) )
+    state.targetX = 0
+    state.targetY = 0
+    if ( immediate )
+    {
+      state.x = 0
+      state.y = 0
+    }
+    return changed
   }
 
   const handlePointerMove = ( event ) =>
   {
     syncCapability()
+    if ( !isFineHoverPointer( event ) )
+    {
+      if ( neutralize( { immediate: true } ) ) requestRender()
+      return
+    }
     if ( !isActive() || !state.enabled ) return
     const width = windowObject?.innerWidth || 1
     const height = windowObject?.innerHeight || 1
@@ -91,10 +121,42 @@ export const createPointerParallax = ( {
     requestRender()
   }
 
+  const handlePointerLeave = () =>
+  {
+    if ( !state.enabled || !neutralize( { immediate: true } ) ) return
+    // Pointer exit should not leave a stale hover cue while the browser is elsewhere.
+    requestRender()
+  }
+
+  const handlePointerOut = ( event ) =>
+  {
+    // Window pointerleave is inconsistent across browsers; a null relatedTarget means the pointer left the document.
+    if ( !event?.relatedTarget ) handlePointerLeave()
+  }
+
+  const addPointerListeners = () =>
+  {
+    if ( pointerListenersAttached || !enabled || !capability.matches ) return
+    windowObject?.addEventListener?.( 'pointermove', handlePointerMove, { passive: true } )
+    windowObject?.addEventListener?.( 'pointerleave', handlePointerLeave, { passive: true } )
+    windowObject?.addEventListener?.( 'pointerout', handlePointerOut, { passive: true } )
+    pointerListenersAttached = true
+  }
+
+  const removePointerListeners = () =>
+  {
+    if ( !pointerListenersAttached ) return
+    windowObject?.removeEventListener?.( 'pointermove', handlePointerMove )
+    windowObject?.removeEventListener?.( 'pointerleave', handlePointerLeave )
+    windowObject?.removeEventListener?.( 'pointerout', handlePointerOut )
+    pointerListenersAttached = false
+  }
+
   const handleResize = () =>
   {
     syncCapability()
-    if ( !state.enabled ) reset()
+    // A resize/orientation change invalidates the old pointer coordinate; require a fresh hover sample.
+    neutralize( { immediate: true } )
     onResize()
     requestRender()
   }
@@ -106,16 +168,18 @@ export const createPointerParallax = ( {
 
   const addListeners = () =>
   {
-    if ( enabled ) windowObject?.addEventListener?.( 'pointermove', handlePointerMove, { passive: true } )
+    addPointerListeners()
     windowObject?.addEventListener?.( 'resize', handleResize )
+    windowObject?.addEventListener?.( 'blur', handlePointerLeave )
     capability.addEventListener?.( 'change', handleCapabilityChange )
     if ( !capability.addEventListener ) capability.addListener?.( handleCapabilityChange )
   }
 
   const removeListeners = () =>
   {
-    if ( enabled ) windowObject?.removeEventListener?.( 'pointermove', handlePointerMove )
+    removePointerListeners()
     windowObject?.removeEventListener?.( 'resize', handleResize )
+    windowObject?.removeEventListener?.( 'blur', handlePointerLeave )
     capability.removeEventListener?.( 'change', handleCapabilityChange )
     if ( !capability.removeEventListener ) capability.removeListener?.( handleCapabilityChange )
   }
@@ -139,6 +203,25 @@ export const createPointerParallax = ( {
 }
 
 const scaleVector = ( vector, scale ) => vector.map( ( value ) => value * scale )
+
+// Draft 1 consumes pointer input as a restrained lighting cue, never as camera movement.
+export const resolvePhotoHoverResponse = ( {
+  pointerX = 0,
+  pointerY = 0,
+  pointerEnabled = false,
+} = {} ) =>
+{
+  const enabled = pointerEnabled === true
+  const x = enabled && Number.isFinite( pointerX ) ? clamp( pointerX, -1, 1 ) : 0
+  const y = enabled && Number.isFinite( pointerY ) ? clamp( pointerY, -1, 1 ) : 0
+
+  return Object.freeze( {
+    enabled,
+    x,
+    y,
+    strength: Math.min( 1, Math.hypot( x, y ) ),
+  } )
+}
 
 /**
  * Resolve one Intro camera from Story progress, viewport aspect, and input capability.
@@ -186,6 +269,7 @@ export const resolveIntroCameraFraming = ( {
     ),
     lerp( startTarget[ 2 ], endTarget[ 2 ], trackEase ),
   ]
+  // A photo-backed Draft cannot move its camera against a fixed plate without floating.
   const hasPointer = pointerEnabled === true && !lockToPlate
   const normalizedPointerX = hasPointer && Number.isFinite( pointerX ) ? pointerX : 0
   const normalizedPointerY = hasPointer && Number.isFinite( pointerY ) ? pointerY : 0

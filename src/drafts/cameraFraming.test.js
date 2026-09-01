@@ -2,8 +2,10 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
   CAMERA_POINTER_DAMPING,
+  createPointerParallax,
   DRAFT2_SCENE_SCALE,
   resolveIntroCameraFraming,
+  resolvePhotoHoverResponse,
 } from './cameraFraming.js'
 
 const assertClose = ( actual, expected, tolerance = 1e-12 ) =>
@@ -70,15 +72,15 @@ test( 'fine-pointer parallax uses the shared bounded offsets and damping contrac
   assertClose( moved.target[ 1 ] - centered.target[ 1 ], -0.02 )
 } )
 
-test( 'photo-plate framing keeps table depth fixed while the physical balls roll', () =>
+test( 'photo-plate framing keeps table depth fixed when pointer input changes', () =>
 {
   const start = resolveIntroCameraFraming( {
     progress: 0,
     transitionReadyProgress: 0.5,
     aspect: 1280 / 800,
     sourceScale: 1 / DRAFT2_SCENE_SCALE,
-    pointerX: 1,
-    pointerY: -1,
+    pointerX: 0,
+    pointerY: 0,
     pointerEnabled: true,
     lockToPlate: true,
   } )
@@ -87,8 +89,18 @@ test( 'photo-plate framing keeps table depth fixed while the physical balls roll
     transitionReadyProgress: 0.5,
     aspect: 1280 / 800,
     sourceScale: 1 / DRAFT2_SCENE_SCALE,
-    pointerX: -1,
-    pointerY: 1,
+    pointerX: 0,
+    pointerY: 0,
+    pointerEnabled: true,
+    lockToPlate: true,
+  } )
+  const moved = resolveIntroCameraFraming( {
+    progress: 0,
+    transitionReadyProgress: 0.5,
+    aspect: 1280 / 800,
+    sourceScale: 1 / DRAFT2_SCENE_SCALE,
+    pointerX: 1,
+    pointerY: -1,
     pointerEnabled: true,
     lockToPlate: true,
   } )
@@ -104,5 +116,89 @@ test( 'photo-plate framing keeps table depth fixed while the physical balls roll
   assert.equal( start.trackProgress, 0 )
   assert.equal( impact.trackProgress, 0 )
   assert.equal( start.pointerEnabled, false )
+  assert.equal( moved.pointerEnabled, false )
+  assert.equal( moved.pointerX, 0 )
+  assert.equal( moved.pointerY, 0 )
+  assert.deepEqual( moved.camera, start.camera )
+  assert.deepEqual( moved.target, start.target )
   assert.notDeepEqual( tracked.camera, start.camera )
+} )
+
+test( 'photo hover response stays neutral on mobile and bounded on fine pointers', () =>
+{
+  const mobile = resolvePhotoHoverResponse( {
+    pointerX: 1,
+    pointerY: -1,
+    pointerEnabled: false,
+  } )
+  const edge = resolvePhotoHoverResponse( {
+    pointerX: 2,
+    pointerY: -2,
+    pointerEnabled: true,
+  } )
+
+  assert.deepEqual( mobile, {
+    enabled: false,
+    x: 0,
+    y: 0,
+    strength: 0,
+  } )
+  assert.equal( edge.enabled, true )
+  assert.equal( edge.x, 1 )
+  assert.equal( edge.y, -1 )
+  assert.equal( edge.strength, 1 )
+} )
+
+test( 'pointer sampler ignores touch input and clears on blur', () =>
+{
+  const listeners = new Map()
+  const windowObject = {
+    innerWidth: 100,
+    innerHeight: 100,
+    matchMedia: () => ( {
+      matches: true,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    } ),
+    addEventListener: ( type, listener ) => listeners.set( type, listener ),
+    removeEventListener: ( type ) => listeners.delete( type ),
+  }
+  let renderRequests = 0
+  const pointer = createPointerParallax( {
+    windowObject,
+    requestRender: () => { renderRequests += 1 },
+  } )
+  pointer.addListeners()
+
+  listeners.get( 'pointermove' )( { pointerType: 'mouse', clientX: 100, clientY: 50 } )
+  assert.equal( pointer.state.targetX, 1 )
+  listeners.get( 'pointermove' )( { pointerType: 'touch', clientX: 0, clientY: 0 } )
+  assert.equal( pointer.state.x, 0 )
+  assert.equal( pointer.state.targetX, 0 )
+
+  listeners.get( 'pointermove' )( { pointerType: 'mouse', clientX: 100, clientY: 50 } )
+  listeners.get( 'blur' )()
+  assert.equal( pointer.state.x, 0 )
+  assert.equal( pointer.state.targetX, 0 )
+  assert.ok( renderRequests >= 2 )
+  pointer.removeListeners()
+} )
+
+test( 'pointer sampler skips hover listeners without fine-pointer capability', () =>
+{
+  const listeners = new Map()
+  const windowObject = {
+    matchMedia: () => ( { matches: false } ),
+    addEventListener: ( type, listener ) => listeners.set( type, listener ),
+    removeEventListener: ( type ) => listeners.delete( type ),
+  }
+  const pointer = createPointerParallax( { windowObject } )
+  pointer.addListeners()
+
+  assert.equal( pointer.state.enabled, false )
+  assert.equal( listeners.has( 'pointermove' ), false )
+  assert.equal( listeners.has( 'pointerleave' ), false )
+  assert.equal( listeners.has( 'pointerout' ), false )
+  assert.equal( listeners.has( 'resize' ), true )
+  pointer.removeListeners()
 } )

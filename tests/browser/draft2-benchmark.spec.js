@@ -360,13 +360,17 @@ test( 'Draft 1 and Draft 2 stay centered after touch input on portrait', async (
     const draftOneBaseline = await readFramingSnapshot( page, draftOneCanvas )
     expect( draftOneBaseline.pointerEnabled ).toBe( false )
     expect( draftOneBaseline.photoPlateLocked ).toBe( true )
-    expect( draftOneBaseline.centerlineError ).toBeLessThan( 0.002 )
+    expect( draftOneBaseline.hoverResponse ).toMatchObject( { enabled: false, x: 0, y: 0 } )
+    // The cue ball begins left of the rack by design; the rack apex is the portrait optical centerline.
+    expect( draftOneBaseline.rackApex.x ).toBeCloseTo( 0.5, 4 )
 
     for ( const [ x, y ] of [ [ 20, 110 ], [ 370, 110 ], [ 20, 790 ], [ 370, 790 ] ] )
     {
       await dispatchPortraitTap( context, page, x, y )
       await page.waitForTimeout( 40 )
-      expectMatchingFraming( draftOneBaseline, await readFramingSnapshot( page, draftOneCanvas ) )
+      const draftOneTapped = await readFramingSnapshot( page, draftOneCanvas )
+      expectMatchingFraming( draftOneBaseline, draftOneTapped )
+      expect( draftOneTapped.hoverResponse ).toMatchObject( { enabled: false, x: 0, y: 0 } )
     }
 
     await page.getByRole( 'button', { name: '02 3D Break' } ).click()
@@ -374,7 +378,7 @@ test( 'Draft 1 and Draft 2 stay centered after touch input on portrait', async (
     const draftTwoBaseline = await readFramingSnapshot( page, draftTwoCanvas )
     expect( draftTwoBaseline.pointerEnabled ).toBe( false )
     expect( draftTwoBaseline.photoPlateLocked ).toBe( false )
-    expect( draftTwoBaseline.centerlineError ).toBeLessThan( 0.002 )
+    expect( draftTwoBaseline.rackApex.x ).toBeCloseTo( 0.5, 4 )
     expectMatchingFraming( draftOneBaseline, draftTwoBaseline )
 
     for ( const [ x, y ] of [ [ 20, 110 ], [ 370, 110 ], [ 20, 790 ], [ 370, 790 ] ] )
@@ -390,7 +394,7 @@ test( 'Draft 1 and Draft 2 stay centered after touch input on portrait', async (
   }
 } )
 
-test( 'fine-pointer parallax remains bounded and returns to shared center', async ( { browser, baseURL } ) =>
+test( 'Draft 1 hover stays grounded while Draft 2 parallax remains bounded', async ( { browser, baseURL } ) =>
 {
   const context = await browser.newContext( {
     viewport: { width: 1280, height: 800 },
@@ -415,6 +419,17 @@ test( 'fine-pointer parallax remains bounded and returns to shared center', asyn
     const draftOneMoved = await readFramingSnapshot( page, draftOneCanvas )
     const draftOneDelta = draftOneMoved.eightBall.x - draftOneCenter.eightBall.x
     expect( Math.abs( draftOneDelta ) ).toBeLessThan( 0.0005 )
+    expect( draftOneMoved.hoverResponse.enabled ).toBe( true )
+    expect( Math.abs( draftOneMoved.hoverResponse.x ) ).toBeGreaterThan( 0.6 )
+    expect( draftOneMoved.photoRegistration.anchorError ).toBeLessThan( 2 )
+
+    await page.evaluate( () => window.dispatchEvent( new Event( 'blur' ) ) )
+    await page.waitForTimeout( 700 )
+    const draftOneSettled = await readFramingSnapshot( page, draftOneCanvas )
+    expect( draftOneSettled.hoverResponse.x ).toBeCloseTo( 0, 2 )
+    expect( draftOneSettled.hoverResponse.y ).toBeCloseTo( 0, 2 )
+    expect( draftOneSettled.eightBall.x ).toBeCloseTo( draftOneCenter.eightBall.x, 4 )
+    expect( draftOneSettled.eightBall.y ).toBeCloseTo( draftOneCenter.eightBall.y, 4 )
 
     await page.getByRole( 'button', { name: '02 3D Break' } ).click()
     await page.mouse.move( 640, 400 )
@@ -430,8 +445,90 @@ test( 'fine-pointer parallax remains bounded and returns to shared center', asyn
     await page.mouse.move( 640, 400 )
     await page.waitForTimeout( 700 )
     const draftTwoSettled = await readFramingSnapshot( page, draftTwoCanvas )
-    expect( draftTwoSettled.eightBall.x ).toBeCloseTo( draftTwoCenter.eightBall.x, 3 )
-    expect( draftTwoSettled.eightBall.y ).toBeCloseTo( draftTwoCenter.eightBall.y, 3 )
+    expect( Math.abs( draftTwoSettled.eightBall.x - draftTwoCenter.eightBall.x ) ).toBeLessThan( 0.002 )
+    expect( Math.abs( draftTwoSettled.eightBall.y - draftTwoCenter.eightBall.y ) ).toBeLessThan( 0.002 )
+  }
+  finally
+  {
+    await context.close()
+  }
+} )
+
+test( 'Draft 1 clears hover state when resizing from desktop to portrait', async ( { browser, baseURL } ) =>
+{
+  const context = await browser.newContext( {
+    viewport: { width: 1280, height: 800 },
+    deviceScaleFactor: 1,
+  } )
+  const page = await context.newPage()
+
+  try
+  {
+    await page.goto( `${baseURL}/?draft=cinematic&benchmark=draft2`, { waitUntil: 'domcontentloaded' } )
+    await waitForDraftTwo( page )
+    const draftOneCanvas = '.pool-pov-balls-canvas'
+    const progress = STORY_TIMING.intro.approachEnd * 0.5
+    await driveStoryProgress( page, toStoryProgress( progress ) )
+    await waitForFramingSnapshot( page, draftOneCanvas, progress )
+    await page.mouse.move( 1270, 400 )
+    await page.waitForTimeout( 500 )
+    expect( ( await readFramingSnapshot( page, draftOneCanvas ) ).hoverResponse.x ).toBeGreaterThan( 0.6 )
+
+    await page.setViewportSize( { width: 390, height: 844 } )
+    await page.waitForTimeout( 500 )
+    const portrait = await readFramingSnapshot( page, draftOneCanvas )
+    // Resizing keeps the same hardware capability but must clear the old desktop coordinate.
+    expect( portrait.hoverResponse.x ).toBeCloseTo( 0, 3 )
+    expect( portrait.hoverResponse.y ).toBeCloseTo( 0, 3 )
+    expect( portrait.photoPlateLocked ).toBe( true )
+    expect( portrait.rackApex.x ).toBeCloseTo( 0.5, 4 )
+    expect( portrait.progress ).toBeCloseTo( progress, 3 )
+
+    await page.setViewportSize( { width: 1280, height: 800 } )
+    await page.waitForTimeout( 500 )
+    const landscape = await readFramingSnapshot( page, draftOneCanvas )
+    expect( landscape.hoverResponse.x ).toBeCloseTo( 0, 3 )
+    expect( landscape.hoverResponse.y ).toBeCloseTo( 0, 3 )
+    expect( landscape.progress ).toBeCloseTo( progress, 3 )
+  }
+  finally
+  {
+    await context.close()
+  }
+} )
+
+test( 'Draft 1 keeps hover neutral and idle with reduced motion', async ( { browser, baseURL } ) =>
+{
+  const context = await browser.newContext( {
+    viewport: { width: 1280, height: 800 },
+    deviceScaleFactor: 1,
+    reducedMotion: 'reduce',
+  } )
+  const page = await context.newPage()
+
+  try
+  {
+    await page.goto( `${baseURL}/?draft=cinematic&benchmark=draft2`, { waitUntil: 'domcontentloaded' } )
+    await waitForDraftTwo( page )
+    const draftOneCanvas = '.pool-pov-balls-canvas'
+    await waitForFramingSnapshot( page, draftOneCanvas )
+    await page.mouse.move( 1270, 400 )
+    await page.waitForTimeout( 300 )
+
+    const reduced = await readFramingSnapshot( page, draftOneCanvas )
+    expect( reduced.hoverResponse ).toMatchObject( { enabled: false, x: 0, y: 0, strength: 0 } )
+    expect( reduced.photoRegistration.anchorError ).toBeLessThan( 2 )
+
+    await page.evaluate( () =>
+    {
+      const root = document.querySelector( '.draft-layer-2d' )
+      const state = { count: 0 }
+      const observer = new MutationObserver( ( records ) => { state.count += records.length } )
+      observer.observe( root, { attributes: true, attributeFilter: [ 'data-webgl-render-at' ] } )
+      window.__draftOneIdleProbe = { state, observer }
+    } )
+    await page.waitForTimeout( 600 )
+    expect( await page.evaluate( () => window.__draftOneIdleProbe.state.count ) ).toBe( 0 )
   }
   finally
   {

@@ -1,5 +1,29 @@
 # Major Bug Fixes
 
+## Draft 1 (3D POV) grounded mouse hover response (01/09/2026, 10:39 PM)
+
+### Problem
+
+Draft 1 uses a fixed photographic table plate. Moving only its WebGL camera on mouse hover shifts the 8-ball away from the photographed table and makes it appear to float. Mobile and touch inputs also must not leave a stale hover offset.
+
+### Fix
+
+- Kept Draft 1 camera parallax disabled by the `lockToPlate` framing contract.
+- Routed fine-pointer hover through the existing demand scheduler as a bounded key-light and striker-reflection response, keeping ball geometry and photo anchors fixed.
+- Reset hover on pointer exit, blur, resize, capability changes, Draft deactivation, and touch/mobile input.
+- Updated unit and browser framing tests in `cameraFraming.test.js` and `draft2-benchmark.spec.js`.
+
+### Files Changed
+
+- [src/drafts/PoolPovDraft.jsx](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/PoolPovDraft.jsx)
+  - Modified — [line 487](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/PoolPovDraft.jsx:487) samples fine-pointer hover without moving the plate-locked camera.
+  - Modified — [line 524](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/PoolPovDraft.jsx:524) applies bounded light and striker-reflection response.
+- [src/drafts/cameraFraming.js](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/cameraFraming.js)
+  - Modified — [line 256](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/cameraFraming.js:256) rejects pointer camera offsets when `lockToPlate` is active.
+  - Modified — [line 119](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/cameraFraming.js:119) clears stale pointer state on exit, blur, resize, and touch input.
+- [src/drafts/cameraFraming.test.js](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/cameraFraming.test.js)
+  - Modified — [line 73](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/cameraFraming.test.js:73) verifies pointer changes cannot move photo-plate framing.
+
 ## Reduced speed of Phase 2 cue strike and rack break animation (24/08/2026, 02:24 AM)
 
 ### Problem

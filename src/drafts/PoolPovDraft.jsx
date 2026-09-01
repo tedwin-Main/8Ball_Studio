@@ -13,6 +13,7 @@ import {
   createPointerParallax,
   DRAFT2_SCENE_SCALE,
   resolveIntroCameraFraming,
+  resolvePhotoHoverResponse,
 } from './cameraFraming'
 import {
   isFramingDiagnosticsEnabled,
@@ -355,6 +356,22 @@ const buildWorld = ( canvas, simulation, requestRender ) =>
   pendantSpot.target.position.set( 0, 0, simulation.config.rack.apexZ )
   scene.add( pendantSpot, pendantSpot.target )
 
+  const baseLightPosition = new THREE.Vector3()
+  let hoverResponse = resolvePhotoHoverResponse()
+  const setHoverResponse = ( nextResponse = resolvePhotoHoverResponse() ) =>
+  {
+    hoverResponse = nextResponse
+    // Move only the existing key light and 8-ball reflection response; the calibrated camera never moves.
+    pendantSpot.position.set(
+      baseLightPosition.x + nextResponse.x * 0.045,
+      baseLightPosition.y + nextResponse.y * 0.035,
+      baseLightPosition.z - nextResponse.x * 0.02 + nextResponse.y * 0.02,
+    )
+    strikerMaterial.envMapIntensity = 0.78 + nextResponse.strength * 0.12
+    decalMaterial.envMapIntensity = 1 + nextResponse.strength * 0.1
+    decalMaterial.emissiveIntensity = 0.35 + nextResponse.strength * 0.04
+  }
+
   const feltBounce = new THREE.HemisphereLight( '#1b5b43', '#020302', 0.42 )
   scene.add( feltBounce )
   const warmFill = new THREE.DirectionalLight( '#d9a36e', 0.34 )
@@ -380,7 +397,8 @@ const buildWorld = ( canvas, simulation, requestRender ) =>
     tableRoot.position.set( ...plane.position )
     tableRoot.rotation.set( ...plane.rotation )
     tableRoot.scale.setScalar( plane.scale )
-    pendantSpot.position.set( ...calibration.lightPosition )
+    baseLightPosition.set( ...calibration.lightPosition )
+    setHoverResponse( hoverResponse )
 
     // Keep CSS size and camera framing unchanged while limiting internal render pixels.
     const pixelRatio = Math.min( window.devicePixelRatio || 1, DRAFT1_PIXEL_RATIO_CAP )
@@ -416,6 +434,7 @@ const buildWorld = ( canvas, simulation, requestRender ) =>
     renderer,
     resize,
     render,
+    setHoverResponse,
     dispose,
   }
 }
@@ -464,13 +483,15 @@ export function PoolPovDraft ( { active, onController } )
 
     const requestRender = () => scheduler.invalidate()
 
+    // Fine-pointer input shares Draft 2's bounded damping, but Draft 1 consumes it as plate-safe light response.
+    const prefersReducedMotion = window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches
     const pointer = createPointerParallax( {
       windowObject: window,
       isActive: () => isActive,
       requestRender,
       onResize: () => { resizePending = true },
-      // The photo plate is static, so pointer camera offsets would break its table registration.
-      enabled: false,
+      // Reduced-motion visitors get the neutral plate composition without a damped hover loop.
+      enabled: !prefersReducedMotion,
     } )
 
     const renderScene = () =>
@@ -503,6 +524,12 @@ export function PoolPovDraft ( { active, onController } )
           pointerEnabled: pointer.state.enabled,
           lockToPlate: true,
         } )
+        const hoverResponse = resolvePhotoHoverResponse( {
+          pointerX: pointer.state.x,
+          pointerY: pointer.state.y,
+          pointerEnabled: pointer.state.enabled,
+        } )
+        world.setHoverResponse( hoverResponse )
         world.camera.fov = framing.fov
         world.camera.position.set( ...framing.camera )
         world.camera.lookAt( ...framing.target )
@@ -531,6 +558,7 @@ export function PoolPovDraft ( { active, onController } )
             world.radius,
             framing,
             photoRegistration,
+            hoverResponse,
           )
         }
         world.render()
@@ -542,9 +570,6 @@ export function PoolPovDraft ( { active, onController } )
       // Fade the photograph, lighting, and balls as one reversible composition.
       root.style.setProperty( '--draft-exit-opacity', String( state.opacity ) )
       root.dataset.phase = state.phase
-      // Draft 1 has no pointer or adaptive-quality loop, so only a pending
-      // resize can keep its demand-driven scheduler alive after this paint.
-      renderContinuation = resizePending
     }
 
     const updateScene = ( nextProgress ) =>
@@ -574,6 +599,8 @@ export function PoolPovDraft ( { active, onController } )
         if ( !isActive )
         {
           pointer.reset()
+          // Clear the hidden Draft's light response so reactivation starts from neutral.
+          world?.setHoverResponse( resolvePhotoHoverResponse() )
         }
 
         if ( isActive ) pointer.syncCapability()
@@ -595,7 +622,9 @@ export function PoolPovDraft ( { active, onController } )
 
       renderScene()
 
-      if ( !pointer.advance() ) renderContinuation = true
+      const pointerSettled = pointer.advance()
+      // Pointer damping or a pending resize keeps the demand-driven scheduler alive until settled.
+      renderContinuation = !pointerSettled || resizePending
     }
 
     controllerRef.current = controller

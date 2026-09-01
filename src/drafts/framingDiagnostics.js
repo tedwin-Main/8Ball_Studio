@@ -14,7 +14,7 @@ const projectViewportPoint = ( point, camera ) =>
 }
 
 // Keep the browser seam limited to visitor-visible viewport facts, never scene objects.
-export const publishFramingDiagnostics = ( canvas, camera, balls, radius, framing, photoRegistration = null ) =>
+export const publishFramingDiagnostics = ( canvas, camera, balls, radius, framing, photoRegistration = null, hoverResponse = null ) =>
 {
   const width = Math.max( 1, canvas.clientWidth || window.innerWidth )
   const height = Math.max( 1, canvas.clientHeight || window.innerHeight )
@@ -56,6 +56,8 @@ export const publishFramingDiagnostics = ( canvas, camera, balls, radius, framin
     pointerX: framing.pointerX,
     pointerY: framing.pointerY,
     photoPlateLocked: framing.photoPlateLocked,
+    // Keep the plate-safe hover cue observable without exposing renderer objects.
+    hoverResponse,
     camera: framing.camera,
     target: framing.target,
     eightBall: eightBallPoint,
