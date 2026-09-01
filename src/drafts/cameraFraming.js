@@ -204,7 +204,7 @@ export const createPointerParallax = ( {
 
 const scaleVector = ( vector, scale ) => vector.map( ( value ) => value * scale )
 
-// Draft 1 consumes pointer input as a restrained lighting cue, never as camera movement.
+// Draft 1 consumes pointer input as bounded camera and lighting response on the 3D ball layer.
 export const resolvePhotoHoverResponse = ( {
   pointerX = 0,
   pointerY = 0,
@@ -220,31 +220,6 @@ export const resolvePhotoHoverResponse = ( {
     x,
     y,
     strength: Math.min( 1, Math.hypot( x, y ) ),
-  } )
-}
-
-// Keep the photo and transparent WebGL layer moving as one shallow composition.
-// The overscan scale prevents a bounded pointer shift from exposing the viewport edge.
-export const PHOTO_PLATE_PARALLAX_SCALE = 1.025
-export const PHOTO_PLATE_PARALLAX_OFFSET_X = 8
-export const PHOTO_PLATE_PARALLAX_OFFSET_Y = 6
-
-export const resolvePhotoPlateParallax = ( {
-  pointerX = 0,
-  pointerY = 0,
-  pointerEnabled = false,
-} = {} ) =>
-{
-  const response = resolvePhotoHoverResponse( { pointerX, pointerY, pointerEnabled } )
-  const offsetStrength = Math.max( Math.abs( response.x ), Math.abs( response.y ) )
-  return Object.freeze( {
-    enabled: response.enabled,
-    // Move the shared plate opposite the cursor, matching the shallow camera feel without breaking contact.
-    x: response.x ? -response.x * PHOTO_PLATE_PARALLAX_OFFSET_X : 0,
-    y: response.y ? response.y * PHOTO_PLATE_PARALLAX_OFFSET_Y : 0,
-    scale: response.enabled
-      ? 1 + ( PHOTO_PLATE_PARALLAX_SCALE - 1 ) * offsetStrength
-      : 1,
   } )
 }
 
@@ -269,7 +244,7 @@ export const resolveIntroCameraFraming = ( {
   const portraitMix = clamp(
     ( CAMERA_SOURCE.portrait.aspectStart - safeAspect ) / CAMERA_SOURCE.portrait.aspectRange,
   )
-  // A CSS photograph has no camera parallax; lock its calibrated projection while balls move on the table plane.
+  // Keep the calibrated Story track locked for the photo plate; pointer offsets can still orbit the 3D ball layer.
   const trackProgress = lockToPlate ? 0 : clamp( progress / safeTransition )
   const trackEase = smoothstep( trackProgress )
   const startCamera = CAMERA_SOURCE.path.start.camera
@@ -294,8 +269,8 @@ export const resolveIntroCameraFraming = ( {
     ),
     lerp( startTarget[ 2 ], endTarget[ 2 ], trackEase ),
   ]
-  // A photo-backed Draft cannot move its camera against a fixed plate without floating.
-  const hasPointer = pointerEnabled === true && !lockToPlate
+  // Draft 1 uses a transparent WebGL layer, so camera parallax is safe while its Story track stays plate-locked.
+  const hasPointer = pointerEnabled === true
   const normalizedPointerX = hasPointer && Number.isFinite( pointerX ) ? pointerX : 0
   const normalizedPointerY = hasPointer && Number.isFinite( pointerY ) ? pointerY : 0
 

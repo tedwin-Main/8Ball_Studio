@@ -307,7 +307,7 @@ test( 'Draft 1 stays registered to the photo table while Draft 2 tracks its 3D t
       await waitForFramingSnapshot( page, draftOneCanvas, milestone.progress )
       const draftOne = await readFramingSnapshot( page, draftOneCanvas )
       expect( draftOne.photoPlateLocked ).toBe( true )
-      expect( draftOne.pointerEnabled ).toBe( false )
+      expect( draftOne.pointerEnabled ).toBe( true )
       expect( Number.isFinite( draftOne.photoRegistration?.anchorError ) ).toBe( true )
       expect( draftOne.photoRegistration.anchorError ).toBeLessThan( 2 )
 
@@ -362,7 +362,6 @@ test( 'Draft 1 and Draft 2 stay centered after touch input on portrait', async (
     expect( draftOneBaseline.pointerEnabled ).toBe( false )
     expect( draftOneBaseline.photoPlateLocked ).toBe( true )
     expect( draftOneBaseline.hoverResponse ).toMatchObject( { enabled: false, x: 0, y: 0 } )
-    expect( draftOneBaseline.plateParallax ).toMatchObject( { enabled: false, x: 0, y: 0, scale: 1 } )
     // The cue ball begins left of the rack by design; the rack apex is the portrait optical centerline.
     expect( draftOneBaseline.rackApex.x ).toBeCloseTo( 0.5, 4 )
 
@@ -373,7 +372,6 @@ test( 'Draft 1 and Draft 2 stay centered after touch input on portrait', async (
       const draftOneTapped = await readFramingSnapshot( page, draftOneCanvas )
       expectMatchingFraming( draftOneBaseline, draftOneTapped )
       expect( draftOneTapped.hoverResponse ).toMatchObject( { enabled: false, x: 0, y: 0 } )
-      expect( draftOneTapped.plateParallax ).toMatchObject( { enabled: false, x: 0, y: 0, scale: 1 } )
     }
 
     await page.getByRole( 'button', { name: '02 3D Break' } ).click()
@@ -421,27 +419,18 @@ test( 'Draft 1 hover stays grounded while Draft 2 parallax remains bounded', asy
     await page.waitForTimeout( 500 )
     const draftOneMoved = await readFramingSnapshot( page, draftOneCanvas )
     const draftOneDelta = draftOneMoved.eightBall.x - draftOneCenter.eightBall.x
-    expect( Math.abs( draftOneDelta ) ).toBeLessThan( 0.0005 )
+    expect( Math.abs( draftOneDelta ) ).toBeGreaterThan( 0.001 )
+    expect( Math.abs( draftOneDelta ) ).toBeLessThan( 0.08 )
+    expect( draftOneMoved.pointerEnabled ).toBe( true )
+    expect( Math.abs( draftOneMoved.camera[ 0 ] - draftOneCenter.camera[ 0 ] ) ).toBeGreaterThan( 0.001 )
     expect( draftOneMoved.hoverResponse.enabled ).toBe( true )
     expect( Math.abs( draftOneMoved.hoverResponse.x ) ).toBeGreaterThan( 0.6 )
-    expect( draftOneMoved.plateParallax.enabled ).toBe( true )
-    expect( Math.abs( draftOneMoved.plateParallax.x ) ).toBeGreaterThan( 4 )
-    expect( draftOneMoved.plateParallax.scale ).toBeGreaterThan( 1 )
-    expect( draftOneMoved.photoRegistration.anchorError ).toBeLessThan( 2 )
-
-    const pairedTransforms = await page.evaluate( () => [
-      getComputedStyle( document.querySelector( '.pool-pov-visual' ) ).transform,
-      getComputedStyle( document.querySelector( '.pool-pov-balls-canvas' ) ).transform,
-    ] )
-    expect( pairedTransforms[ 0 ] ).toBe( pairedTransforms[ 1 ] )
-    expect( pairedTransforms[ 0 ] ).not.toBe( 'none' )
 
     await page.evaluate( () => window.dispatchEvent( new Event( 'blur' ) ) )
     await page.waitForTimeout( 700 )
     const draftOneSettled = await readFramingSnapshot( page, draftOneCanvas )
     expect( draftOneSettled.hoverResponse.x ).toBeCloseTo( 0, 2 )
     expect( draftOneSettled.hoverResponse.y ).toBeCloseTo( 0, 2 )
-    expect( draftOneSettled.plateParallax.scale ).toBeCloseTo( 1, 4 )
     expect( draftOneSettled.eightBall.x ).toBeCloseTo( draftOneCenter.eightBall.x, 4 )
     expect( draftOneSettled.eightBall.y ).toBeCloseTo( draftOneCenter.eightBall.y, 4 )
 
@@ -494,8 +483,6 @@ test( 'Draft 1 clears hover state when resizing from desktop to portrait', async
     // Resizing keeps the same hardware capability but must clear the old desktop coordinate.
     expect( portrait.hoverResponse.x ).toBeCloseTo( 0, 3 )
     expect( portrait.hoverResponse.y ).toBeCloseTo( 0, 3 )
-    expect( portrait.plateParallax.x ).toBeCloseTo( 0, 3 )
-    expect( portrait.plateParallax.y ).toBeCloseTo( 0, 3 )
     expect( portrait.photoPlateLocked ).toBe( true )
     expect( portrait.rackApex.x ).toBeCloseTo( 0.5, 4 )
     expect( portrait.progress ).toBeCloseTo( progress, 3 )
@@ -505,8 +492,6 @@ test( 'Draft 1 clears hover state when resizing from desktop to portrait', async
     const landscape = await readFramingSnapshot( page, draftOneCanvas )
     expect( landscape.hoverResponse.x ).toBeCloseTo( 0, 3 )
     expect( landscape.hoverResponse.y ).toBeCloseTo( 0, 3 )
-    expect( landscape.plateParallax.x ).toBeCloseTo( 0, 3 )
-    expect( landscape.plateParallax.y ).toBeCloseTo( 0, 3 )
     expect( landscape.progress ).toBeCloseTo( progress, 3 )
   }
   finally
@@ -535,7 +520,6 @@ test( 'Draft 1 keeps hover neutral and idle with reduced motion', async ( { brow
 
     const reduced = await readFramingSnapshot( page, draftOneCanvas )
     expect( reduced.hoverResponse ).toMatchObject( { enabled: false, x: 0, y: 0, strength: 0 } )
-    expect( reduced.plateParallax ).toMatchObject( { enabled: false, x: 0, y: 0, scale: 1 } )
     expect( reduced.photoRegistration.anchorError ).toBeLessThan( 2 )
 
     await page.evaluate( () =>

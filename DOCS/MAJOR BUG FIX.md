@@ -1,28 +1,29 @@
 # Major Bug Fixes
 
-## Draft 1 (3D POV) grounded mouse hover response (01/09/2026, 10:39 PM)
+## Draft 1 (3D POV) restored grounded camera hover (02/09/2026, 01:24 AM)
 
 ### Problem
 
-Draft 1 uses a fixed photographic table plate. Moving only its WebGL camera on mouse hover shifts the 8-ball away from the photographed table and makes it appear to float. Mobile and touch inputs also must not leave a stale hover offset.
+Draft 1's previous hover treatment translated and scaled the photograph and transparent canvas together. That made the parallax read as a flat background zoom instead of the 3D 8-ball responding to the pointer. Mobile and touch inputs also must not leave a stale camera offset.
 
 ### Fix
 
-- Kept Draft 1 camera parallax disabled by the `lockToPlate` framing contract.
-- Routed fine-pointer hover through the existing demand scheduler as a bounded key-light and striker-reflection response, keeping ball geometry and photo anchors fixed.
+- Kept Draft 1's Story track locked to the calibrated photo while allowing the shared bounded camera/target pointer offsets to orbit the WebGL ball layer.
+- Removed the paired CSS plate transform so hover moves the rendered 3D ball and its contact shadow, not a flat table/background layer.
+- Added Draft 2-style soft contact shadows for all 16 balls, including the 8-ball, so camera movement retains a visible felt contact cue.
 - Reset hover on pointer exit, blur, resize, capability changes, Draft deactivation, and touch/mobile input.
-- Updated unit and browser framing tests in `cameraFraming.test.js` and `draft2-benchmark.spec.js`.
+- Updated unit and browser framing tests in `cameraFraming.test.js` and `draft2-benchmark.spec.js` to require projected 8-ball movement and a locked Story track.
 
 ### Files Changed
 
 - [src/drafts/PoolPovDraft.jsx](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/PoolPovDraft.jsx)
-  - Modified — [line 487](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/PoolPovDraft.jsx:487) samples fine-pointer hover without moving the plate-locked camera.
-  - Modified — [line 524](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/PoolPovDraft.jsx:524) applies bounded light and striker-reflection response.
+  - Modified — samples fine-pointer hover through the shared 3D camera framing contract.
+  - Added — creates and updates 16 felt contact-shadow planes with the deterministic ball state.
 - [src/drafts/cameraFraming.js](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/cameraFraming.js)
-  - Modified — [line 256](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/cameraFraming.js:256) rejects pointer camera offsets when `lockToPlate` is active.
-  - Modified — [line 119](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/cameraFraming.js:119) clears stale pointer state on exit, blur, resize, and touch input.
+  - Modified — keeps the Story track plate-locked while applying bounded pointer camera/target offsets to the transparent 3D layer.
+  - Modified — clears stale pointer state on exit, blur, resize, and touch input.
 - [src/drafts/cameraFraming.test.js](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/cameraFraming.test.js)
-  - Modified — [line 73](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/cameraFraming.test.js:73) verifies pointer changes cannot move photo-plate framing.
+  - Modified — verifies pointer camera parallax moves the 3D layer without advancing the locked Story track.
 
 ## Reduced speed of Phase 2 cue strike and rack break animation (24/08/2026, 02:24 AM)
 

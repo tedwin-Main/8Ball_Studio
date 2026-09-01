@@ -4,11 +4,7 @@ import {
   CAMERA_POINTER_DAMPING,
   createPointerParallax,
   DRAFT2_SCENE_SCALE,
-  PHOTO_PLATE_PARALLAX_OFFSET_X,
-  PHOTO_PLATE_PARALLAX_OFFSET_Y,
-  PHOTO_PLATE_PARALLAX_SCALE,
   resolveIntroCameraFraming,
-  resolvePhotoPlateParallax,
   resolvePhotoHoverResponse,
 } from './cameraFraming.js'
 
@@ -76,7 +72,7 @@ test( 'fine-pointer parallax uses the shared bounded offsets and damping contrac
   assertClose( moved.target[ 1 ] - centered.target[ 1 ], -0.02 )
 } )
 
-test( 'photo-plate framing keeps table depth fixed when pointer input changes', () =>
+test( 'photo-plate framing keeps table track fixed while pointer camera parallax moves the 3D layer', () =>
 {
   const start = resolveIntroCameraFraming( {
     progress: 0,
@@ -119,12 +115,14 @@ test( 'photo-plate framing keeps table depth fixed when pointer input changes', 
   assert.deepEqual( impact.target, start.target )
   assert.equal( start.trackProgress, 0 )
   assert.equal( impact.trackProgress, 0 )
-  assert.equal( start.pointerEnabled, false )
-  assert.equal( moved.pointerEnabled, false )
-  assert.equal( moved.pointerX, 0 )
-  assert.equal( moved.pointerY, 0 )
-  assert.deepEqual( moved.camera, start.camera )
-  assert.deepEqual( moved.target, start.target )
+  assert.equal( start.pointerEnabled, true )
+  assert.equal( moved.pointerEnabled, true )
+  assert.equal( moved.pointerX, 1 )
+  assert.equal( moved.pointerY, -1 )
+  assertClose( moved.camera[ 0 ] - start.camera[ 0 ], 0.12 / DRAFT2_SCENE_SCALE )
+  assertClose( moved.camera[ 1 ] - start.camera[ 1 ], -0.05 / DRAFT2_SCENE_SCALE )
+  assertClose( moved.target[ 0 ] - start.target[ 0 ], 0.05 / DRAFT2_SCENE_SCALE )
+  assertClose( moved.target[ 1 ] - start.target[ 1 ], -0.02 / DRAFT2_SCENE_SCALE )
   assert.notDeepEqual( tracked.camera, start.camera )
 } )
 
@@ -151,33 +149,6 @@ test( 'photo hover response stays neutral on mobile and bounded on fine pointers
   assert.equal( edge.x, 1 )
   assert.equal( edge.y, -1 )
   assert.equal( edge.strength, 1 )
-} )
-
-test( 'photo plate parallax is paired, bounded, and neutral without hover capability', () =>
-{
-  const mobile = resolvePhotoPlateParallax( {
-    pointerX: 1,
-    pointerY: -1,
-    pointerEnabled: false,
-  } )
-  const edge = resolvePhotoPlateParallax( {
-    pointerX: 1,
-    pointerY: -1,
-    pointerEnabled: true,
-  } )
-  const center = resolvePhotoPlateParallax( { pointerEnabled: true } )
-
-  assert.deepEqual( mobile, {
-    enabled: false,
-    x: 0,
-    y: 0,
-    scale: 1,
-  } )
-  assert.equal( edge.enabled, true )
-  assert.equal( edge.x, -PHOTO_PLATE_PARALLAX_OFFSET_X )
-  assert.equal( edge.y, -PHOTO_PLATE_PARALLAX_OFFSET_Y )
-  assert.equal( edge.scale, PHOTO_PLATE_PARALLAX_SCALE )
-  assert.deepEqual( center, { enabled: true, x: 0, y: 0, scale: 1 } )
 } )
 
 test( 'pointer sampler ignores touch input and clears on blur', () =>

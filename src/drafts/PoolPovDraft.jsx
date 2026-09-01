@@ -12,7 +12,6 @@ import { STORY_TIMING } from '../storyTiming'
 import {
   createPointerParallax,
   DRAFT2_SCENE_SCALE,
-  resolvePhotoPlateParallax,
   resolveIntroCameraFraming,
   resolvePhotoHoverResponse,
 } from './cameraFraming'
@@ -411,7 +410,7 @@ const buildWorld = ( canvas, simulation, requestRender ) =>
   const setHoverResponse = ( nextResponse = resolvePhotoHoverResponse() ) =>
   {
     hoverResponse = nextResponse
-    // Move only the existing key light and 8-ball reflection response; the calibrated camera never moves.
+    // Keep the existing key light and 8-ball reflection response aligned with the camera hover cue.
     pendantSpot.position.set(
       baseLightPosition.x + nextResponse.x * 0.045,
       baseLightPosition.y + nextResponse.y * 0.035,
@@ -538,7 +537,7 @@ export function PoolPovDraft ( { active, onController } )
 
     const requestRender = () => scheduler.invalidate()
 
-    // Fine-pointer input shares Draft 2's bounded damping, but Draft 1 consumes it as plate-safe light response.
+    // Fine-pointer input shares Draft 2's bounded damping for the transparent 3D ball layer.
     const prefersReducedMotion = window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches
     const pointer = createPointerParallax( {
       windowObject: window,
@@ -549,23 +548,9 @@ export function PoolPovDraft ( { active, onController } )
       enabled: !prefersReducedMotion,
     } )
 
-    const setPhotoPlateParallax = ( response = resolvePhotoPlateParallax() ) =>
-    {
-      // Photo and WebGL layers share this transform, so hover never separates the ball from the felt.
-      root.style.setProperty( '--draft-plate-parallax-x', `${response.x.toFixed( 3 )}px` )
-      root.style.setProperty( '--draft-plate-parallax-y', `${response.y.toFixed( 3 )}px` )
-      root.style.setProperty( '--draft-plate-parallax-scale', String( response.scale ) )
-    }
-
     const renderScene = () =>
     {
       const state = sampleCinematicBreakState( progress, simulation )
-      const plateParallax = resolvePhotoPlateParallax( {
-        pointerX: pointer.state.x,
-        pointerY: pointer.state.y,
-        pointerEnabled: pointer.state.enabled,
-      } )
-      setPhotoPlateParallax( plateParallax )
 
       if ( world )
       {
@@ -640,7 +625,6 @@ export function PoolPovDraft ( { active, onController } )
             framing,
             photoRegistration,
             hoverResponse,
-            plateParallax,
           )
         }
         world.render()
@@ -683,7 +667,6 @@ export function PoolPovDraft ( { active, onController } )
           pointer.reset()
           // Clear the hidden Draft's light response so reactivation starts from neutral.
           world?.setHoverResponse( resolvePhotoHoverResponse() )
-          setPhotoPlateParallax( resolvePhotoPlateParallax() )
         }
 
         if ( isActive ) pointer.syncCapability()
