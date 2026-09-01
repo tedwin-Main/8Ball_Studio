@@ -4,6 +4,11 @@ const VIEWPORT = Object.freeze( { width: 1280, height: 800 } )
 const REPETITIONS = 3
 const SETTLED_CONFIRMATION_MS = 200
 const IDLE_OBSERVATION_MS = 500
+const POINTER_WARMUP_IDLE_MS = 250
+// Require a full observation window without paints before declaring renderer idle.
+const SETTLED_IDLE_QUIET_MS = IDLE_OBSERVATION_MS
+const MAX_SETTLED_IDLE_WAIT_MS = 3_500
+const MAX_SETTLED_CONFIRMATION_PAINTS = 180
 const MAX_TRANSITION_MS = 2_500
 const MAX_PAINT_INTERVAL_MS = 35
 
@@ -204,6 +209,56 @@ const waitForStableStudio = async ( page, draft ) =>
   await expect( page.locator( draft.selector ) ).toHaveAttribute( 'data-webgl-progress', '1.0000' )
 }
 
+const waitForWarmupIdle = async ( page, draft ) =>
+{
+  await page.waitForFunction( ( { selector, quietWindowMs } ) =>
+  {
+    const root = document.querySelector( selector )
+    const renderAt = root?.dataset.webglRenderAt
+    if ( !renderAt ) return false
+
+    const sample = window.__draftCadenceWarmupSample || {
+      renderAt,
+      changedAt: performance.now(),
+    }
+    if ( sample.renderAt !== renderAt )
+    {
+      sample.renderAt = renderAt
+      sample.changedAt = performance.now()
+    }
+    window.__draftCadenceWarmupSample = sample
+    // Do not let Draft 2's initial pointer damping leak into the Story gesture sample.
+    return performance.now() - sample.changedAt >= quietWindowMs
+  }, { selector: draft.selector, quietWindowMs: POINTER_WARMUP_IDLE_MS }, { timeout: 5_000, polling: 50 } )
+}
+
+const waitForSettledPaintIdle = async ( page, draft ) =>
+{
+  await page.evaluate( () => { window.__draftCadenceIdleSample = null } )
+  await page.waitForFunction( ( { selector, quietWindowMs } ) =>
+  {
+    const root = document.querySelector( selector )
+    const renderAt = root?.dataset.webglRenderAt
+    if ( !renderAt ) return false
+
+    const sample = window.__draftCadenceIdleSample || {
+      renderAt,
+      changedAt: performance.now(),
+    }
+    if ( sample.renderAt !== renderAt )
+    {
+      sample.renderAt = renderAt
+      sample.changedAt = performance.now()
+    }
+    window.__draftCadenceIdleSample = sample
+    // Pointer damping and settled quality may legitimately add frames after Story state settles.
+    return performance.now() - sample.changedAt >= quietWindowMs
+  }, { selector: draft.selector, quietWindowMs: SETTLED_IDLE_QUIET_MS }, {
+    timeout: MAX_SETTLED_IDLE_WAIT_MS,
+    polling: 50,
+  } )
+}
+
 const getNearestFrameCount = ( frameTimes, timestamps ) =>
 {
   if ( frameTimes.length === 0 ) return 0
@@ -302,11 +357,11 @@ const runMeasurement = async ( browser, baseURL, draft ) =>
       height: VIEWPORT.height,
     } )
 
-    // Warm shaders, textures, and the production preview before measuring the gesture.
-    await page.waitForTimeout( 900 )
-    // Center the pointer before sampling so Draft 2's initial parallax sync is not counted as Story motion.
+    // Center the pointer before warm-up so Draft 2's damping can settle outside the measurement window.
     await page.mouse.move( VIEWPORT.width / 2, VIEWPORT.height / 2 )
-    await page.waitForTimeout( 50 )
+    // Warm shaders, textures, the pointer state, and the production preview before measuring the gesture.
+    await page.waitForTimeout( 900 )
+    await waitForWarmupIdle( page, draft )
     await page.evaluate( () => window.__draftCadenceProbe.start() )
     const gestureStart = await page.evaluate( () => performance.now() )
     await page.mouse.wheel( 0, await getSingleGestureDelta( page ) )
@@ -320,17 +375,22 @@ const runMeasurement = async ( browser, baseURL, draft ) =>
     const confirmation = await page.evaluate( () => window.__draftCadenceProbe.snapshot() )
     const measurement = measureCadence( confirmation, draft )
     measurement.transitionDurationMs = settledAt - gestureStart
+    await waitForSettledPaintIdle( page, draft )
+    const idleStartAt = await page.evaluate( () => performance.now() )
+    const idleStart = await page.evaluate( () => window.__draftCadenceProbe.snapshot() )
     await page.waitForTimeout( IDLE_OBSERVATION_MS )
     const idle = await page.evaluate( () => window.__draftCadenceProbe.stop() )
-    measurement.confirmationPaintCount = confirmation.paints.filter( ( paint ) => paint.selector === draft.id ).length
+    measurement.confirmationPaintCount = idleStart.paints.filter( ( paint ) => paint.selector === draft.id ).length
       - settledSnapshot.paints.filter( ( paint ) => paint.selector === draft.id ).length
     measurement.idlePaintCount = idle.paints.filter( ( paint ) => paint.selector === draft.id ).length
-      - confirmation.paints.filter( ( paint ) => paint.selector === draft.id ).length
+      - idleStart.paints.filter( ( paint ) => paint.selector === draft.id ).length
+    measurement.settledIdleWaitMs = idleStartAt - settledAt
     measurement.wheelCount = idle.wheelEvents.filter( ( event ) => event.deltaY > 0 ).length
     measurement.progressUpdateCount = idle.progressUpdates.filter( ( entry ) => entry.selector === draft.id ).length
     measurement.idleSnapshot = {
       confirmationPaints: measurement.confirmationPaintCount,
       paintsAfterConfirmation: measurement.idlePaintCount,
+      settledIdleWaitMs: measurement.settledIdleWaitMs,
     }
 
     return measurement
@@ -381,6 +441,8 @@ test( 'Draft 1 and Draft 2 keep comparable paint cadence during one real DPR2 St
   expect( allMeasurements.every( ( measurement ) => measurement.transitionDurationMs > 0 ) ).toBe( true )
   expect( allMeasurements.every( ( measurement ) => measurement.transitionDurationMs <= MAX_TRANSITION_MS ) ).toBe( true )
   expect( allMeasurements.every( ( measurement ) => measurement.finalPaintProgress === null || measurement.finalPaintProgress >= 0.999 ) ).toBe( true )
+  expect( allMeasurements.every( ( measurement ) => measurement.confirmationPaintCount <= MAX_SETTLED_CONFIRMATION_PAINTS ) ).toBe( true )
+  expect( allMeasurements.every( ( measurement ) => measurement.settledIdleWaitMs <= MAX_SETTLED_IDLE_WAIT_MS ) ).toBe( true )
   expect( allMeasurements.every( ( measurement ) => measurement.idlePaintCount === 0 ) ).toBe( true )
   expect( allMeasurements.every( ( measurement ) => measurement.paintIntervals.p95Ms <= MAX_PAINT_INTERVAL_MS ) ).toBe( true )
 
