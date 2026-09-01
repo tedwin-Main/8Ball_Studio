@@ -22,6 +22,9 @@ import {
 const clamp = ( value, min = 0, max = 1 ) => Math.min( max, Math.max( min, value ) )
 const lerp = ( start, end, progress ) => start + ( end - start ) * progress
 
+// Match Draft 2's maximum backing density so Retina desktops do not pay excess fill rate.
+const DRAFT1_PIXEL_RATIO_CAP = 1.5
+
 const BALL_COLORS = [
   '#f5b818', '#1b46a2', '#cb242a', '#59287a', '#e76317',
   '#126d40', '#7a1d33', '#0a0c0a', '#f5b818', '#1b46a2',
@@ -381,9 +384,8 @@ const buildWorld = ( canvas, simulation ) =>
     tableRoot.scale.setScalar( plane.scale )
     pendantSpot.position.set( ...calibration.lightPosition )
 
-    // Cap fill rate on dense mobile screens while preserving ball material detail.
-    const pixelRatioCap = width <= 768 ? 1.5 : 2
-    const pixelRatio = Math.min( window.devicePixelRatio || 1, pixelRatioCap )
+    // Keep CSS size and camera framing unchanged while limiting internal render pixels.
+    const pixelRatio = Math.min( window.devicePixelRatio || 1, DRAFT1_PIXEL_RATIO_CAP )
     renderer.setPixelRatio( pixelRatio )
     renderer.setSize( width, height, false )
 
