@@ -18,6 +18,7 @@ import {
   isFramingDiagnosticsEnabled,
   publishFramingDiagnostics,
 } from './framingDiagnostics'
+import { createDemandFrameScheduler } from './demandFrameScheduler'
 
 const clamp = ( value, min = 0, max = 1 ) => Math.min( max, Math.max( min, value ) )
 const lerp = ( start, end, progress ) => start + ( end - start ) * progress
@@ -259,7 +260,7 @@ const createBallMaterial = ( color, texture ) => new THREE.MeshPhysicalMaterial(
   envMapIntensity: 0.78,
 } )
 
-const buildWorld = ( canvas, simulation ) =>
+const buildWorld = ( canvas, simulation, requestRender ) =>
 {
   const scene = new THREE.Scene()
   const camera = new THREE.PerspectiveCamera( 36, 1, 0.01, 40 )
@@ -278,7 +279,6 @@ const buildWorld = ( canvas, simulation ) =>
 
   const maximumAnisotropy = Math.min( 8, renderer.capabilities.getMaxAnisotropy() )
   const disposableTextures = new Set()
-  let renderWorld = () => {}
   const environmentTarget = createWarmEnvironment( renderer )
   scene.environment = environmentTarget.texture
   scene.environmentIntensity = 0.68
@@ -290,7 +290,7 @@ const buildWorld = ( canvas, simulation ) =>
   const ballGeometry = new THREE.SphereGeometry( radius, 48, 32 )
   const ballMeshes = []
 
-  const logoTexture = createLogoTexture( maximumAnisotropy, () => renderWorld() )
+  const logoTexture = createLogoTexture( maximumAnisotropy, requestRender )
   disposableTextures.add( logoTexture )
   const strikerMaterial = createBallMaterial( '#070807', null )
   const strikerMesh = new THREE.Mesh( ballGeometry, strikerMaterial )
@@ -365,8 +365,6 @@ const buildWorld = ( canvas, simulation ) =>
   {
     renderer.render( scene, camera )
   }
-  renderWorld = render
-
   const resize = () =>
   {
     const width = Math.max( 1, canvas.clientWidth || window.innerWidth )
@@ -438,15 +436,23 @@ export function PoolPovDraft ( { active, onController } )
     let world = null
     let isActive = active
     let progress = 0
-    let frame = 0
     let resizePending = true
     let destroyed = false
     let renderFrame = () => {}
+    let renderContinuation = false
     const diagnosticsEnabled = isFramingDiagnosticsEnabled( window )
+
+    const scheduler = createDemandFrameScheduler( {
+      active: isActive,
+      requestAnimationFrame: ( callback ) => window.requestAnimationFrame( callback ),
+      cancelAnimationFrame: ( handle ) => window.cancelAnimationFrame( handle ),
+      render: ( frameState ) => renderFrame( frameState ),
+      shouldContinue: () => renderContinuation,
+    } )
 
     try
     {
-      world = buildWorld( canvas, simulation )
+      world = buildWorld( canvas, simulation, () => scheduler.invalidate() )
       root.dataset.webglError = 'false'
     }
     catch ( error )
@@ -456,11 +462,7 @@ export function PoolPovDraft ( { active, onController } )
       console.warn( 'Cinematic pool overlay unavailable:', error )
     }
 
-    const requestRender = () =>
-    {
-      if ( destroyed || !isActive || !world || frame ) return
-      frame = window.requestAnimationFrame( renderFrame )
-    }
+    const requestRender = () => scheduler.invalidate()
 
     const pointer = createPointerParallax( {
       windowObject: window,
@@ -532,11 +534,17 @@ export function PoolPovDraft ( { active, onController } )
           )
         }
         world.render()
+        // Keep render-completion timing behind the existing benchmark seam so
+        // normal visitors pay no dataset mutation on each WebGL paint.
+        if ( diagnosticsEnabled ) root.dataset.webglRenderAt = performance.now().toFixed( 3 )
       }
 
       // Fade the photograph, lighting, and balls as one reversible composition.
       root.style.setProperty( '--draft-exit-opacity', String( state.opacity ) )
       root.dataset.phase = state.phase
+      // Draft 1 has no pointer or adaptive-quality loop, so only a pending
+      // resize can keep its demand-driven scheduler alive after this paint.
+      renderContinuation = resizePending
     }
 
     const updateScene = ( nextProgress ) =>
@@ -565,20 +573,18 @@ export function PoolPovDraft ( { active, onController } )
         root.setAttribute( 'aria-hidden', String( !isActive ) )
         if ( !isActive )
         {
-          if ( frame ) window.cancelAnimationFrame( frame )
-          frame = 0
           pointer.reset()
-          return
         }
 
-        pointer.syncCapability()
+        if ( isActive ) pointer.syncCapability()
+        scheduler.setActive( isActive )
         updateScene( progress )
       },
     }
 
     renderFrame = () =>
     {
-      frame = 0
+      renderContinuation = false
       if ( destroyed || !isActive || !world ) return
 
       if ( resizePending )
@@ -589,7 +595,7 @@ export function PoolPovDraft ( { active, onController } )
 
       renderScene()
 
-      if ( !pointer.advance() ) requestRender()
+      if ( !pointer.advance() ) renderContinuation = true
     }
 
     controllerRef.current = controller
@@ -602,8 +608,7 @@ export function PoolPovDraft ( { active, onController } )
     return () =>
     {
       destroyed = true
-      if ( frame ) window.cancelAnimationFrame( frame )
-      frame = 0
+      scheduler.destroy()
       pointer.removeListeners()
       canvas.removeEventListener( 'webglcontextlost', handleContextLost )
       onController?.( null )

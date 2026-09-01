@@ -25,6 +25,7 @@ import {
   isFramingDiagnosticsEnabled,
   publishFramingDiagnostics,
 } from './framingDiagnostics'
+import { createDemandFrameScheduler } from './demandFrameScheduler'
 
 const clamp = ( value, min = 0, max = 1 ) => Math.min( max, Math.max( min, value ) )
 const lerp = ( start, end, progress ) => start + ( end - start ) * progress
@@ -1220,23 +1221,26 @@ export function WebglPoolDraft ( {
     const simulation = getBreakSimulation()
 
     let world = null
-    let frame = 0
     let isActive = active
     let progress = 0
     let failed = false
     let resizePending = true
     let destroyed = false
     let renderFrame = () => {}
+    let renderContinuation = false
     let lastRenderedProgress = null
     let stableProgressFrames = 0
     const diagnosticsEnabled = isFramingDiagnosticsEnabled( window )
 
-    // One RAF owns every WebGL repaint; callers only mark the latest state dirty.
-    const requestRender = () =>
-    {
-      if ( destroyed || failed || !world || !isActive || frame ) return
-      frame = window.requestAnimationFrame( renderFrame )
-    }
+    // One scheduler owns every WebGL repaint; callers only mark the latest state dirty.
+    const scheduler = createDemandFrameScheduler( {
+      active: isActive,
+      requestAnimationFrame: ( callback ) => window.requestAnimationFrame( callback ),
+      cancelAnimationFrame: ( handle ) => window.cancelAnimationFrame( handle ),
+      render: ( frameState ) => renderFrame( frameState ),
+      shouldContinue: () => renderContinuation,
+    } )
+    const requestRender = () => scheduler.invalidate()
 
     const pointer = createPointerParallax( {
       windowObject: window,
@@ -1365,7 +1369,7 @@ export function WebglPoolDraft ( {
 
     renderFrame = () =>
     {
-      frame = 0
+      renderContinuation = false
       if ( destroyed || !isActive || failed || !world ) return
 
       if ( resizePending )
@@ -1395,9 +1399,10 @@ export function WebglPoolDraft ( {
         // Apply a pending tier only after motion settles; the next scheduler frame picks up
         // the new DPR/effects/shadow target without popping during a swipe or break gesture.
         resizePending = true
-        requestRender()
       }
-      if ( !pointerSettled || world.hasPendingQuality() ) requestRender()
+      // Pointer damping, a settled quality change, or a resize are renderer-owned
+      // continuations. The shared scheduler keeps them alive until all settle.
+      renderContinuation = !pointerSettled || resizePending || world.hasPendingQuality()
     }
 
     const controller = {
@@ -1415,15 +1420,12 @@ export function WebglPoolDraft ( {
         root.setAttribute( 'aria-hidden', String( !nextActive && !showFallback ) )
         if ( !nextActive )
         {
-          if ( frame ) window.cancelAnimationFrame( frame )
-          frame = 0
           pointer.reset()
-          return
         }
 
-        pointer.syncCapability()
+        if ( nextActive ) pointer.syncCapability()
         // Activation paints the latest progress on the next frame, then idles again when settled.
-        requestRender()
+        scheduler.setActive( nextActive )
       },
     }
 
@@ -1439,8 +1441,7 @@ export function WebglPoolDraft ( {
     return () =>
     {
       destroyed = true
-      if ( frame ) window.cancelAnimationFrame( frame )
-      frame = 0
+      scheduler.destroy()
       pointer.removeListeners()
       onController?.( null )
       if ( controllerRef.current === controller ) controllerRef.current = null
