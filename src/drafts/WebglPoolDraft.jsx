@@ -281,9 +281,11 @@ const createPoolBallTexture = ( color, number, width, height, anisotropy = 16 ) 
  * Procedural Simonis 860 worsted wool microfiber cloth textures.
  * Generates interwoven warp/weft yarn bundles with twisted ply striations, micro-fiber nap fuzz,
  * and tangent-space normal gradients. The map set stays deliberately small: one albedo, one
- * normal, and one roughness texture can serve both the bed and cushion materials.
+ * normal, and one roughness texture can serve both the bed and cushion materials. The map
+ * frequencies are separated so broad dye variation survives mipmapping while the weave stays
+ * fine at grazing angles.
  */
-const createFeltTextures = ( anisotropy = 16, repeatX = 38.4, repeatY = 76.8 ) =>
+const createFeltTextures = ( anisotropy = 16, microRepeatX = 38.4, microRepeatY = 76.8 ) =>
 {
   const width = 512
   const height = 512
@@ -371,7 +373,7 @@ const createFeltTextures = ( anisotropy = 16, repeatX = 38.4, repeatY = 76.8 ) =
   // Step 2: Compute tangent-space normals from height gradient, plus albedo and roughness maps
   // Keep the weave below the silhouette scale; the grazing light should reveal it without
   // turning the table into a visibly embossed grid.
-  const normalStrength = 1.4
+  const normalStrength = 0.9
   for ( let y = 0; y < height; y += 1 )
   {
     const ym1 = ( y - 1 + height ) % height
@@ -406,17 +408,17 @@ const createFeltTextures = ( anisotropy = 16, repeatX = 38.4, repeatY = 76.8 ) =
       const h = heightMap[ idx ]
       // Low-frequency organic dye mottling
       const dyeShift = Math.sin( x * 0.035 ) * Math.cos( y * 0.035 ) * 4
-      const r = Math.max( 0, Math.min( 255, Math.round( 10 + h * 19 + dyeShift * 0.7 ) ) )
-      const g = Math.max( 0, Math.min( 255, Math.round( 46 + h * 64 + dyeShift * 1.15 ) ) )
-      const b = Math.max( 0, Math.min( 255, Math.round( 31 + h * 40 + dyeShift * 0.8 ) ) )
+      const r = Math.max( 0, Math.min( 255, Math.round( 10 + h * 5 + dyeShift * 0.5 ) ) )
+      const g = Math.max( 0, Math.min( 255, Math.round( 45 + h * 14 + dyeShift * 0.8 ) ) )
+      const b = Math.max( 0, Math.min( 255, Math.round( 30 + h * 9 + dyeShift * 0.6 ) ) )
 
       albedoData[ pixelIdx ] = r
       albedoData[ pixelIdx + 1 ] = g
       albedoData[ pixelIdx + 2 ] = b
       albedoData[ pixelIdx + 3 ] = 255
 
-      // Roughness Map: 0.82 on yarn crests, up to 0.98 in crevices.
-      const roughnessVal = Math.round( ( 0.98 - h * 0.16 ) * 255 )
+      // Roughness Map: broad nap response with only a small yarn-to-yarn difference.
+      const roughnessVal = Math.round( ( 0.96 - h * 0.05 + dyeShift * 0.002 ) * 255 )
       roughnessData[ pixelIdx ] = roughnessVal
       roughnessData[ pixelIdx + 1 ] = roughnessVal
       roughnessData[ pixelIdx + 2 ] = roughnessVal
@@ -437,13 +439,17 @@ const createFeltTextures = ( anisotropy = 16, repeatX = 38.4, repeatY = 76.8 ) =
   {
     texture.wrapS = THREE.RepeatWrapping
     texture.wrapT = THREE.RepeatWrapping
-    texture.repeat.set( repeatX, repeatY )
     texture.anisotropy = anisotropy
-    // Mipmaps keep the 64x64 weave stable at distance while linear filtering avoids hard tile edges.
+    // Mipmaps keep the woven surface stable at distance while linear filtering avoids hard tile edges.
     texture.generateMipmaps = true
     texture.minFilter = THREE.LinearMipmapLinearFilter
     texture.magFilter = THREE.LinearFilter
   } )
+
+  // Use different world-frequency bands: macro color, mid-scale nap, and fine weave detail.
+  map.repeat.set( Math.max( 1, microRepeatX / 16 ), Math.max( 1, microRepeatY / 16 ) )
+  roughnessMap.repeat.set( Math.max( 1, microRepeatX / 8 ), Math.max( 1, microRepeatY / 8 ) )
+  normalMap.repeat.set( microRepeatX, microRepeatY )
 
   map.colorSpace = THREE.SRGBColorSpace
   normalMap.colorSpace = THREE.NoColorSpace
@@ -641,9 +647,9 @@ const createEbonizedWoodTextures = ( anisotropy = 16 ) =>
 
       // Ebonizing leaves a warm brown undertone in the highlights rather than dead RGB black.
       const value = 0.5 + grain * 0.5 + secondary * 0.12
-      albedoImage.data[ pixelIdx ] = Math.round( 13 + value * 9 )
-      albedoImage.data[ pixelIdx + 1 ] = Math.round( 9 + value * 6 )
-      albedoImage.data[ pixelIdx + 2 ] = Math.round( 7 + value * 5 )
+      albedoImage.data[ pixelIdx ] = Math.round( 34 + value * 30 )
+      albedoImage.data[ pixelIdx + 1 ] = Math.round( 23 + value * 22 )
+      albedoImage.data[ pixelIdx + 2 ] = Math.round( 16 + value * 17 )
       albedoImage.data[ pixelIdx + 3 ] = 255
 
       const roughness = 0.78 - grain * 0.06
@@ -688,6 +694,106 @@ const createEbonizedWoodTextures = ( anisotropy = 16 ) =>
     texture.wrapS = THREE.RepeatWrapping
     texture.wrapT = THREE.RepeatWrapping
     texture.repeat.set( 3.5, 1.5 )
+    texture.anisotropy = anisotropy
+    texture.generateMipmaps = true
+    texture.minFilter = THREE.LinearMipmapLinearFilter
+    texture.magFilter = THREE.LinearFilter
+  } )
+
+  map.colorSpace = THREE.SRGBColorSpace
+  normalMap.colorSpace = THREE.NoColorSpace
+  roughnessMap.colorSpace = THREE.NoColorSpace
+  return { map, normalMap, roughnessMap }
+}
+
+/**
+ * Small shared leather maps give each pocket a readable lining without allocating one texture
+ * per aperture. The low-frequency grain keeps the deep cavity from becoming a flat black void.
+ */
+const createPocketLeatherTextures = ( anisotropy = 16 ) =>
+{
+  const size = 128
+  const canvas = document.createElement( 'canvas' )
+  const normalCanvas = document.createElement( 'canvas' )
+  const roughnessCanvas = document.createElement( 'canvas' )
+  canvas.width = size
+  canvas.height = size
+  normalCanvas.width = size
+  normalCanvas.height = size
+  roughnessCanvas.width = size
+  roughnessCanvas.height = size
+
+  const context = canvas.getContext( '2d' )
+  const normalContext = normalCanvas.getContext( '2d' )
+  const roughnessContext = roughnessCanvas.getContext( '2d' )
+  const albedoImage = context.createImageData( size, size )
+  const normalImage = normalContext.createImageData( size, size )
+  const roughnessImage = roughnessContext.createImageData( size, size )
+  const heightMap = new Float32Array( size * size )
+
+  // Saddle leather has broad grain, then small pores that catch a little of the cavity fill.
+  for ( let y = 0; y < size; y += 1 )
+  {
+    for ( let x = 0; x < size; x += 1 )
+    {
+      const grain = Math.sin( ( x * 0.06 + Math.sin( y * 0.08 ) * 1.6 ) * Math.PI * 2 ) * 0.035
+      const pores = Math.sin( ( x * 0.31 + y * 0.23 ) * Math.PI * 2 ) * 0.012
+      const height = 0.5 + grain + pores
+      const idx = y * size + x
+      const pixelIdx = idx * 4
+      heightMap[ idx ] = height
+
+      const value = 0.5 + grain * 4 + pores * 2
+      // Keep the map neutral; the material color supplies the dark saddle-brown base.
+      albedoImage.data[ pixelIdx ] = Math.round( 178 + value * 36 )
+      albedoImage.data[ pixelIdx + 1 ] = Math.round( 174 + value * 32 )
+      albedoImage.data[ pixelIdx + 2 ] = Math.round( 168 + value * 28 )
+      albedoImage.data[ pixelIdx + 3 ] = 255
+
+      const roughness = 0.72 - grain * 0.7 - pores * 0.5
+      const roughnessValue = Math.round( Math.max( 0.62, Math.min( 0.86, roughness ) ) * 255 )
+      roughnessImage.data[ pixelIdx ] = roughnessValue
+      roughnessImage.data[ pixelIdx + 1 ] = roughnessValue
+      roughnessImage.data[ pixelIdx + 2 ] = roughnessValue
+      roughnessImage.data[ pixelIdx + 3 ] = 255
+    }
+  }
+
+  const normalStrength = 0.58
+  for ( let y = 0; y < size; y += 1 )
+  {
+    const ym1 = ( y - 1 + size ) % size
+    const yp1 = ( y + 1 ) % size
+
+    for ( let x = 0; x < size; x += 1 )
+    {
+      const xm1 = ( x - 1 + size ) % size
+      const xp1 = ( x + 1 ) % size
+      const idx = y * size + x
+      const pixelIdx = idx * 4
+      const dx = ( heightMap[ y * size + xp1 ] - heightMap[ y * size + xm1 ] ) * normalStrength
+      const dy = ( heightMap[ yp1 * size + x ] - heightMap[ ym1 * size + x ] ) * normalStrength
+      const len = Math.sqrt( dx * dx + dy * dy + 1 )
+
+      normalImage.data[ pixelIdx ] = Math.round( ( -dx / len * 0.5 + 0.5 ) * 255 )
+      normalImage.data[ pixelIdx + 1 ] = Math.round( ( -dy / len * 0.5 + 0.5 ) * 255 )
+      normalImage.data[ pixelIdx + 2 ] = Math.round( ( 1 / len * 0.5 + 0.5 ) * 255 )
+      normalImage.data[ pixelIdx + 3 ] = 255
+    }
+  }
+
+  context.putImageData( albedoImage, 0, 0 )
+  normalContext.putImageData( normalImage, 0, 0 )
+  roughnessContext.putImageData( roughnessImage, 0, 0 )
+
+  const map = new THREE.CanvasTexture( canvas )
+  const normalMap = new THREE.CanvasTexture( normalCanvas )
+  const roughnessMap = new THREE.CanvasTexture( roughnessCanvas )
+  ;[ map, normalMap, roughnessMap ].forEach( ( texture ) =>
+  {
+    texture.wrapS = THREE.RepeatWrapping
+    texture.wrapT = THREE.RepeatWrapping
+    texture.repeat.set( 3, 5 )
     texture.anisotropy = anisotropy
     texture.generateMipmaps = true
     texture.minFilter = THREE.LinearMipmapLinearFilter
@@ -819,7 +925,8 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
 {
   const scene = new THREE.Scene()
   scene.background = new THREE.Color( '#040605' )
-  scene.fog = new THREE.FogExp2( '#040605', 0.018 )
+  // Keep the room atmospheric without extinguishing the far rail behind the rack.
+  scene.fog = new THREE.FogExp2( '#090d0b', 0.009 )
 
   const initialFraming = resolveIntroCameraFraming( {
     progress: 0,
@@ -838,8 +945,8 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
   } )
   renderer.outputColorSpace = THREE.SRGBColorSpace
   renderer.toneMapping = THREE.ACESFilmicToneMapping
-  // Exposure lifted to 1.15 for bright, crisp illumination across table and balls.
-  renderer.toneMappingExposure = 1.15
+  // Keep midtones rich enough for cloth and wood grain to survive the studio highlights.
+  renderer.toneMappingExposure = 0.95
   renderer.shadowMap.enabled = true
   // PCFShadowMap keeps the tuned contact-shadow bias while avoiding the deprecated soft-shadow path.
   renderer.shadowMap.type = THREE.PCFShadowMap
@@ -855,8 +962,8 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
   const ownTextures = ( ...textures ) => textures.forEach( ( texture ) => disposableTextures.add( texture ) )
   const environmentTarget = createWarmStudioEnvironment( renderer )
   scene.environment = environmentTarget.texture
-  // Increased environment intensity for richer ambient bounce and specular reflections.
-  scene.environmentIntensity = 0.72
+  // Reflections stay present, while direct lights carry the table's form and color.
+  scene.environmentIntensity = 0.48
 
   const table = new THREE.Group()
   scene.add( table )
@@ -892,23 +999,24 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
   } )
 
   // Slice 1: Simonis 860 worsted wool cloth with grazing sheen and micro-weave normal map.
-  const feltTextures = createFeltTextures( maxAnisotropy, 64, 64 )
+  // The table is 2:1, so square cloth threads need twice as many repeats along Z.
+  const feltTextures = createFeltTextures( maxAnisotropy, 16, 32 )
   ownTextures( ...Object.values( feltTextures ) )
   const feltMaterial = new THREE.MeshPhysicalMaterial( {
     map: feltTextures.map,
     normalMap: feltTextures.normalMap,
-    normalScale: new THREE.Vector2( 0.07, 0.07 ),
+    normalScale: new THREE.Vector2( 0.04, 0.04 ),
     roughnessMap: feltTextures.roughnessMap,
     // The roughness map already contains the full cloth range; avoid multiplying it down.
     roughness: 1.0,
     metalness: 0.0,
-    sheen: 0.45,
-    sheenRoughness: 0.75,
+    sheen: 0.34,
+    sheenRoughness: 0.82,
     sheenColor: new THREE.Color( 0x8caf99 ),
     // The albedo map is authored in the correct green; a white tint avoids double-darkening it.
     color: '#ffffff',
-    // Lifted envMapIntensity for softer, brighter cloth response under studio lighting.
-    envMapIntensity: 0.28,
+    // Reduced envMapIntensity keeps the cloth green while retaining a soft studio response.
+    envMapIntensity: 0.20,
     clearcoat: 0,
   } )
   const felt = new THREE.Mesh( createFeltGeometry(), feltMaterial )
@@ -983,7 +1091,7 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
   const cushionMaterial = new THREE.MeshPhysicalMaterial( {
     map: cushionTextures.map,
     normalMap: cushionTextures.normalMap,
-    normalScale: new THREE.Vector2( 0.08, 0.08 ),
+    normalScale: new THREE.Vector2( 0.075, 0.075 ),
     roughnessMap: cushionTextures.roughnessMap,
     roughness: 1.0,
     metalness: 0.0,
@@ -1009,22 +1117,38 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
     addRoundedBox( table, [ 0.38, 0.2, 7.6 ], [ x * 0.923, 0.48, 4.8 ], cushionMaterial, 0.08 )
   } )
 
-  // Slice 2: Recessed 3D pocket cylinders (depth: 8.5 units) with matte black interior & beveled collars
-  const pocketInteriorMaterial = new THREE.MeshStandardMaterial( {
-    color: '#050505',
-    roughness: 0.95,
+  // Slice 2: Recessed leather-lined pockets with a small metallic collar highlight.
+  const pocketLeatherTextures = createPocketLeatherTextures( maxAnisotropy )
+  ownTextures( ...Object.values( pocketLeatherTextures ) )
+  const pocketInteriorMaterial = new THREE.MeshPhysicalMaterial( {
+    map: pocketLeatherTextures.map,
+    normalMap: pocketLeatherTextures.normalMap,
+    normalScale: new THREE.Vector2( 0.22, 0.22 ),
+    roughnessMap: pocketLeatherTextures.roughnessMap,
+    color: '#25211c',
+    roughness: 0.68,
     metalness: 0.0,
+    envMapIntensity: 0.35,
     side: THREE.BackSide,
   } )
-  const pocketBottomMaterial = new THREE.MeshStandardMaterial( {
-    color: '#040404',
-    roughness: 0.98,
+  const pocketBottomMaterial = new THREE.MeshPhysicalMaterial( {
+    map: pocketLeatherTextures.map,
+    normalMap: pocketLeatherTextures.normalMap,
+    normalScale: new THREE.Vector2( 0.18, 0.18 ),
+    roughnessMap: pocketLeatherTextures.roughnessMap,
+    color: '#25211c',
+    roughness: 0.72,
     metalness: 0.0,
+    envMapIntensity: 0.28,
   } )
-  const pocketCollarMaterial = new THREE.MeshStandardMaterial( {
-    color: '#151412',
-    roughness: 0.86,
-    metalness: 0.0,
+  const pocketCollarMaterial = new THREE.MeshPhysicalMaterial( {
+    color: '#524b42',
+    metalness: 0.65,
+    roughness: 0.28,
+    clearcoat: 0.55,
+    clearcoatRoughness: 0.14,
+    ior: 1.52,
+    envMapIntensity: 0.6,
   } )
 
   POCKET_POSITIONS.forEach( ( [ x, z ] ) =>
@@ -1201,25 +1325,31 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
 
   // Slice 3: Studio Lighting Rig + Overhead RectAreaLight + Angled Chamfer Fills + Contact Shadows
   // Overhead luminaire provides bright, broad, diffused tournament table illumination.
-  const overheadRectLight = new THREE.RectAreaLight( 0xffffff, 2.75, 9.0, 16.0 )
-  overheadRectLight.position.set( 0, 6.8, 0 )
+  const overheadRectLight = new THREE.RectAreaLight( 0xffffff, 2.2, 8.5, 21.2 )
+  overheadRectLight.position.set( 0, 7.0, 0 )
   overheadRectLight.rotation.x = -Math.PI / 2
   scene.add( overheadRectLight )
 
   // Cool directional fill to illuminate the left cushions and pocket openings.
-  const leftChamferFill = new THREE.DirectionalLight( '#d4eae0', 0.45 )
+  const leftChamferFill = new THREE.DirectionalLight( '#d4eae0', 0.32 )
   leftChamferFill.position.set( -8.5, 3.8, 0 )
   leftChamferFill.target.position.set( 0, 0, 0 )
   scene.add( leftChamferFill, leftChamferFill.target )
 
   // Warm directional fill to bring out right rail textures and wood grain.
-  const rightChamferFill = new THREE.DirectionalLight( '#f0e6d6', 0.40 )
+  const rightChamferFill = new THREE.DirectionalLight( '#f0e6d6', 0.30 )
   rightChamferFill.position.set( 8.5, 3.8, 0 )
   rightChamferFill.target.position.set( 0, 0, 0 )
   scene.add( rightChamferFill, rightChamferFill.target )
 
+  // Local far-rail fill preserves the rack silhouette while lifting the cushion and sights.
+  const farRailFill = new THREE.DirectionalLight( '#dcf2e4', 0.95 )
+  farRailFill.position.set( 0, 6.2, -12.8 )
+  farRailFill.target.position.set( 0, 0.48, -9.68 )
+  scene.add( farRailFill, farRailFill.target )
+
   // Key directional light provides clear form definition, highlights, and crisp shadows.
-  const keyLight = new THREE.DirectionalLight( '#ffe8c2', 1.85 )
+  const keyLight = new THREE.DirectionalLight( '#ffe8c2', 1.35 )
   keyLight.position.set( -4.8, 8.8, 5.2 )
   keyLight.target.position.set( 0, 0, -2.5 )
   keyLight.castShadow = true
@@ -1235,18 +1365,18 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
   scene.add( keyLight, keyLight.target )
 
   // Overhead spotlight focuses radiance on the active rack and balls corridor.
-  const overheadSpot = new THREE.SpotLight( '#fff3da', 5.6, 26, Math.PI / 3.2, 0.8, 1.3 )
+  const overheadSpot = new THREE.SpotLight( '#fff3da', 4.2, 26, Math.PI / 3.2, 0.8, 1.3 )
   overheadSpot.position.set( 0, 8.5, -3.2 )
   overheadSpot.target.position.set( 0, 0, -3.2 )
   overheadSpot.castShadow = false
   scene.add( overheadSpot, overheadSpot.target )
 
   // Ambient felt bounce light softens dark shadows under balls and rail returns.
-  const feltBounce = new THREE.HemisphereLight( '#1c5e45', '#030504', 0.52 )
+  const feltBounce = new THREE.HemisphereLight( '#1c5e45', '#030504', 0.34 )
   scene.add( feltBounce )
 
   // Warm rim light sharpens ball silhouettes and gloss edge catchlights.
-  const rimLight = new THREE.DirectionalLight( '#df9654', 0.68 )
+  const rimLight = new THREE.DirectionalLight( '#df9654', 0.50 )
   rimLight.position.set( 5.5, 4.8, -7.5 )
   rimLight.target.position.set( 0, 0, -3 )
   scene.add( rimLight, rimLight.target )
