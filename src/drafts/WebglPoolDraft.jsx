@@ -16,71 +16,45 @@ import {
   getBreakSimulation,
   sampleDraft2BreakState,
 } from './poolBreakPhysics'
-import {
-  createPointerParallax,
-  DRAFT2_SCENE_SCALE,
-  resolveIntroCameraFraming,
-} from './cameraFraming'
-import {
-  isFramingDiagnosticsEnabled,
-  publishFramingDiagnostics,
-} from './framingDiagnostics'
-import { createDemandFrameScheduler } from './demandFrameScheduler'
-import { LIGHTING_CONTRACT, MATERIAL_CONTRACT, QUALITY_CONTRACT } from './renderContracts'
 
 const clamp = ( value, min = 0, max = 1 ) => Math.min( max, Math.max( min, value ) )
 const lerp = ( start, end, progress ) => start + ( end - start ) * progress
-
-const summarizeCadence = ( timestamps ) =>
-{
-  const intervals = timestamps.slice( 1 )
-    .map( ( timestamp, index ) => timestamp - timestamps[ index ] )
-    .filter( Number.isFinite )
-  if ( intervals.length === 0 ) return null
-  const sorted = [ ...intervals ].sort( ( left, right ) => left - right )
-  const percentile = ( ratio ) => sorted[ Math.min( sorted.length - 1, Math.ceil( sorted.length * ratio ) - 1 ) ]
-  return {
-    median: percentile( 0.5 ),
-    p95: percentile( 0.95 ),
-    rollingFps: timestamps.filter( ( timestamp ) => timestamps[ timestamps.length - 1 ] - timestamp <= 1000 ).length,
-  }
-}
 
 // Three measured tiers spend pixels and full-screen effects according to the device budget.
 // These caps only change internal render targets; the CSS canvas and camera framing stay fixed.
 const DRAFT2_QUALITY_TIERS = Object.freeze( {
   high: Object.freeze( {
     id: 'high',
-    pixelRatioCap: QUALITY_CONTRACT.high.pixelRatioCap,
-    shadowMapSize: QUALITY_CONTRACT.high.shadowMapSize,
-    useSsao: QUALITY_CONTRACT.high.ssao,
+    pixelRatioCap: 1.5,
+    shadowMapSize: 2048,
+    useSsao: true,
     renderBudgetMs: 20,
-    ballWidthSegments: QUALITY_CONTRACT.high.ball[ 0 ],
-    ballHeightSegments: QUALITY_CONTRACT.high.ball[ 1 ],
-    ballTextureWidth: QUALITY_CONTRACT.high.texture[ 0 ],
-    ballTextureHeight: QUALITY_CONTRACT.high.texture[ 1 ],
+    ballWidthSegments: 48,
+    ballHeightSegments: 28,
+    ballTextureWidth: 1024,
+    ballTextureHeight: 512,
   } ),
   standard: Object.freeze( {
     id: 'standard',
-    pixelRatioCap: QUALITY_CONTRACT.standard.pixelRatioCap,
-    shadowMapSize: QUALITY_CONTRACT.standard.shadowMapSize,
-    useSsao: QUALITY_CONTRACT.standard.ssao,
+    pixelRatioCap: 1.25,
+    shadowMapSize: 1536,
+    useSsao: true,
     renderBudgetMs: 24,
-    ballWidthSegments: QUALITY_CONTRACT.standard.ball[ 0 ],
-    ballHeightSegments: QUALITY_CONTRACT.standard.ball[ 1 ],
-    ballTextureWidth: QUALITY_CONTRACT.standard.texture[ 0 ],
-    ballTextureHeight: QUALITY_CONTRACT.standard.texture[ 1 ],
+    ballWidthSegments: 40,
+    ballHeightSegments: 24,
+    ballTextureWidth: 768,
+    ballTextureHeight: 384,
   } ),
   low: Object.freeze( {
     id: 'low',
-    pixelRatioCap: QUALITY_CONTRACT.low.pixelRatioCap,
-    shadowMapSize: QUALITY_CONTRACT.low.shadowMapSize,
-    useSsao: QUALITY_CONTRACT.low.ssao,
+    pixelRatioCap: 1,
+    shadowMapSize: 1024,
+    useSsao: false,
     renderBudgetMs: 32,
-    ballWidthSegments: QUALITY_CONTRACT.low.ball[ 0 ],
-    ballHeightSegments: QUALITY_CONTRACT.low.ball[ 1 ],
-    ballTextureWidth: QUALITY_CONTRACT.low.texture[ 0 ],
-    ballTextureHeight: QUALITY_CONTRACT.low.texture[ 1 ],
+    ballWidthSegments: 32,
+    ballHeightSegments: 20,
+    ballTextureWidth: 512,
+    ballTextureHeight: 256,
   } ),
 } )
 
@@ -130,7 +104,6 @@ const createQualityMonitor = ( initialTier, signals, applyTier ) =>
 {
   let currentTier = initialTier
   let pendingTier = null
-  let deferredTier = null
   let slowSamples = 0
   let healthySamples = 0
   const renderDurations = []
@@ -170,18 +143,7 @@ const createQualityMonitor = ( initialTier, signals, applyTier ) =>
     slowSamples = 0
     healthySamples = 0
     renderDurations.length = 0
-    // The monitor only commits the decision here. Resource work is flushed by the
-    // controller after the active render callback returns.
-    deferredTier = currentTier
-    return true
-  }
-
-  const flushPending = () =>
-  {
-    if ( !deferredTier ) return false
-    const tier = deferredTier
-    deferredTier = null
-    applyTier( tier )
+    applyTier( currentTier )
     return true
   }
 
@@ -219,10 +181,9 @@ const createQualityMonitor = ( initialTier, signals, applyTier ) =>
 
   return {
     get current () { return currentTier },
-    get pending () { return Boolean( pendingTier || deferredTier ) },
+    get pending () { return Boolean( pendingTier ) },
     observe,
     suggestFromSignals,
-    flushPending,
   }
 }
 
@@ -243,7 +204,7 @@ const RACK_BALL_NUMBERS = [
 // Dimensions aligned with standard 9-foot tournament table proportions scaled for WebGL scene
 const TABLE_WIDTH = 9.6
 const TABLE_LENGTH = 19.2
-const PHYSICS_SCALE = DRAFT2_SCENE_SCALE // Scale factor between SI-unit physics (2.54m) and WebGL table (19.2)
+const PHYSICS_SCALE = TABLE_LENGTH / 2.54 // Scale factor between SI-unit physics (2.54m) and WebGL table (19.2)
 const BALL_RADIUS = 0.035 * PHYSICS_SCALE // Scale ball radius proportionally (approx 0.2646)
 const POCKET_RADIUS = 0.54
 const ROOM_FLOOR_Z = -4
@@ -311,9 +272,11 @@ const createPoolBallTexture = ( color, number, width, height, anisotropy = 16 ) 
  * Generates interwoven warp/weft yarn bundles with twisted ply striations, micro-fiber nap fuzz,
  * and high-precision tangent-space normal gradients.
  */
-const createFeltTextures = ( anisotropy = 16, repeatX = 38.4, repeatY = 76.8, width = 512, height = 512 ) =>
+const createFeltTextures = ( anisotropy = 16, repeatX = 38.4, repeatY = 76.8 ) =>
 {
-  const numThreads = 32 // Keep the same weave frequency as the quality texture scales.
+  const width = 512
+  const height = 512
+  const numThreads = 32 // 16 pixels per yarn thread
   const threadSize = width / numThreads
 
   const canvas = document.createElement( 'canvas' )
@@ -401,8 +364,7 @@ const createFeltTextures = ( anisotropy = 16, repeatX = 38.4, repeatY = 76.8, wi
   }
 
   // Step 2: Compute tangent-space normals from height gradient, plus albedo and roughness maps
-  // Keep the weave below pixel-scale amplitude so oblique motion does not shimmer.
-  const normalStrength = 1.15
+  const normalStrength = 3.2
   for ( let y = 0; y < height; y += 1 )
   {
     const ym1 = ( y - 1 + height ) % height
@@ -433,13 +395,13 @@ const createFeltTextures = ( anisotropy = 16, repeatX = 38.4, repeatY = 76.8, wi
       normalData[ pixelIdx + 2 ] = Math.round( ( nz * 0.5 + 0.5 ) * 255 )
       normalData[ pixelIdx + 3 ] = 255
 
-      // Albedo Map: deep bottle felt with yarn crest illumination and crevice shadow.
+      // Albedo Map: Rich tournament green base (#0e4c36) with yarn crest illumination and crevice shadow
       const h = heightMap[ idx ]
       // Low-frequency organic dye mottling
       const dyeShift = Math.sin( x * 0.035 ) * Math.cos( y * 0.035 ) * 4
-      const r = Math.max( 0, Math.min( 255, Math.round( 5 + h * 18 + dyeShift ) ) )
-      const g = Math.max( 0, Math.min( 255, Math.round( 30 + h * 58 + dyeShift * 1.5 ) ) )
-      const b = Math.max( 0, Math.min( 255, Math.round( 22 + h * 42 + dyeShift ) ) )
+      const r = Math.max( 0, Math.min( 255, Math.round( 8 + h * 24 + dyeShift ) ) )
+      const g = Math.max( 0, Math.min( 255, Math.round( 48 + h * 76 + dyeShift * 1.5 ) ) )
+      const b = Math.max( 0, Math.min( 255, Math.round( 32 + h * 50 + dyeShift ) ) )
 
       albedoData[ pixelIdx ] = r
       albedoData[ pixelIdx + 1 ] = g
@@ -485,10 +447,6 @@ const createFeltTextures = ( anisotropy = 16, repeatX = 38.4, repeatY = 76.8, wi
   } )
 
   map.colorSpace = THREE.SRGBColorSpace
-  // Data textures carry linear values; only the albedo participates in sRGB decoding.
-  normalMap.colorSpace = THREE.NoColorSpace
-  roughnessMap.colorSpace = THREE.NoColorSpace
-  bumpMap.colorSpace = THREE.NoColorSpace
   return { map, normalMap, roughnessMap, bumpMap }
 }
 
@@ -607,7 +565,12 @@ const createWarmStudioEnvironment = ( renderer ) =>
 const createBallMaterial = ( color, texture ) => new THREE.MeshPhysicalMaterial( {
   color: texture ? '#ffffff' : color,
   map: texture,
-  ...MATERIAL_CONTRACT.ball,
+  roughness: 0.055,
+  metalness: 0,
+  clearcoat: 1.0,
+  clearcoatRoughness: 0.028,
+  ior: 1.54,
+  reflectivity: 0.84,
   envMapIntensity: 0.85,
 } )
 
@@ -673,14 +636,9 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
   scene.background = new THREE.Color( '#040605' )
   scene.fog = new THREE.FogExp2( '#040605', 0.018 )
 
-  const initialFraming = resolveIntroCameraFraming( {
-    progress: 0,
-    aspect: 1,
-    sourceScale: 1,
-  } )
-  const camera = new THREE.PerspectiveCamera( initialFraming.fov, 1, 0.1, 100 )
-  camera.position.set( ...initialFraming.camera )
-  camera.lookAt( ...initialFraming.target )
+  const camera = new THREE.PerspectiveCamera( 38, 1, 0.1, 100 )
+  camera.position.set( 0, 0.78, 0.5 * PHYSICS_SCALE + 2.05 )
+  camera.lookAt( 0, 0.18, -2.6 )
 
   const renderer = new THREE.WebGLRenderer( {
     canvas,
@@ -701,7 +659,6 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
   const initialHeight = canvas.clientHeight || window.innerHeight
   const initialQualitySignals = getDraft2QualitySignals( initialWidth, initialHeight )
   const initialQualityTier = selectDraft2QualityTier( initialQualitySignals )
-  const initialQuality = DRAFT2_QUALITY_TIERS[ initialQualityTier ]
   // Every generated canvas texture is tracked independently because material.dispose()
   // releases shader state but does not release the texture allocation.
   const disposableTextures = new Set()
@@ -709,19 +666,19 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
   const environmentTarget = createWarmStudioEnvironment( renderer )
   scene.environment = environmentTarget.texture
   // Keep indirect studio reflections present without reintroducing the washed-out felt baseline.
-  scene.environmentIntensity = 0.34
+  scene.environmentIntensity = 0.42
 
   const table = new THREE.Group()
   scene.add( table )
 
   const roomMaterial = new THREE.MeshStandardMaterial( {
-    color: '#111713',
-    roughness: 0.9,
+    color: '#101411',
+    roughness: 0.94,
     metalness: 0,
   } )
   const floorMaterial = new THREE.MeshStandardMaterial( {
-    color: '#191713',
-    roughness: 0.78,
+    color: '#141310',
+    roughness: 0.8,
     metalness: 0,
   } )
   const floor = new THREE.Mesh( createRoomFloorGeometry(), floorMaterial )
@@ -736,7 +693,7 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
   scene.add( backWall )
 
   const battenMaterial = new THREE.MeshStandardMaterial( {
-    color: '#252B25',
+    color: '#22261e',
     roughness: 0.72,
   } )
   ;[ -10, -6, -2, 2, 6, 10 ].forEach( ( x ) =>
@@ -745,27 +702,21 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
   } )
 
   // Slice 1: Simonis 860 worsted wool cloth with grazing sheen and micro-weave normal map.
-  let feltTextures = createFeltTextures(
-    maxAnisotropy,
-    64,
-    64,
-    initialQuality.ballTextureWidth,
-    initialQuality.ballTextureHeight,
-  )
+  const feltTextures = createFeltTextures( maxAnisotropy, 64, 64 )
   ownTextures( ...Object.values( feltTextures ) )
   const feltMaterial = new THREE.MeshPhysicalMaterial( {
     map: feltTextures.map,
     normalMap: feltTextures.normalMap,
-    normalScale: new THREE.Vector2( MATERIAL_CONTRACT.felt.normalStrength, MATERIAL_CONTRACT.felt.normalStrength ),
+    normalScale: new THREE.Vector2( 0.15, 0.15 ),
     roughnessMap: feltTextures.roughnessMap,
-    roughness: MATERIAL_CONTRACT.felt.roughness,
+    roughness: 0.82,
     metalness: 0.0,
-    sheen: MATERIAL_CONTRACT.felt.sheen,
-    sheenRoughness: MATERIAL_CONTRACT.felt.sheenRoughness,
-    sheenColor: new THREE.Color( '#79B8B2' ),
-    color: MATERIAL_CONTRACT.felt.color,
+    sheen: 1.0,
+    sheenRoughness: 0.4,
+    sheenColor: new THREE.Color( 0x73d994 ),
+    color: '#0e4c36',
     bumpMap: feltTextures.bumpMap,
-    bumpScale: MATERIAL_CONTRACT.felt.bumpScale,
+    bumpScale: 0.004,
     // Keep cloth sheen visible without letting the studio environment bleach the felt.
     envMapIntensity: 0.28,
     clearcoat: 0,
@@ -810,19 +761,22 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
 
   // Slice 2: Rails with dual-material separation (refined satin-piano black top rail + cloth cushion)
   const pianoBlackRailMaterial = new THREE.MeshPhysicalMaterial( {
-    ...MATERIAL_CONTRACT.rail,
+    color: '#08080a',
+    roughness: 0.1,
     metalness: 0.0,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.06,
     ior: 1.52,
     reflectivity: 0.72,
     // Keep the lacquer highlight controlled while the studio lights are tuned for the felt.
     envMapIntensity: 0.24,
   } )
   const apronMaterial = new THREE.MeshPhysicalMaterial( {
-    color: '#161B17',
-    roughness: 0.34,
+    color: '#0a0a0c',
+    roughness: 0.22,
     metalness: 0.0,
-    clearcoat: 0.52,
-    clearcoatRoughness: 0.16,
+    clearcoat: 0.7,
+    clearcoatRoughness: 0.12,
     envMapIntensity: 0.75,
   } )
   const cushionTextures = createFeltTextures( maxAnisotropy, 16, 16 )
@@ -830,14 +784,14 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
   const cushionMaterial = new THREE.MeshPhysicalMaterial( {
     map: cushionTextures.map,
     normalMap: cushionTextures.normalMap,
-    normalScale: new THREE.Vector2( MATERIAL_CONTRACT.felt.normalStrength, MATERIAL_CONTRACT.felt.normalStrength ),
+    normalScale: new THREE.Vector2( 0.15, 0.15 ),
     roughnessMap: cushionTextures.roughnessMap,
-    roughness: MATERIAL_CONTRACT.felt.roughness,
+    roughness: 0.82,
     metalness: 0.0,
-    sheen: MATERIAL_CONTRACT.felt.sheen,
-    sheenRoughness: MATERIAL_CONTRACT.felt.sheenRoughness,
-    sheenColor: new THREE.Color( '#79B8B2' ),
-    color: MATERIAL_CONTRACT.felt.color,
+    sheen: 1.0,
+    sheenRoughness: 0.4,
+    sheenColor: new THREE.Color( 0x73d994 ),
+    color: '#0e4c36',
     clearcoat: 0,
   } )
 
@@ -858,19 +812,19 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
 
   // Slice 2: Recessed 3D pocket cylinders (depth: 8.5 units) with matte black interior & beveled collars
   const pocketInteriorMaterial = new THREE.MeshStandardMaterial( {
-    color: MATERIAL_CONTRACT.pocket.interiorColor,
-    roughness: MATERIAL_CONTRACT.pocket.roughness,
+    color: '#050505',
+    roughness: 0.95,
     metalness: 0.0,
     side: THREE.BackSide,
   } )
   const pocketBottomMaterial = new THREE.MeshStandardMaterial( {
-    color: MATERIAL_CONTRACT.pocket.bottomColor,
-    roughness: 0.96,
+    color: '#040404',
+    roughness: 0.98,
     metalness: 0.0,
   } )
   const pocketCollarMaterial = new THREE.MeshStandardMaterial( {
-    color: MATERIAL_CONTRACT.pocket.collarColor,
-    roughness: 0.78,
+    color: '#151412',
+    roughness: 0.86,
     metalness: 0.0,
   } )
 
@@ -952,18 +906,15 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
   const ballShadows = []
 
   // Physics-driven Ball Mesh Generation (16 balls: 0 = striker, 1..15 = rack)
-  // Geometry is shared by all 16 balls. Tier changes replace it only after the
-  // quality monitor reports a settled frame, so motion never pops mid-break.
-  let ballQualityTierId = initialQualityTier
-  let ballTextureSize = `${initialQuality.ballTextureWidth}x${initialQuality.ballTextureHeight}`
-  let ballGeometry = new THREE.SphereGeometry(
+  // Geometry is shared by all 16 balls. It is selected once at mount so a settled
+  // screen-quality change never recreates meshes or causes a visual pop mid-break.
+  const ballQuality = DRAFT2_QUALITY_TIERS[ initialQualityTier ]
+  const ballGeometry = new THREE.SphereGeometry(
     BALL_RADIUS,
-    initialQuality.ballWidthSegments,
-    initialQuality.ballHeightSegments,
+    ballQuality.ballWidthSegments,
+    ballQuality.ballHeightSegments,
   )
   const ballMeshes = []
-  const rackBallEntries = []
-  const decalMeshes = []
   const disposableMaterials = []
 
   // Cue / Striker 8-Ball with double-sided front and back brand decals
@@ -983,7 +934,11 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
     map: logoTexture,
     color: '#ffffff',
     transparent: true,
-    ...MATERIAL_CONTRACT.decal,
+    roughness: 0.055,
+    metalness: 0,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.028,
+    ior: 1.54,
     depthTest: true,
     depthWrite: false,
     polygonOffset: true,
@@ -1004,7 +959,6 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
       decalMaterial,
     )
     decal.renderOrder = 2
-    decalMeshes.push( { mesh: decal, decalZ, yaw } )
     strikerGroup.add( decal )
   } )
   strikerGroup.add( strikerSphere )
@@ -1022,8 +976,8 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
     const texture = createPoolBallTexture(
       BALL_COLORS[ number - 1 ],
       number,
-      initialQuality.ballTextureWidth,
-      initialQuality.ballTextureHeight,
+      ballQuality.ballTextureWidth,
+      ballQuality.ballTextureHeight,
       maxAnisotropy,
     )
     ownTextures( texture )
@@ -1034,7 +988,6 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
     mesh.receiveShadow = true
     table.add( mesh )
     ballMeshes.push( mesh )
-    rackBallEntries.push( { mesh, material, color: BALL_COLORS[ number - 1 ], number } )
 
     const shadow = new THREE.Mesh( contactShadowGeometry, contactShadowMaterial )
     shadow.position.y = 0.001
@@ -1042,15 +995,24 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
     ballShadows.push( shadow )
   } )
 
-  // Three named roles keep the room readable: warm key, low ambient/environment fill, cool rear rim.
-  // RectAreaLight supplies the broad PBR reflection; its aligned directional proxy owns the only primary shadow.
-  const keyAreaLight = new THREE.RectAreaLight( LIGHTING_CONTRACT.key.color, 2.05, 6.2, 14.8 )
-  keyAreaLight.position.set( ...LIGHTING_CONTRACT.key.position )
-  keyAreaLight.lookAt( 0, 0, -2.5 )
-  scene.add( keyAreaLight )
+  // Slice 3: Studio Lighting Rig + Overhead RectAreaLight + Angled Chamfer Fills + Contact Shadows
+  const overheadRectLight = new THREE.RectAreaLight( 0xffffff, 2.4, 6.2, 14.8 )
+  overheadRectLight.position.set( 0, 6.8, 0 )
+  overheadRectLight.rotation.x = -Math.PI / 2
+  scene.add( overheadRectLight )
 
-  const keyLight = new THREE.DirectionalLight( LIGHTING_CONTRACT.key.color, LIGHTING_CONTRACT.key.intensity )
-  keyLight.position.set( ...LIGHTING_CONTRACT.key.position )
+  const leftChamferFill = new THREE.DirectionalLight( '#d4eae0', 0.28 )
+  leftChamferFill.position.set( -8.5, 3.8, 0 )
+  leftChamferFill.target.position.set( 0, 0, 0 )
+  scene.add( leftChamferFill, leftChamferFill.target )
+
+  const rightChamferFill = new THREE.DirectionalLight( '#f0e6d6', 0.24 )
+  rightChamferFill.position.set( 8.5, 3.8, 0 )
+  rightChamferFill.target.position.set( 0, 0, 0 )
+  scene.add( rightChamferFill, rightChamferFill.target )
+
+  const keyLight = new THREE.DirectionalLight( '#ffe8c2', 1.25 )
+  keyLight.position.set( -4.8, 8.8, 5.2 )
   keyLight.target.position.set( 0, 0, -2.5 )
   keyLight.castShadow = true
   keyLight.shadow.mapSize.set( 2048, 2048 )
@@ -1064,15 +1026,17 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
   keyLight.shadow.normalBias = 0.015
   scene.add( keyLight, keyLight.target )
 
-  const feltBounce = new THREE.HemisphereLight(
-    LIGHTING_CONTRACT.ambient.skyColor,
-    LIGHTING_CONTRACT.ambient.groundColor,
-    LIGHTING_CONTRACT.ambient.intensity,
-  )
+  const overheadSpot = new THREE.SpotLight( '#fff3da', 5, 24, Math.PI / 3.2, 0.8, 1.3 )
+  overheadSpot.position.set( 0, 8.5, -3.2 )
+  overheadSpot.target.position.set( 0, 0, -3.2 )
+  overheadSpot.castShadow = false
+  scene.add( overheadSpot, overheadSpot.target )
+
+  const feltBounce = new THREE.HemisphereLight( '#1c5e45', '#030504', 0.28 )
   scene.add( feltBounce )
 
-  const rimLight = new THREE.DirectionalLight( LIGHTING_CONTRACT.rim.color, LIGHTING_CONTRACT.rim.intensity )
-  rimLight.position.set( ...LIGHTING_CONTRACT.rim.position )
+  const rimLight = new THREE.DirectionalLight( '#df9654', 0.45 )
+  rimLight.position.set( 5.5, 4.8, -7.5 )
   rimLight.target.position.set( 0, 0, -3 )
   scene.add( rimLight, rimLight.target )
 
@@ -1097,84 +1061,10 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
   let ssaoPass = null
   let qualityTierId = initialQualityTier
 
-  const replaceMaterialTexture = ( material, property, nextTexture ) =>
-  {
-    const previousTexture = material[ property ]
-    if ( previousTexture )
-    {
-      disposableTextures.delete( previousTexture )
-      previousTexture.dispose()
-    }
-    material[ property ] = nextTexture
-    ownTextures( nextTexture )
-    material.needsUpdate = true
-  }
-
-  const applyBallQuality = ( tier ) =>
-  {
-    if ( tier.id !== ballQualityTierId )
-    {
-      const previousGeometry = ballGeometry
-      ballGeometry = new THREE.SphereGeometry(
-        BALL_RADIUS,
-        tier.ballWidthSegments,
-        tier.ballHeightSegments,
-      )
-      strikerSphere.geometry = ballGeometry
-      rackBallEntries.forEach( ( entry ) => { entry.mesh.geometry = ballGeometry } )
-      decalMeshes.forEach( ( entry ) =>
-      {
-        const previousDecalGeometry = entry.mesh.geometry
-        entry.mesh.geometry = new DecalGeometry(
-          strikerSphere,
-          new THREE.Vector3( 0, 0, entry.decalZ ),
-          new THREE.Euler( 0, entry.yaw, 0 ),
-          new THREE.Vector3( BALL_RADIUS * 1.58, BALL_RADIUS * 1.58, BALL_RADIUS * 0.42 ),
-        )
-        previousDecalGeometry.dispose()
-      } )
-      previousGeometry.dispose()
-      ballQualityTierId = tier.id
-    }
-
-    const currentTextureSize = `${tier.ballTextureWidth}x${tier.ballTextureHeight}`
-    if ( currentTextureSize === ballTextureSize ) return
-
-    rackBallEntries.forEach( ( entry ) =>
-    {
-      const nextTexture = createPoolBallTexture(
-        entry.color,
-        entry.number,
-        tier.ballTextureWidth,
-        tier.ballTextureHeight,
-        maxAnisotropy,
-      )
-      replaceMaterialTexture( entry.material, 'map', nextTexture )
-    } )
-
-    const nextFeltTextures = createFeltTextures(
-      maxAnisotropy,
-      64,
-      64,
-      tier.ballTextureWidth,
-      tier.ballTextureHeight,
-    )
-    replaceMaterialTexture( feltMaterial, 'map', nextFeltTextures.map )
-    replaceMaterialTexture( feltMaterial, 'normalMap', nextFeltTextures.normalMap )
-    replaceMaterialTexture( feltMaterial, 'roughnessMap', nextFeltTextures.roughnessMap )
-    replaceMaterialTexture( feltMaterial, 'bumpMap', nextFeltTextures.bumpMap )
-    feltTextures = nextFeltTextures
-    ballTextureSize = currentTextureSize
-  }
-
   const applyQualityTier = ( nextTierId ) =>
   {
     const tier = DRAFT2_QUALITY_TIERS[ nextTierId ]
     qualityTierId = tier.id
-
-    // Geometry and generated maps follow the selected tier only at a settled
-    // boundary, keeping the budget diagnostics tied to real GPU resources.
-    applyBallQuality( tier )
 
     // Rebuild the shadow target only when a settled quality change is applied; tuned bias
     // and normal-bias values remain untouched so balls stay grounded at every tier.
@@ -1210,8 +1100,6 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
       pixelRatioCap: tier.pixelRatioCap,
       shadowMapSize: tier.shadowMapSize,
       ssao: tier.useSsao,
-      ballSegments: `${tier.ballWidthSegments}x${tier.ballHeightSegments}`,
-      textureSize: `${tier.ballTextureWidth}x${tier.ballTextureHeight}`,
     } )
   }
 
@@ -1228,6 +1116,7 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
     const pixelRatio = Math.min( window.devicePixelRatio || 1, pixelRatioCap )
 
     camera.aspect = width / height
+    camera.fov = width / height < 0.8 ? 44 : 38
     camera.updateProjectionMatrix()
     renderer.setPixelRatio( pixelRatio )
     renderer.setSize( width, height, false )
@@ -1243,8 +1132,6 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
 
   const dispose = () =>
   {
-    if ( dispose.called ) return
-    dispose.called = true
     logoAsset.dispose()
     // Shared ball and shadow assets occur on many meshes; dispose each GPU resource once.
     const geometries = new Set()
@@ -1284,11 +1171,6 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
     {
       return qualityMonitor.pending
     },
-    // Flush geometry, map, shadow, and post-process changes outside the RAF render sample.
-    applyPendingQuality ()
-    {
-      return qualityMonitor.flushPending()
-    },
     getResourceSnapshot ()
     {
       // Publish renderer-owned counts only for diagnostics. This does not retain
@@ -1309,7 +1191,6 @@ export function WebglPoolDraft ( {
   onUnavailable,
   draftId = 'webgl',
   variant = 'break',
-  diagnostic = false,
 } )
 {
   const rootRef = useRef( null )
@@ -1326,54 +1207,26 @@ export function WebglPoolDraft ( {
     const simulation = getBreakSimulation()
 
     let world = null
+    let frame = 0
     let isActive = active
     let progress = 0
     let failed = false
+    let pointerX = 0
+    let pointerY = 0
+    let pointerTargetX = 0
+    let pointerTargetY = 0
     let resizePending = true
     let destroyed = false
     let renderFrame = () => {}
-    let renderContinuation = false
-    let qualityApplyTimer = null
     let lastRenderedProgress = null
     let stableProgressFrames = 0
-    const renderTimestamps = []
-    let progressDrivenFrames = 0
-    let progressPaintFrames = 0
-    const diagnosticsEnabled = isFramingDiagnosticsEnabled( window )
 
-    // One scheduler owns every WebGL repaint; callers only mark the latest state dirty.
-    const scheduler = createDemandFrameScheduler( {
-      active: isActive,
-      requestAnimationFrame: ( callback ) => window.requestAnimationFrame( callback ),
-      cancelAnimationFrame: ( handle ) => window.cancelAnimationFrame( handle ),
-      render: ( frameState ) => renderFrame( frameState ),
-      shouldContinue: () => renderContinuation,
-    } )
-    const requestRender = () => scheduler.invalidate()
-
-    const scheduleQualityApply = () =>
+    // One RAF owns every WebGL repaint; callers only mark the latest state dirty.
+    const requestRender = () =>
     {
-      if ( qualityApplyTimer !== null ) return
-      // Let the RAF sample finish before allocating replacement GPU resources. The
-      // scheduler stays alive through this timer and repaints after the swap.
-      qualityApplyTimer = window.setTimeout( () =>
-      {
-        qualityApplyTimer = null
-        if ( destroyed || !world ) return
-        if ( world.applyPendingQuality?.() )
-        {
-          resizePending = true
-          requestRender()
-        }
-      }, 0 )
+      if ( destroyed || failed || !world || !isActive || frame ) return
+      frame = window.requestAnimationFrame( renderFrame )
     }
-
-    const pointer = createPointerParallax( {
-      windowObject: window,
-      isActive: () => isActive,
-      requestRender,
-      onResize: () => { resizePending = true },
-    } )
 
     try
     {
@@ -1385,17 +1238,6 @@ export function WebglPoolDraft ( {
         root.dataset.webglDprCap = String( qualityState.pixelRatioCap )
         root.dataset.webglSsao = String( qualityState.ssao )
         root.dataset.webglShadowMap = String( qualityState.shadowMapSize )
-        root.dataset.webglBallSegments = qualityState.ballSegments
-        root.dataset.webglTextureSize = qualityState.textureSize
-        root.dataset.webglLighting = Object.entries( LIGHTING_CONTRACT.balance )
-          .map( ( [ role, contribution ] ) => `${role}:${contribution}` )
-          .join( ';' )
-        root.dataset.ballRoughness = String( MATERIAL_CONTRACT.ball.roughness )
-        root.dataset.ballClearcoat = String( MATERIAL_CONTRACT.ball.clearcoat )
-        root.dataset.ballIor = String( MATERIAL_CONTRACT.ball.ior )
-        root.dataset.feltRoughness = String( MATERIAL_CONTRACT.felt.roughness )
-        root.dataset.feltSheen = String( MATERIAL_CONTRACT.felt.sheen )
-        root.dataset.materialColorSpace = 'srgb'
       } )
       root.dataset.webglError = 'false'
     }
@@ -1462,48 +1304,31 @@ export function WebglPoolDraft ( {
         }
       } )
 
-      // Both Drafts consume the same semantic camera path; this renderer stays in Draft 2 scene units.
-      const framing = resolveIntroCameraFraming( {
-        progress,
-        transitionReadyProgress: STORY_TIMING.intro.draft2.transitionReady,
-        aspect: world.camera.aspect,
-        sourceScale: 1,
-        pointerX: pointer.state.x,
-        pointerY: pointer.state.y,
-        pointerEnabled: pointer.state.enabled,
-      } )
+      // Camera starts locked behind 8-ball and smoothly tracks forward down-table on first swipe as ball rolls and breaks
+      const portraitMix = clamp( ( 0.86 - world.camera.aspect ) / 0.36 )
+      const trackProgress = clamp( progress / STORY_TIMING.intro.draft2.transitionReady )
+      const trackEase = trackProgress * trackProgress * ( 3 - 2 * trackProgress )
 
-      cameraPosition.set( ...framing.camera )
-      cameraTarget.set( ...framing.target )
+      const camY = THREE.MathUtils.lerp( 0.78 + portraitMix * 0.45, 1.35 + portraitMix * 0.55, trackEase )
+      const camZ = THREE.MathUtils.lerp( 0.5 * PHYSICS_SCALE + 2.05 + portraitMix * 1.2, 1.2 + portraitMix * 1.0, trackEase )
+      const targetZ = THREE.MathUtils.lerp( -2.6, -5.4, trackEase )
+
+      cameraPosition.set(
+        pointerX * 0.12,
+        camY + pointerY * 0.05,
+        camZ,
+      )
+      cameraTarget.set(
+        pointerX * 0.05,
+        0.18 + pointerY * 0.02,
+        targetZ,
+      )
 
       world.camera.position.copy( cameraPosition )
       world.camera.lookAt( cameraTarget )
-      world.camera.fov = framing.fov
-      world.camera.updateProjectionMatrix()
-      world.camera.updateMatrixWorld( true )
-      if ( diagnosticsEnabled )
-      {
-        publishFramingDiagnostics( canvas, world.camera, state.balls.map( ( ball ) => ( {
-          position: {
-            x: ball.position.x * PHYSICS_SCALE,
-            y: ball.position.y * PHYSICS_SCALE,
-            z: ball.position.z * PHYSICS_SCALE,
-          },
-        } ) ), BALL_RADIUS, framing )
-      }
 
       // Overall layer fade at chapter exit
       canvas.style.opacity = String( 1 - exitProgress )
-    }
-
-    const handleContextLost = ( event ) =>
-    {
-      // Prevent the browser from immediately discarding the context while App hands off to Cinematic.
-      event.preventDefault()
-      if ( destroyed || failed ) return
-      failed = true
-      root.dataset.webglError = 'true'
-      onUnavailable?.( draftId )
     }
 
     const updateScene = ( nextProgress ) =>
@@ -1514,9 +1339,25 @@ export function WebglPoolDraft ( {
       requestRender()
     }
 
+    const handlePointerMove = ( event ) =>
+    {
+      if ( !isActive ) return
+      pointerTargetX = ( event.clientX / window.innerWidth - 0.5 ) * 2
+      pointerTargetY = ( event.clientY / window.innerHeight - 0.5 ) * -2
+      requestRender()
+    }
+
+    const handleResize = () =>
+    {
+      resizePending = true
+      requestRender()
+    }
+
+    // Stop requesting frames when parallax is visually settled; the tolerance avoids sub-pixel churn.
+    const pointerSettleTolerance = 0.0015
     renderFrame = () =>
     {
-      renderContinuation = false
+      frame = 0
       if ( destroyed || !isActive || failed || !world ) return
 
       if ( resizePending )
@@ -1527,30 +1368,13 @@ export function WebglPoolDraft ( {
 
       const progressChanged = lastRenderedProgress === null || Math.abs( progress - lastRenderedProgress ) > 0.0005
       stableProgressFrames = progressChanged ? 0 : stableProgressFrames + 1
+      pointerX += ( pointerTargetX - pointerX ) * 0.045
+      pointerY += ( pointerTargetY - pointerY ) * 0.045
       const renderStartedAt = performance.now()
       renderScene()
       world.render()
       // This timestamp is a narrow browser-test seam: it changes only after Draft 2 paints.
-      const renderTimestamp = performance.now()
-      root.dataset.webglRenderAt = renderTimestamp.toFixed( 3 )
-      if ( diagnosticsEnabled )
-      {
-        renderTimestamps.push( renderTimestamp )
-        if ( renderTimestamps.length > 120 ) renderTimestamps.shift()
-        const cadence = summarizeCadence( renderTimestamps )
-        const progressChanged = lastRenderedProgress === null || Math.abs( progress - lastRenderedProgress ) > 0.0005
-        progressDrivenFrames += 1
-        if ( progressChanged ) progressPaintFrames += 1
-        if ( cadence )
-        {
-          root.dataset.webglPaintMedian = cadence.median.toFixed( 2 )
-          root.dataset.webglPaintP95 = cadence.p95.toFixed( 2 )
-          root.dataset.webglRollingFps = String( cadence.rollingFps )
-        }
-        root.dataset.webglProgressCoverage = progressDrivenFrames > 0
-          ? ( progressPaintFrames / progressDrivenFrames ).toFixed( 3 )
-          : '0'
-      }
+      root.dataset.webglRenderAt = performance.now().toFixed( 3 )
       const resources = world.getResourceSnapshot()
       root.dataset.webglGeometries = String( resources.geometries )
       root.dataset.webglTextures = String( resources.textures )
@@ -1558,17 +1382,18 @@ export function WebglPoolDraft ( {
       const renderDurationMs = performance.now() - renderStartedAt
       lastRenderedProgress = progress
 
-      const pointerSettled = pointer.advance()
+      const pointerSettled =
+        Math.abs( pointerTargetX - pointerX ) <= pointerSettleTolerance &&
+        Math.abs( pointerTargetY - pointerY ) <= pointerSettleTolerance
       const sceneSettled = stableProgressFrames >= 4 && pointerSettled && !resizePending
       if ( world.observeRender( renderDurationMs, sceneSettled ) )
       {
-        // Apply a pending tier only after motion settles; allocation runs on the timer
-        // above, after this active render sample has returned.
-        scheduleQualityApply()
+        // Apply a pending tier only after motion settles; the next scheduler frame picks up
+        // the new DPR/effects/shadow target without popping during a swipe or break gesture.
+        resizePending = true
+        requestRender()
       }
-      // Pointer damping, a settled quality change, or a resize are renderer-owned
-      // continuations. The shared scheduler keeps them alive until all settle.
-      renderContinuation = !pointerSettled || resizePending || world.hasPendingQuality() || qualityApplyTimer !== null
+      if ( !pointerSettled || world.hasPendingQuality() ) requestRender()
     }
 
     const controller = {
@@ -1579,41 +1404,45 @@ export function WebglPoolDraft ( {
       setActive ( nextActive )
       {
         isActive = nextActive
-        // Keep a failed layer visible only for diagnostic inspection. The public
-        // fallback unmounts this canvas before Cinematic becomes active, preventing
-        // a stacked failed canvas over the usable fallback treatment.
-        const showFallback = failed && diagnostic
+        // Keep the declared status above the 2.5D fallback if WebGL setup failed.
+        // It remains readable even after App switches the active visual to Draft 1.
+        const showFallback = failed
         root.classList.toggle( 'is-active', nextActive || showFallback )
         root.setAttribute( 'aria-hidden', String( !nextActive && !showFallback ) )
         if ( !nextActive )
         {
-          pointer.reset()
+          if ( frame ) window.cancelAnimationFrame( frame )
+          frame = 0
+          pointerTargetX = 0
+          pointerTargetY = 0
+          return
         }
 
-        if ( nextActive ) pointer.syncCapability()
         // Activation paints the latest progress on the next frame, then idles again when settled.
-        scheduler.setActive( nextActive )
+        requestRender()
       },
     }
 
     controllerRef.current = controller
     onController?.( controller )
-    canvas.addEventListener( 'webglcontextlost', handleContextLost )
     controller.setProgress( progress )
     controller.setActive( active )
     if ( world )
     {
-      pointer.addListeners()
+      window.addEventListener( 'resize', handleResize )
+      window.addEventListener( 'pointermove', handlePointerMove, { passive: true } )
     }
 
     return () =>
     {
       destroyed = true
-      if ( qualityApplyTimer !== null ) window.clearTimeout( qualityApplyTimer )
-      qualityApplyTimer = null
-      scheduler.destroy()
-      pointer.removeListeners()
-      canvas.removeEventListener( 'webglcontextlost', handleContextLost )
+      if ( frame ) window.cancelAnimationFrame( frame )
+      frame = 0
+      if ( world )
+      {
+        window.removeEventListener( 'resize', handleResize )
+        window.removeEventListener( 'pointermove', handlePointerMove )
+      }
       onController?.( null )
       if ( controllerRef.current === controller ) controllerRef.current = null
       world?.dispose()

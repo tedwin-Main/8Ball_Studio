@@ -23,22 +23,6 @@ test( 'sampleCinematicBreakState (Draft 1) rolls 8-ball forward immediately on f
   assert.notDeepEqual( scatteredApex, initialApex )
 } )
 
-test( 'the intro 8-ball approach carries weight before impact', () =>
-{
-  const simulation = getBreakSimulation()
-  const approachEnd = STORY_TIMING.intro.approachEnd
-  const start = sampleCinematicBreakState( 0, simulation ).balls[ 0 ].position
-  const impact = sampleCinematicBreakState( approachEnd, simulation ).balls[ 0 ].position
-  const earlyProgress = approachEnd * 0.25
-  const early = sampleCinematicBreakState( earlyProgress, simulation ).balls[ 0 ].position
-  const linearFraction = 0.25
-  const actualFraction = ( start.z - early.z ) / ( start.z - impact.z )
-
-  // A weighted curve holds the ball back at the start of a light swipe.
-  assert.ok( actualFraction < linearFraction )
-  assert.ok( Math.abs( impact.z - simulation.initial.strikerImpact.z ) < 1e-12 )
-} )
-
 test( 'the cinematic timeline keeps the existing exit fade timing', () =>
 {
   const simulation = getBreakSimulation()
@@ -82,4 +66,14 @@ test( 'sampleBreakState (Draft 2) rolls 8-ball forward immediately on first swip
   const initialApex = simulation.frames[ 0 ].balls[ 1 ].position
   const scatteredApex = scatterState.balls[ 1 ].position
   assert.notDeepEqual( scatteredApex, initialApex )
+} )
+
+test( 'Draft 4 opts into the preserved weighted Draft 1 approach without changing rollback defaults', () =>
+{
+  const simulation = getBreakSimulation()
+  const rollbackState = sampleCinematicBreakState( 0.1, simulation )
+  const draft4State = sampleCinematicBreakState( 0.1, simulation, { weightedApproach: true } )
+
+  // The new slot keeps its heavier opening while Draft 1 remains on the restored linear path.
+  assert.ok( draft4State.balls[ 0 ].position.z > rollbackState.balls[ 0 ].position.z )
 } )
