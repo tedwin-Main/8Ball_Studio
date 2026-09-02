@@ -1,21 +1,21 @@
-import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useStoryPager } from './hooks/useStoryPager'
 import { DraftSwitcher } from './components/DraftSwitcher'
+import { PoolPovDraft } from './drafts/PoolPovDraft'
 import { WebglPoolDraft } from './drafts/WebglPoolDraft'
 import { STORY_TIMING, easeWeightedProgress, toStoryProgress, toTimelineUnits } from './storyTiming'
 import { getStoryPages } from './storySchedule'
 // One V4 asset supplies both the header brand mark and animated 8-ball surface.
 import brandLogo from './assets/8BALL-V4.jpg'
+// The PNG has a baked checkerboard; CSS clips its square to the logo circle at render time.
+import artigustoGelato from './assets/Artigusto-Gelato_Clearned.png'
+import ersEnergyLogo from './assets/ers-energy-logo.png'
+import haruplateLogo from './assets/haruplate-logo.png'
+import shopeeLogo from './assets/shopee-logo.svg'
 
 gsap.registerPlugin( ScrollTrigger )
-
-// Keep the photo-backed fallback and its large source images out of the public
-// Production load; the chunk is fetched only for diagnostics or WebGL failure.
-const PoolPovDraft = lazy( () => import( './drafts/PoolPovDraft' ).then( ( module ) => ( {
-  default: module.PoolPovDraft,
-} ) ) )
 
 // Keep the Draft 2 camera cut aligned with the shared intro timeline.
 const DRAFT2_TRANSITION_READY_STORY_PROGRESS = toStoryProgress( STORY_TIMING.intro.draft2.transitionReady )
@@ -28,67 +28,24 @@ const getDraft2ExitProgress = ( progress ) =>
 
 const DRAFT_IDS = [ 'cinematic', 'webgl', 'original' ]
 
-// Draft controls are a diagnostic entry point, never part of the public Story chrome.
-const getDraftDiagnosticsState = () =>
-{
-  if ( typeof window === 'undefined' ) return { enabled: false, mountAll: false }
-
-  const params = new URLSearchParams( window.location.search )
-  const enabled = params.has( 'draft' ) || params.has( 'drafts' ) || params.has( 'benchmark' )
-  return {
-    enabled,
-    // Existing benchmark probes compare layers; normal diagnostics still mount one renderer.
-    mountAll: enabled && params.has( 'benchmark' ),
-  }
-}
-
 const getInitialDraft = () =>
 {
-  if ( typeof window === 'undefined' ) return 'webgl'
+  if ( typeof window === 'undefined' ) return 'cinematic'
 
   const requestedDraft = new URLSearchParams( window.location.search ).get( 'draft' )
-  // Keep old shared links working while the certified WebGL treatment is the public Production Draft.
+  // Keep old shared links working while naming Draft 1 by what it is now: 3D cinematic.
   const normalizedDraft = requestedDraft === 'photo' ? 'cinematic' : requestedDraft
 
-  // Invalid URLs use WebGL; its guarded failure path immediately hands off to Cinematic.
-  return DRAFT_IDS.includes( normalizedDraft ) ? normalizedDraft : 'webgl'
+  // Invalid URLs use the cinematic 3D draft so the default page is always usable.
+  return DRAFT_IDS.includes( normalizedDraft ) ? normalizedDraft : 'cinematic'
 }
 
 const PROJECT_ITEMS = [
-  // Logos are the only approved project evidence in this repository; roster copy says so plainly.
-  {
-    id: 'artigusto-gelato',
-    alt: 'Artigusto Gelato',
-    type: 'artigusto',
-    load: () => import( './assets/Artigusto-Gelato_Clearned.png' ).then( ( module ) => module.default ),
-    client: 'Artigusto Gelato',
-    discipline: 'Roster content',
-    summary: 'Approved client mark shown as roster content; discipline and project details are not published.',
-  },
-  {
-    id: 'ers-energy',
-    alt: 'ERS Energy',
-    client: 'ERS Energy',
-    load: () => import( './assets/ers-energy-logo.png' ).then( ( module ) => module.default ),
-    discipline: 'Roster content',
-    summary: 'Approved client mark shown as roster content; discipline and project details are not published.',
-  },
-  {
-    id: 'haruplate',
-    alt: 'Haruplate',
-    client: 'Haruplate',
-    load: () => import( './assets/haruplate-logo.png' ).then( ( module ) => module.default ),
-    discipline: 'Roster content',
-    summary: 'Approved client mark shown as roster content; discipline and project details are not published.',
-  },
-  {
-    id: 'shopee',
-    alt: 'Shopee',
-    client: 'Shopee',
-    load: () => import( './assets/shopee-logo.svg' ).then( ( module ) => module.default ),
-    discipline: 'Roster content',
-    summary: 'Approved client mark shown as roster content; discipline and project details are not published.',
-  },
+  // Mark the baked-checkerboard logo so its card can use an isolated circular clip.
+  { src: artigustoGelato, alt: 'Artigusto Gelato', type: 'artigusto' },
+  { src: ersEnergyLogo, alt: 'ERS Energy' },
+  { src: haruplateLogo, alt: 'Haruplate' },
+  { src: shopeeLogo, alt: 'Shopee' },
 ]
 
 const CONTACT_ITEMS = [
@@ -194,11 +151,7 @@ function App ()
   const storyProgressRef = useRef( 0 )
   const draftSwitchProgressRef = useRef( null )
   const activeDraftRef = useRef( getInitialDraft() )
-  const diagnosticsState = useMemo( getDraftDiagnosticsState, [] )
   const [ activeDraft, setActiveDraft ] = useState( getInitialDraft )
-  const [ selectedProjectId, setSelectedProjectId ] = useState( PROJECT_ITEMS[ 0 ].id )
-  const [ featuredProjectSrc, setFeaturedProjectSrc ] = useState( null )
-  const [ webglFallbackActive, setWebglFallbackActive ] = useState( false )
   const [ activePage, setActivePage ] = useState( 'intro' )
   const [ indicatorPage, setIndicatorPage ] = useState( 'intro' )
   const storyPages = useMemo( () => getStoryPages( activeDraft ), [ activeDraft ] )
@@ -243,7 +196,7 @@ function App ()
     [ registerDraftController ],
   )
 
-  const switchDraft = useCallback( ( nextDraft, { fallback = false } = {} ) =>
+  const switchDraft = useCallback( ( nextDraft ) =>
   {
     if ( !DRAFT_IDS.includes( nextDraft ) ) return
 
@@ -256,43 +209,14 @@ function App ()
     // Replace only the query so changing a draft never reloads or adds history entries.
     window.history.replaceState( {}, '', `${url.pathname}${url.search}${url.hash}` )
     activeDraftRef.current = nextDraft
-    setWebglFallbackActive( fallback )
     setActiveDraft( nextDraft )
   }, [ getProgress ] )
 
   const handleWebglUnavailable = useCallback( ( draftId ) =>
   {
     // Draft 1 is the no-WebGL fallback so the opening still has a rendered pool scene.
-    if ( activeDraftRef.current === draftId )
-    {
-      switchDraft( 'cinematic', { fallback: true } )
-    }
+    if ( activeDraftRef.current === draftId ) switchDraft( 'cinematic' )
   }, [ switchDraft ] )
-
-  const featuredProject = PROJECT_ITEMS.find( ( project ) => project.id === selectedProjectId ) || PROJECT_ITEMS[ 0 ]
-
-  useEffect( () =>
-  {
-    let cancelled = false
-    if ( activePage !== 'projects' )
-    {
-      setFeaturedProjectSrc( null )
-      return () => { cancelled = true }
-    }
-
-    // Fetch one approved mark only once Projects is the active Page; Intro keeps
-    // its first viewport free from lower-Page media requests.
-    setFeaturedProjectSrc( null )
-    featuredProject.load().then( ( source ) =>
-    {
-      if ( !cancelled ) setFeaturedProjectSrc( source )
-    } ).catch( () =>
-    {
-      if ( !cancelled ) setFeaturedProjectSrc( null )
-    } )
-
-    return () => { cancelled = true }
-  }, [ activePage, featuredProject.id ] )
 
   useEffect( () =>
   {
@@ -453,7 +377,6 @@ function App ()
             y: 0,
             yPercent: 0,
           } )
-          gsap.set( '.studio-editorial', { autoAlpha: showStudio ? 1 : 0, y: 0 } )
           gsap.set( '.projects-screen', {
             autoAlpha: showProjects ? 1 : 0,
             yPercent: 0,
@@ -463,7 +386,6 @@ function App ()
             y: 0,
             yPercent: 0,
           } )
-          gsap.set( [ '.projects-featured', '.projects-index' ], { autoAlpha: showProjects ? 1 : 0, y: 0 } )
           gsap.set( '.contact-screen', {
             autoAlpha: showContact ? 1 : 0,
             yPercent: 0,
@@ -473,7 +395,6 @@ function App ()
             y: 0,
             yPercent: 0,
           } )
-          gsap.set( [ '.contact-intro', '.contact-cta' ], { autoAlpha: showContact ? 1 : 0, y: 0 } )
         }
 
         const reducedTrigger = ScrollTrigger.create( {
@@ -541,14 +462,11 @@ function App ()
           gsap.set( '.title-screen', { autoAlpha: 0, scale: 1, yPercent: 0, force3D: true } )
           gsap.set( '.final-title-line > span', { y: 0, yPercent: 115 } )
           gsap.set( '.final-meta', { y: 20, autoAlpha: 0 } )
-          gsap.set( '.studio-editorial', { y: 24, autoAlpha: 0 } )
           gsap.set( '.projects-screen', { autoAlpha: 0, yPercent: 8, force3D: true } )
           gsap.set( '.projects-title-line > span', { y: 0, yPercent: 115 } )
-          gsap.set( [ '.projects-featured', '.projects-index' ], { y: 24, autoAlpha: 0 } )
           gsap.set( '.contact-screen', { autoAlpha: 0, yPercent: 8, force3D: true } )
           gsap.set( '.contact-title-line > span', { y: 0, yPercent: 115 } )
           gsap.set( '.contact-item', { y: 20, autoAlpha: 0 } )
-          gsap.set( [ '.contact-intro', '.contact-cta' ], { y: 20, autoAlpha: 0 } )
 
           const syncDraft2Handoff = ( progress ) =>
           {
@@ -666,11 +584,6 @@ function App ()
               autoAlpha: 1,
               duration: STORY_TIMING.intro.visual.metaDuration,
             }, STORY_TIMING.intro.visual.metaStart )
-            .to( '.studio-editorial', {
-              y: 0,
-              autoAlpha: 1,
-              duration: STORY_TIMING.intro.visual.metaDuration,
-            }, STORY_TIMING.intro.visual.metaStart + 0.04 )
             .to( {}, { duration: STORY_TIMING.intro.visual.timelineEndEpsilon }, 1 - STORY_TIMING.intro.visual.timelineEndEpsilon )
             .addLabel( 'studio', STORY_TIMING.pages.studioStable )
 
@@ -691,11 +604,6 @@ function App ()
               duration: STORY_TIMING.pages.projectsTitleDuration,
               stagger: STORY_TIMING.pages.projectsTitleStagger,
             }, STORY_TIMING.pages.projectsTitleStart )
-            .to( [ '.projects-featured', '.projects-index' ], {
-              y: 0,
-              autoAlpha: 1,
-              duration: STORY_TIMING.pages.projectsTitleDuration,
-            }, STORY_TIMING.pages.projectsTitleStart + 0.04 )
             .addLabel( 'projects', STORY_TIMING.pages.projectsStable )
 
             // Projects → Contact. Reveal every contact item.
@@ -715,11 +623,6 @@ function App ()
               duration: STORY_TIMING.pages.contactTitleDuration,
               stagger: STORY_TIMING.pages.contactTitleStagger,
             }, STORY_TIMING.pages.contactTitleStart )
-            .to( [ '.contact-intro', '.contact-cta' ], {
-              y: 0,
-              autoAlpha: 1,
-              duration: STORY_TIMING.pages.contactTitleDuration,
-            }, STORY_TIMING.pages.contactTitleStart + 0.04 )
             .to( '.contact-item', {
               y: 0,
               autoAlpha: 1,
@@ -752,9 +655,6 @@ function App ()
     <main
       className={ `experience draft-${activeDraft}${indicatorPage === 'projects' ? ' is-projects-active' : ''}` }
       ref={ rootRef }
-      data-active-draft={ activeDraft }
-      data-draft-mount-mode={ diagnosticsState.mountAll ? 'diagnostic' : 'production' }
-      data-webgl-fallback={ String( webglFallbackActive ) }
       data-story-page={ activePage }
       data-story-indicator-page={ indicatorPage }
       data-story-state={ isTransitioning ? 'transitioning' : 'settled' }
@@ -777,34 +677,21 @@ function App ()
           <div className="ambient ambient-one" aria-hidden="true" />
           <div className="ambient ambient-two" aria-hidden="true" />
 
-          { ( diagnosticsState.mountAll || activeDraft === 'cinematic' ) && (
-            <Suspense fallback={ null }>
-              <PoolPovDraft
-                active={ activeDraft === 'cinematic' }
-                onController={ registerCinematicController }
-              />
-            </Suspense>
-          ) }
-          { ( diagnosticsState.mountAll || activeDraft === 'webgl' ) && (
-            <WebglPoolDraft
-              active={ activeDraft === 'webgl' }
-              onController={ registerWebglController }
-              onUnavailable={ handleWebglUnavailable }
-              diagnostic={ diagnosticsState.mountAll }
-              draftId="webgl"
-            />
-          ) }
+          <PoolPovDraft
+            active={ activeDraft === 'cinematic' }
+            onController={ registerCinematicController }
+          />
+          <WebglPoolDraft
+            active={ activeDraft === 'webgl' }
+            onController={ registerWebglController }
+            onUnavailable={ handleWebglUnavailable }
+            draftId="webgl"
+          />
 
           <PoolTable />
           <EightBall />
           {/* Expands from the target pocket to mask the transition into Studio. */}
           <div className="pocket-iris" aria-hidden="true" />
-
-          { webglFallbackActive && activeDraft === 'cinematic' && !diagnosticsState.mountAll && (
-            <p className="webgl-fallback app-fallback" role="status">
-              3D draft unavailable on this device. Showing the cinematic fallback.
-            </p>
-          ) }
 
           <header className="site-header">
             <a className="wordmark" href="#top" onClick={ ( event ) => { event.preventDefault(); replay() } } aria-label="8 Ball Studio — return to start">
@@ -812,54 +699,39 @@ function App ()
             </a>
             <nav className="header-meta" aria-label="Page navigation">
               <a
-                className="header-link header-work-link"
+                className="header-link"
                 href="#projects"
                 onClick={ ( event ) =>
                 {
-                  // Stop the browser jump so the pager can land on the stable Work target.
+                  // Stop the browser jump so the pager can land on the stable Projects target.
                   event.preventDefault()
-                  goToPage( 'projects', { interrupt: true } )
+                  goToPage( 'projects' )
                 } }
               >
-                Work
+                Our Projects
               </a>
               <a
-                className="header-link header-studio-link"
-                href="#studio"
-                onClick={ ( event ) =>
-                {
-                  // Use the same Lenis motion as pagination for the stable Studio target.
-                  event.preventDefault()
-                  goToPage( 'studio', { interrupt: true } )
-                } }
-              >
-                Studio
-              </a>
-              <a
-                className="header-action"
+                className="header-link"
                 href="#contact"
                 onClick={ ( event ) =>
                 {
-                  // Keep the single header action on the shared Contact destination.
+                  // Use the same Lenis motion as pagination for the stable Contact target.
                   event.preventDefault()
-                  goToPage( 'contact', { interrupt: true } )
+                  goToPage( 'contact' )
                 } }
               >
-                Start a project <span aria-hidden="true">↗</span>
+                Contact Us
               </a>
+              <button className="top-link" onClick={ replay } type="button" aria-label="Go back to top of page">
+                Top
+              </button>
             </nav>
           </header>
 
           <div className="scene-interface">
             <div className="hero-copy">
-              <p className="hero-kicker">8 Ball Studio / Greater Kuala Lumpur</p>
-              <h1 className="hero-title" aria-label="Roll with us.">
-                <span className="hero-title-line">Roll</span>
-                <span className="hero-title-line hero-title-line-offset">with us.</span>
-              </h1>
-              <p className="hero-note">Social-first stories, moving images, and graphic worlds with a sharp point of view.</p>
-              <p className="hero-disciplines" aria-label="Studio disciplines">Social content management&nbsp; / &nbsp;Video &amp; photography&nbsp; / &nbsp;Graphic design</p>
-              <span className="hero-rule" aria-hidden="true" />
+              <h1>Roll with us.</h1>
+              <p className="hero-note">Social Content Management.<br />Video &amp; Photography.<br />Graphic Design.</p>
             </div>
 
             <div className="scroll-prompt">
@@ -868,7 +740,7 @@ function App ()
             </div>
           </div>
 
-          <section id="studio" className="title-screen" aria-labelledby="studio-title">
+          <section className="title-screen" aria-labelledby="studio-title">
             <div className="final-orbit orbit-one" aria-hidden="true" />
             <div className="final-orbit orbit-two" aria-hidden="true" />
             <div className="final-content">
@@ -876,88 +748,45 @@ function App ()
                 <span className="final-title-line"><span>8 Ball</span></span>
                 <span className="final-title-line final-title-indent"><span>Studio</span></span>
               </h2>
-              <div className="studio-editorial">
-                <p className="studio-kicker">Creative studio / after-hours billiards</p>
-                <p className="studio-statement">We make social-first stories, moving images, and graphic worlds with a sharp point of view.</p>
-                <ul className="studio-disciplines" aria-label="Studio disciplines">
-                  <li>Social content management</li>
-                  <li>Video &amp; photography</li>
-                  <li>Graphic design</li>
-                </ul>
-              </div>
               <div className="final-footer">
                 <p className="final-meta">Greater Kuala Lumpur, Malaysia</p>
-                <p className="final-meta final-meta-index">01 / 04 — Studio</p>
               </div>
             </div>
           </section>
 
           <section className="projects-screen" aria-labelledby="projects-title">
             <div className="projects-content">
-              <p className="page-kicker">02 / 04 — Work roster</p>
               <h2 id="projects-title" className="projects-title">
                 <span className="projects-title-line"><span>Our</span></span>
                 <span className="projects-title-line projects-title-indent"><span>Projects</span></span>
               </h2>
-              <div className="projects-featured" id="featured-project" role="tabpanel" aria-labelledby={ `project-tab-${featuredProject.id}` } aria-live="polite">
-                <div className={ `featured-media${featuredProject.type ? ` is-${featuredProject.type}` : ''}` }>
-                  <img
-                    src={ activePage === 'projects' ? featuredProjectSrc || undefined : undefined }
-                    alt={ featuredProject.alt }
-                    loading={ activePage === 'projects' ? 'eager' : 'lazy' }
-                    fetchPriority={ activePage === 'projects' ? 'high' : 'low' }
-                  />
-                </div>
-                <div className="featured-copy">
-                  <p className="featured-label">Featured / approved roster</p>
-                  <h3>{ featuredProject.client }</h3>
-                  <p className="featured-discipline">{ featuredProject.discipline }</p>
-                  <p className="featured-summary">{ featuredProject.summary }</p>
-                </div>
-              </div>
             </div>
-            <div className="projects-index" role="tablist" aria-label="Project roster">
-              { PROJECT_ITEMS.map( ( project, index ) => (
-                <button
-                  className={ `project-index-item${project.id === featuredProject.id ? ' is-active' : ''}` }
-                  id={ `project-tab-${project.id}` }
-                  type="button"
-                  role="tab"
-                  aria-selected={ project.id === featuredProject.id }
-                  tabIndex={ project.id === featuredProject.id ? 0 : -1 }
-                  aria-controls="featured-project"
-                  onClick={ () => setSelectedProjectId( project.id ) }
-                  onKeyDown={ ( event ) =>
-                  {
-                    if ( ![ 'ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp' ].includes( event.key ) ) return
-                    event.preventDefault()
-                    const direction = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : -1
-                    const nextIndex = ( index + direction + PROJECT_ITEMS.length ) % PROJECT_ITEMS.length
-                    const nextProject = PROJECT_ITEMS[ nextIndex ]
-                    setSelectedProjectId( nextProject.id )
-                    window.requestAnimationFrame( () => document.getElementById( `project-tab-${nextProject.id}` )?.focus() )
-                  } }
-                  key={ project.id }
-                >
-                  <span className="project-index-number">{ String( index + 1 ).padStart( 2, '0' ) }</span>
-                  <span className="project-index-client">{ project.client }</span>
-                  <span className="project-index-discipline">{ project.discipline }</span>
-                </button>
-              ) ) }
+            <div className="projects-marquee" aria-label="Our projects">
+              <div className="projects-track">
+                { [ 0, 1 ].map( ( groupIndex ) => (
+                  <div className="projects-group" aria-hidden={ groupIndex === 1 } key={ groupIndex }>
+                    { PROJECT_ITEMS.map( ( project ) => (
+                      <figure className={ `project-card${project.type ? ` is-${project.type}` : ''}` } key={ project.alt }>
+                        <img src={ project.src } alt={ project.alt } />
+                        {/* Keep each card label simple so the marquee reads as a clean work reel. */ }
+                        <figcaption>
+                          <span>{ project.alt }</span>
+                        </figcaption>
+                      </figure>
+                    ) ) }
+                  </div>
+                ) ) }
+              </div>
             </div>
           </section>
 
           <section className="contact-screen" aria-labelledby="contact-title">
             <div className="contact-orbit" aria-hidden="true" />
             <div className="contact-content">
-              <h2 id="contact-title" className="contact-title" aria-label="Contact Us">
+              <h2 id="contact-title" className="contact-title">
                 <span className="contact-title-line"><span>Contact</span></span>
-                <span className="contact-title-line contact-title-indent"><span>to start</span></span>
+                <span className="contact-title-line contact-title-indent"><span>Us</span></span>
               </h2>
-              <p className="contact-intro">Have a brief, a launch, or a story worth breaking open? Start a project with the studio.</p>
-              <a className="contact-cta" href="mailto:8ightball.studio@gmail.com?subject=Start%20a%20project">
-                Start a project <span aria-hidden="true">↗</span>
-              </a>
               <div className="contact-list">
                 { CONTACT_ITEMS.map( ( item ) =>
                 {
@@ -988,22 +817,19 @@ function App ()
         </div>
       </section>
 
-      { diagnosticsState.enabled && (
-        <DraftSwitcher activeDraft={ activeDraft } onChange={ switchDraft } />
-      ) }
+      <DraftSwitcher activeDraft={ activeDraft } onChange={ switchDraft } />
 
       <nav className="page-dots" aria-label="Story page navigation">
-        { storyPages.map( ( page, index ) => (
+        { storyPages.map( ( page ) => (
           <button
             className={ `page-dot${indicatorPage === page.id ? ' is-active' : ''}` }
             type="button"
             aria-label={ `Go to ${page.label} page` }
             aria-current={ indicatorPage === page.id ? 'page' : undefined }
-            onClick={ () => goToPage( page.id, { interrupt: true } ) }
+            onClick={ () => goToPage( page.id ) }
             key={ page.id }
           >
-            <span className="page-dot-number">{ String( index + 1 ).padStart( 2, '0' ) }</span>
-            <span className="page-dot-label">{ page.label }</span>
+            <span>{ page.label }</span>
           </button>
         ) ) }
       </nav>

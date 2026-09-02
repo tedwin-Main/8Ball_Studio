@@ -16,14 +16,6 @@ _Avoid_: section, screen
 A selectable visual treatment of the Intro page, such as Cinematic, WebGL, or Original.
 _Avoid_: version, mode
 
-**Production Draft**:
-The single Intro Draft selected for the public Story after it meets the release standard.
-_Avoid_: final version, winning mode
-
-**Fallback Draft**:
-The Intro Draft used when the Production Draft cannot present the Story reliably.
-_Avoid_: broken mode, low-end version
-
 **Stable page**:
 The Page that owns the visitor indicator after a navigation transition has settled.
 _Avoid_: current screen, destination state

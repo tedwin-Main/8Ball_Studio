@@ -172,12 +172,9 @@ export function createStoryNavigation ( {
 
   const getCurrentPage = () => resolvePage( transitioning ? targetPage : activePage ) || pageAtProgress( getProgress() )
 
-  const notifyProgress = ( suppliedProgress = null ) =>
+  const notifyProgress = () =>
   {
-    // A resize can only land on integer scroll pixels, so the final guarded
-    // notification may carry the captured normalized value to keep the Story
-    // playhead stable even when the new range has a different rounding step.
-    const progress = Number.isFinite( suppliedProgress ) ? clamp( suppliedProgress ) : getProgress()
+    const progress = getProgress()
     if ( !preservingResizeProgress ) lastScrollProgress = progress
     onProgress?.( progress )
 
@@ -230,15 +227,7 @@ export function createStoryNavigation ( {
   const goToPage = ( requestedPage, options = {} ) =>
   {
     if ( destroyed ) return false
-    if ( transitioning && options.immediate !== true && options.interrupt !== true ) return false
-
-    if ( transitioning && options.interrupt === true )
-    {
-      // Direct Page controls may intentionally replace an in-flight autoplay target;
-      // wheel/touch/key gestures still use the normal lock above.
-      clearTransitionTimer()
-      setTransitioning( false )
-    }
+    if ( transitioning && options.immediate !== true ) return false
 
     const fromPage = getCurrentPage()
     const destination = resolvePage( requestedPage )
@@ -509,7 +498,6 @@ export function createStoryNavigation ( {
         // New user scroll updates may replace the retained position after this guard.
         lastScrollProgress = preservedProgress
         preservingResizeProgress = false
-        notifyProgress( preservedProgress )
       }, RESIZE_RESTORE_GUARD_MS )
     }, resizeSettleMs )
   }

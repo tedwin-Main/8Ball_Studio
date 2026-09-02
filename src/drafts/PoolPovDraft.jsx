@@ -20,7 +20,6 @@ import {
   publishFramingDiagnostics,
 } from './framingDiagnostics'
 import { createDemandFrameScheduler } from './demandFrameScheduler'
-import { LIGHTING_CONTRACT, MATERIAL_CONTRACT } from './renderContracts'
 
 const clamp = ( value, min = 0, max = 1 ) => Math.min( max, Math.max( min, value ) )
 const lerp = ( start, end, progress ) => start + ( end - start ) * progress
@@ -191,13 +190,11 @@ const createLogoTexture = ( anisotropy, requestRender ) =>
   const context = canvas.getContext( '2d' )
   const image = new Image()
   const texture = new THREE.CanvasTexture( canvas )
-  let disposed = false
   texture.colorSpace = THREE.SRGBColorSpace
   texture.anisotropy = anisotropy
 
   const paint = () =>
   {
-    if ( disposed ) return
     // Clip the supplied square artwork so only the circular brand mark reaches the decal.
     context.clearRect( 0, 0, canvas.width, canvas.height )
     context.save()
@@ -213,15 +210,7 @@ const createLogoTexture = ( anisotropy, requestRender ) =>
   image.addEventListener( 'load', paint, { once: true } )
   image.src = brandLogo
   if ( image.complete ) paint()
-  return {
-    texture,
-    dispose ()
-    {
-      disposed = true
-      image.removeEventListener( 'load', paint )
-      image.src = ''
-    },
-  }
+  return texture
 }
 
 // Use the same soft radial contact cue as Draft 2 so every ball reads as resting on felt.
@@ -285,7 +274,12 @@ const createWarmEnvironment = ( renderer ) =>
 const createBallMaterial = ( color, texture ) => new THREE.MeshPhysicalMaterial( {
   color: texture ? '#ffffff' : color,
   map: texture,
-  ...MATERIAL_CONTRACT.ball,
+  roughness: 0.075,
+  metalness: 0,
+  clearcoat: 1,
+  clearcoatRoughness: 0.035,
+  ior: 1.54,
+  reflectivity: 0.82,
   envMapIntensity: 0.78,
 } )
 
@@ -344,8 +338,7 @@ const buildWorld = ( canvas, simulation, requestRender ) =>
     ballShadows.push( shadow )
   }
 
-  const logoAsset = createLogoTexture( maximumAnisotropy, requestRender )
-  const logoTexture = logoAsset.texture
+  const logoTexture = createLogoTexture( maximumAnisotropy, requestRender )
   disposableTextures.add( logoTexture )
   const strikerMaterial = createBallMaterial( '#070807', null )
   const strikerMesh = new THREE.Mesh( ballGeometry, strikerMaterial )
@@ -360,7 +353,9 @@ const buildWorld = ( canvas, simulation, requestRender ) =>
     emissive: '#26382f',
     emissiveIntensity: 0.35,
     transparent: true,
-    ...MATERIAL_CONTRACT.decal,
+    roughness: 0.12,
+    clearcoat: 0.9,
+    clearcoatRoughness: 0.05,
     depthWrite: false,
     polygonOffset: true,
     polygonOffsetFactor: -2,
@@ -428,7 +423,7 @@ const buildWorld = ( canvas, simulation, requestRender ) =>
 
   const feltBounce = new THREE.HemisphereLight( '#1b5b43', '#020302', 0.42 )
   scene.add( feltBounce )
-  const warmFill = new THREE.DirectionalLight( LIGHTING_CONTRACT.key.color, 0.28 )
+  const warmFill = new THREE.DirectionalLight( '#d9a36e', 0.34 )
   warmFill.position.set( 1.8, 1.05, 0.55 )
   scene.add( warmFill )
 
@@ -467,9 +462,6 @@ const buildWorld = ( canvas, simulation, requestRender ) =>
 
   const dispose = () =>
   {
-    if ( dispose.called ) return
-    dispose.called = true
-    logoAsset.dispose()
     const geometries = new Set()
     const disposableMaterials = new Set()
     scene.traverse( ( object ) =>
@@ -484,12 +476,7 @@ const buildWorld = ( canvas, simulation, requestRender ) =>
     geometries.forEach( ( geometry ) => geometry.dispose() )
     disposableMaterials.forEach( ( material ) => material.dispose() )
     disposableTextures.forEach( ( texture ) => texture.dispose() )
-    // Detach scene references before releasing the PMREM target so Three.js cannot
-    // retain a disposed environment or background through the scene graph.
-    scene.environment = null
-    scene.background = null
     environmentTarget.dispose()
-    renderer.renderLists.dispose()
     renderer.dispose()
   }
 
@@ -540,11 +527,6 @@ export function PoolPovDraft ( { active, onController } )
     {
       world = buildWorld( canvas, simulation, () => scheduler.invalidate() )
       root.dataset.webglError = 'false'
-      // Diagnostics expose the shared physical contract without retaining Three.js objects.
-      root.dataset.ballRoughness = String( MATERIAL_CONTRACT.ball.roughness )
-      root.dataset.ballClearcoat = String( MATERIAL_CONTRACT.ball.clearcoat )
-      root.dataset.ballIor = String( MATERIAL_CONTRACT.ball.ior )
-      root.dataset.materialColorSpace = 'srgb'
     }
     catch ( error )
     {
