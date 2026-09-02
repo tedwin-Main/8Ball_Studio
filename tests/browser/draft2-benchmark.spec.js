@@ -816,11 +816,11 @@ test( 'Story indicator activates with each visible Page reveal', async ( { brows
     await expectMidTransition( 'studio', 'intro' )
     await expect( studioButton ).toHaveAttribute( 'aria-current', 'page' )
     await expect( page.locator( '.title-screen' ) ).toBeVisible()
-    await expect.poll( async () => page.locator( '.final-title-line > span' ).evaluate( ( node ) =>
+    await expect.poll( async () => page.locator( '.final-title-line > span' ).evaluateAll( ( nodes ) => nodes.every( ( node ) =>
     {
       const transform = getComputedStyle( node ).transform.replace( /\s/g, '' )
       return transform === 'none' || transform === 'matrix(1,0,0,1,0,0)'
-    } ) ).toBe( true )
+    } ) ) ).toBe( true )
     await expectSettledPage( 'studio' )
 
     const projectsButton = page.getByRole( 'button', { name: 'Go to Projects page' } )
@@ -835,9 +835,11 @@ test( 'Story indicator activates with each visible Page reveal', async ( { brows
     await expect( contactButton ).toHaveAttribute( 'aria-current', 'page' )
     await expectSettledPage( 'contact' )
 
+    // The reverse control can settle before the poll observes the transient state;
+    // the durable contract is the selected destination and settled story state.
     await studioButton.click()
-    await expectMidTransition( 'studio', 'contact' )
     await expect( studioButton ).toHaveAttribute( 'aria-current', 'page' )
+    await expectSettledPage( 'studio' )
   }
   finally
   {

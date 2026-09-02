@@ -227,7 +227,15 @@ export function createStoryNavigation ( {
   const goToPage = ( requestedPage, options = {} ) =>
   {
     if ( destroyed ) return false
-    if ( transitioning && options.immediate !== true ) return false
+    if ( transitioning && options.immediate !== true && options.interrupt !== true ) return false
+
+    if ( transitioning && options.interrupt === true )
+    {
+      // Direct Page controls may intentionally replace an in-flight autoplay target;
+      // wheel/touch/key gestures still use the normal lock above.
+      clearTransitionTimer()
+      setTransitioning( false )
+    }
 
     const fromPage = getCurrentPage()
     const destination = resolvePage( requestedPage )
