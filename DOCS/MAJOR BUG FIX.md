@@ -1,5 +1,26 @@
 # Major Bug Fixes
 
+## Draft 2 (WebGL 3D) overall lighting and exposure increase (03/09/2026, 12:48 AM)
+
+### Problem
+
+Draft 2 rendered overly dark with crushed midtones and muted specular highlights due to low tone mapping exposure (`0.82`), dim environment reflection intensity (`0.42`), and low key/fill light values.
+
+### Fix
+
+- Raised `toneMappingExposure` from `0.82` to `1.15` in `WebglPoolDraft.jsx`.
+- Raised `scene.environmentIntensity` from `0.42` to `0.72` for richer indirect lighting and PBR reflections.
+- Boosted studio lighting rig: `overheadRectLight` to `2.75` (size `9.0x16.0`), `keyLight` to `1.85`, `overheadSpot` to `5.6`, `feltBounce` to `0.52`, `leftChamferFill` to `0.45`, `rightChamferFill` to `0.40`, and `rimLight` to `0.68`.
+- Tuned cloth `feltMaterial` sheen to `0.45`, sheen roughness to `0.75`, and `envMapIntensity` to `0.28`.
+
+### Files Changed
+
+- [src/drafts/WebglPoolDraft.jsx](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/WebglPoolDraft.jsx)
+  - Modified — [line 842](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/WebglPoolDraft.jsx:842) raises `toneMappingExposure` to `1.15`.
+  - Modified — [line 860](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/WebglPoolDraft.jsx:860) raises `environmentIntensity` to `0.72`.
+  - Modified — [line 905](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/WebglPoolDraft.jsx:905) increases cloth sheen and envMap intensity.
+  - Modified — [line 1204](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/WebglPoolDraft.jsx:1204) boosts key, fill, spot, bounce, and rect area light intensities.
+
 ## Draft 1 (3D POV) restored grounded camera hover (02/09/2026, 01:24 AM)
 
 ### Problem

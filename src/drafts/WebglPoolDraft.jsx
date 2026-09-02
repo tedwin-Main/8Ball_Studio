@@ -838,8 +838,8 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
   } )
   renderer.outputColorSpace = THREE.SRGBColorSpace
   renderer.toneMapping = THREE.ACESFilmicToneMapping
-  // Keep the physically based rig below the clipped, washed-out look of the previous pass.
-  renderer.toneMappingExposure = 0.82
+  // Exposure lifted to 1.15 for bright, crisp illumination across table and balls.
+  renderer.toneMappingExposure = 1.15
   renderer.shadowMap.enabled = true
   // PCFShadowMap keeps the tuned contact-shadow bias while avoiding the deprecated soft-shadow path.
   renderer.shadowMap.type = THREE.PCFShadowMap
@@ -855,8 +855,8 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
   const ownTextures = ( ...textures ) => textures.forEach( ( texture ) => disposableTextures.add( texture ) )
   const environmentTarget = createWarmStudioEnvironment( renderer )
   scene.environment = environmentTarget.texture
-  // Keep indirect studio reflections present without reintroducing the washed-out felt baseline.
-  scene.environmentIntensity = 0.42
+  // Increased environment intensity for richer ambient bounce and specular reflections.
+  scene.environmentIntensity = 0.72
 
   const table = new THREE.Group()
   scene.add( table )
@@ -902,12 +902,13 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
     // The roughness map already contains the full cloth range; avoid multiplying it down.
     roughness: 1.0,
     metalness: 0.0,
-    sheen: 0.32,
-    sheenRoughness: 0.82,
+    sheen: 0.45,
+    sheenRoughness: 0.75,
     sheenColor: new THREE.Color( 0x8caf99 ),
     // The albedo map is authored in the correct green; a white tint avoids double-darkening it.
     color: '#ffffff',
-    envMapIntensity: 0.16,
+    // Lifted envMapIntensity for softer, brighter cloth response under studio lighting.
+    envMapIntensity: 0.28,
     clearcoat: 0,
   } )
   const felt = new THREE.Mesh( createFeltGeometry(), feltMaterial )
@@ -1199,22 +1200,26 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
   } )
 
   // Slice 3: Studio Lighting Rig + Overhead RectAreaLight + Angled Chamfer Fills + Contact Shadows
-  const overheadRectLight = new THREE.RectAreaLight( 0xffffff, 1.65, 8.5, 14.8 )
+  // Overhead luminaire provides bright, broad, diffused tournament table illumination.
+  const overheadRectLight = new THREE.RectAreaLight( 0xffffff, 2.75, 9.0, 16.0 )
   overheadRectLight.position.set( 0, 6.8, 0 )
   overheadRectLight.rotation.x = -Math.PI / 2
   scene.add( overheadRectLight )
 
-  const leftChamferFill = new THREE.DirectionalLight( '#d4eae0', 0.28 )
+  // Cool directional fill to illuminate the left cushions and pocket openings.
+  const leftChamferFill = new THREE.DirectionalLight( '#d4eae0', 0.45 )
   leftChamferFill.position.set( -8.5, 3.8, 0 )
   leftChamferFill.target.position.set( 0, 0, 0 )
   scene.add( leftChamferFill, leftChamferFill.target )
 
-  const rightChamferFill = new THREE.DirectionalLight( '#f0e6d6', 0.24 )
+  // Warm directional fill to bring out right rail textures and wood grain.
+  const rightChamferFill = new THREE.DirectionalLight( '#f0e6d6', 0.40 )
   rightChamferFill.position.set( 8.5, 3.8, 0 )
   rightChamferFill.target.position.set( 0, 0, 0 )
   scene.add( rightChamferFill, rightChamferFill.target )
 
-  const keyLight = new THREE.DirectionalLight( '#ffe8c2', 1.25 )
+  // Key directional light provides clear form definition, highlights, and crisp shadows.
+  const keyLight = new THREE.DirectionalLight( '#ffe8c2', 1.85 )
   keyLight.position.set( -4.8, 8.8, 5.2 )
   keyLight.target.position.set( 0, 0, -2.5 )
   keyLight.castShadow = true
@@ -1229,16 +1234,19 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
   keyLight.shadow.normalBias = 0.015
   scene.add( keyLight, keyLight.target )
 
-  const overheadSpot = new THREE.SpotLight( '#fff3da', 3.8, 24, Math.PI / 3.2, 0.8, 1.3 )
+  // Overhead spotlight focuses radiance on the active rack and balls corridor.
+  const overheadSpot = new THREE.SpotLight( '#fff3da', 5.6, 26, Math.PI / 3.2, 0.8, 1.3 )
   overheadSpot.position.set( 0, 8.5, -3.2 )
   overheadSpot.target.position.set( 0, 0, -3.2 )
   overheadSpot.castShadow = false
   scene.add( overheadSpot, overheadSpot.target )
 
-  const feltBounce = new THREE.HemisphereLight( '#1c5e45', '#030504', 0.28 )
+  // Ambient felt bounce light softens dark shadows under balls and rail returns.
+  const feltBounce = new THREE.HemisphereLight( '#1c5e45', '#030504', 0.52 )
   scene.add( feltBounce )
 
-  const rimLight = new THREE.DirectionalLight( '#df9654', 0.45 )
+  // Warm rim light sharpens ball silhouettes and gloss edge catchlights.
+  const rimLight = new THREE.DirectionalLight( '#df9654', 0.68 )
   rimLight.position.set( 5.5, 4.8, -7.5 )
   rimLight.target.position.set( 0, 0, -3 )
   scene.add( rimLight, rimLight.target )
