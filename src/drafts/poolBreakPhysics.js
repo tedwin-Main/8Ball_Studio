@@ -1006,7 +1006,7 @@ const slerpQuaternion = ( first, second, progress ) =>
 }
 
 // Sample the same frozen frames in either scroll direction under one timing contract.
-const sampleBreakStateWithTiming = ( suppliedProgress, simulation, timing, options = {} ) =>
+const sampleBreakStateWithTiming = ( suppliedProgress, simulation, timing ) =>
 {
   const progress = clamp( suppliedProgress )
   const { config, frames, initial, milestones } = simulation
@@ -1014,10 +1014,8 @@ const sampleBreakStateWithTiming = ( suppliedProgress, simulation, timing, optio
 
   if ( progress <= timing.approachEnd )
   {
-    // The rollback defaults to the original linear Draft 1-3 approach; Draft 4 opts into the newer weighted curve.
-    const approachProgress = options.weightedApproach
-      ? easeWeightedProgress( progress / timing.approachEnd )
-      : progress / timing.approachEnd
+    // Start with resistance, then build momentum into impact while preserving the exact endpoint.
+    const approachProgress = easeWeightedProgress( progress / timing.approachEnd )
     const x = lerp( initial.strikerStart.x, initial.strikerImpact.x, approachProgress )
     const z = lerp( initial.strikerStart.z, initial.strikerImpact.z, approachProgress )
     const distance = magnitude2( x - initial.strikerStart.x, z - initial.strikerStart.z )
@@ -1106,8 +1104,7 @@ export function sampleDraft2BreakState ( suppliedProgress, simulation = getBreak
 export function sampleCinematicBreakState (
   suppliedProgress,
   simulation = getBreakSimulation(),
-  options,
 )
 {
-  return sampleBreakStateWithTiming( suppliedProgress, simulation, LEGACY_BREAK_TIMING, options )
+  return sampleBreakStateWithTiming( suppliedProgress, simulation, LEGACY_BREAK_TIMING )
 }

@@ -17,11 +17,6 @@ const PoolPovDraft = lazy( () => import( './drafts/PoolPovDraft' ).then( ( modul
   default: module.PoolPovDraft,
 } ) ) )
 
-// Draft 4 keeps the latest Draft 1 renderer isolated from the restored slots.
-const Draft4PoolPov = lazy( () => import( './drafts/Draft4PoolPov' ).then( ( module ) => ( {
-  default: module.Draft4PoolPov,
-} ) ) )
-
 // Keep the Draft 2 camera cut aligned with the shared intro timeline.
 const DRAFT2_TRANSITION_READY_STORY_PROGRESS = toStoryProgress( STORY_TIMING.intro.draft2.transitionReady )
 // Cut the shared 8-ball before its old pocket-drop path starts; Draft 1 keeps its original animation.
@@ -31,7 +26,7 @@ const getDraft2ExitProgress = ( progress ) =>
   Math.min( 1, Math.max( 0, ( progress - DRAFT2_TRANSITION_READY_STORY_PROGRESS ) /
     STORY_TIMING.intro.draft2.transitionDurationProgress ) )
 
-const DRAFT_IDS = [ 'cinematic', 'webgl', 'original', 'draft4' ]
+const DRAFT_IDS = [ 'cinematic', 'webgl', 'original' ]
 
 // Draft controls are a diagnostic entry point, never part of the public Story chrome.
 const getDraftDiagnosticsState = () =>
@@ -49,14 +44,14 @@ const getDraftDiagnosticsState = () =>
 
 const getInitialDraft = () =>
 {
-  if ( typeof window === 'undefined' ) return 'cinematic'
+  if ( typeof window === 'undefined' ) return 'webgl'
 
   const requestedDraft = new URLSearchParams( window.location.search ).get( 'draft' )
-  // Keep old shared links working while the restored cinematic treatment remains the default.
+  // Keep old shared links working while the certified WebGL treatment is the public Production Draft.
   const normalizedDraft = requestedDraft === 'photo' ? 'cinematic' : requestedDraft
 
-  // Invalid URLs use the restored cinematic treatment so the default page is always usable.
-  return DRAFT_IDS.includes( normalizedDraft ) ? normalizedDraft : 'cinematic'
+  // Invalid URLs use WebGL; its guarded failure path immediately hands off to Cinematic.
+  return DRAFT_IDS.includes( normalizedDraft ) ? normalizedDraft : 'webgl'
 }
 
 const PROJECT_ITEMS = [
@@ -245,10 +240,6 @@ function App ()
   )
   const registerWebglController = useCallback(
     ( controller ) => registerDraftController( 'webgl', controller ),
-    [ registerDraftController ],
-  )
-  const registerDraft4Controller = useCallback(
-    ( controller ) => registerDraftController( 'draft4', controller ),
     [ registerDraftController ],
   )
 
@@ -791,14 +782,6 @@ function App ()
               <PoolPovDraft
                 active={ activeDraft === 'cinematic' }
                 onController={ registerCinematicController }
-              />
-            </Suspense>
-          ) }
-          { ( diagnosticsState.mountAll || activeDraft === 'draft4' ) && (
-            <Suspense fallback={ null }>
-              <Draft4PoolPov
-                active={ activeDraft === 'draft4' }
-                onController={ registerDraft4Controller }
               />
             </Suspense>
           ) }

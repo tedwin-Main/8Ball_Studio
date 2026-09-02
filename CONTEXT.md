@@ -13,7 +13,7 @@ A named, stable chapter in the Story: Intro, Studio, Projects, or Contact.
 _Avoid_: section, screen
 
 **Draft**:
-A selectable visual treatment of the Intro page: Cinematic, WebGL, Original, or the preserved Draft 4 treatment.
+A selectable visual treatment of the Intro page, such as Cinematic, WebGL, or Original.
 _Avoid_: version, mode
 
 **Production Draft**:

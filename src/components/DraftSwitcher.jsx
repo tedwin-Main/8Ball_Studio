@@ -2,7 +2,6 @@ const DRAFT_OPTIONS = [
   { id: 'cinematic', label: '01 3D POV' },
   { id: 'webgl', label: '02 3D Break' },
   { id: 'original', label: '03 Original' },
-  { id: 'draft4', label: '04 3D POV' },
 ]
 
 export function DraftSwitcher ( { activeDraft, onChange } )

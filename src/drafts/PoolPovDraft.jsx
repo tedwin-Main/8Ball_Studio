@@ -8,9 +8,25 @@ import {
   getBreakSimulation,
   sampleCinematicBreakState,
 } from './poolBreakPhysics'
+import { STORY_TIMING } from '../storyTiming'
+import {
+  createPointerParallax,
+  DRAFT2_SCENE_SCALE,
+  resolveIntroCameraFraming,
+  resolvePhotoHoverResponse,
+} from './cameraFraming'
+import {
+  isFramingDiagnosticsEnabled,
+  publishFramingDiagnostics,
+} from './framingDiagnostics'
+import { createDemandFrameScheduler } from './demandFrameScheduler'
+import { LIGHTING_CONTRACT, MATERIAL_CONTRACT } from './renderContracts'
 
 const clamp = ( value, min = 0, max = 1 ) => Math.min( max, Math.max( min, value ) )
 const lerp = ( start, end, progress ) => start + ( end - start ) * progress
+
+// Match Draft 2's maximum backing density so Retina desktops do not pay excess fill rate.
+const DRAFT1_PIXEL_RATIO_CAP = 1.5
 
 const BALL_COLORS = [
   '#f5b818', '#1b46a2', '#cb242a', '#59287a', '#e76317',
@@ -27,20 +43,10 @@ const RACK_BALL_NUMBERS = [
   9, 12, 15, 6, 7,
 ]
 
-// Scale Draft 2's opening camera into Draft 1 units so the 8-ball dominates the foreground.
-const CLOSE_THIRD_PERSON_FOV = 38
-const CLOSE_THIRD_PERSON_CAMERA = Object.freeze( {
-  position: Object.freeze( [ 0, 0.103, 0.771 ] ),
-  // Keep the far rack locked to the photographic table while moving closer to the 8-ball.
-  target: Object.freeze( [ 0, -0.0312, -0.344 ] ),
-} )
-
 // Each plate stores its table, light, rail, and projected pocket measurements together.
 const PLATE_CALIBRATIONS = Object.freeze( {
   landscape: Object.freeze( {
     referenceAspect: 1.6,
-    fov: CLOSE_THIRD_PERSON_FOV,
-    camera: CLOSE_THIRD_PERSON_CAMERA,
     tablePlane: Object.freeze( {
       position: Object.freeze( [ 0, 0, 0 ] ),
       rotation: Object.freeze( [ 0, 0, 0 ] ),
@@ -66,8 +72,6 @@ const PLATE_CALIBRATIONS = Object.freeze( {
   } ),
   portrait: Object.freeze( {
     referenceAspect: 390 / 844,
-    fov: CLOSE_THIRD_PERSON_FOV,
-    camera: CLOSE_THIRD_PERSON_CAMERA,
     tablePlane: Object.freeze( {
       position: Object.freeze( [ 0, 0, 0 ] ),
       rotation: Object.freeze( [ 0, 0, 0 ] ),
@@ -98,10 +102,41 @@ const adaptReferenceUv = ( uv, calibration, aspect ) => [
   uv[ 1 ],
 ]
 
-const projectUv = ( point, camera ) =>
+// Keep the existing photo anchor measurement available to benchmark checks after camera sharing.
+const getPhotoRegistration = ( camera, simulation, radius, calibration, aspect, width, height ) =>
 {
-  const projected = point.clone().project( camera )
-  return [ ( projected.x + 1 ) / 2, ( 1 - projected.y ) / 2 ]
+  const project = ( point ) =>
+  {
+    const projected = point.clone().project( camera )
+    return {
+      x: ( projected.x + 1 ) / 2,
+      y: ( 1 - projected.y ) / 2,
+    }
+  }
+  const rackApex = project( new THREE.Vector3(
+    simulation.config.rack.apexX,
+    radius,
+    simulation.config.rack.apexZ,
+  ) )
+  const strikerContact = project( new THREE.Vector3(
+    simulation.initial.strikerImpact.x,
+    radius,
+    simulation.initial.strikerImpact.z,
+  ) )
+  const expectedRackApex = adaptReferenceUv( calibration.projectedAnchors.rackApex, calibration, aspect )
+  const expectedStrikerContact = adaptReferenceUv( calibration.projectedAnchors.strikerContact, calibration, aspect )
+  const distance = ( actual, expected ) => Math.hypot(
+    ( actual.x - expected[ 0 ] ) * width,
+    ( actual.y - expected[ 1 ] ) * height,
+  )
+  return {
+    anchorError: Math.max(
+      distance( rackApex, expectedRackApex ),
+      distance( strikerContact, expectedStrikerContact ),
+    ),
+    rackApex,
+    strikerContact,
+  }
 }
 
 const createPoolBallTexture = ( color, number, anisotropy ) =>
@@ -156,11 +191,13 @@ const createLogoTexture = ( anisotropy, requestRender ) =>
   const context = canvas.getContext( '2d' )
   const image = new Image()
   const texture = new THREE.CanvasTexture( canvas )
+  let disposed = false
   texture.colorSpace = THREE.SRGBColorSpace
   texture.anisotropy = anisotropy
 
   const paint = () =>
   {
+    if ( disposed ) return
     // Clip the supplied square artwork so only the circular brand mark reaches the decal.
     context.clearRect( 0, 0, canvas.width, canvas.height )
     context.save()
@@ -176,6 +213,36 @@ const createLogoTexture = ( anisotropy, requestRender ) =>
   image.addEventListener( 'load', paint, { once: true } )
   image.src = brandLogo
   if ( image.complete ) paint()
+  return {
+    texture,
+    dispose ()
+    {
+      disposed = true
+      image.removeEventListener( 'load', paint )
+      image.src = ''
+    },
+  }
+}
+
+// Use the same soft radial contact cue as Draft 2 so every ball reads as resting on felt.
+const createContactShadowTexture = ( anisotropy = 1 ) =>
+{
+  const canvas = document.createElement( 'canvas' )
+  canvas.width = 128
+  canvas.height = 128
+  const context = canvas.getContext( '2d' )
+  const gradient = context.createRadialGradient( 64, 64, 0, 64, 64, 64 )
+  gradient.addColorStop( 0, 'rgba(0, 0, 0, 0.95)' )
+  gradient.addColorStop( 0.28, 'rgba(0, 0, 0, 0.8)' )
+  gradient.addColorStop( 0.62, 'rgba(0, 0, 0, 0.25)' )
+  gradient.addColorStop( 1, 'rgba(0, 0, 0, 0)' )
+  context.fillStyle = gradient
+  context.fillRect( 0, 0, 128, 128 )
+  const texture = new THREE.CanvasTexture( canvas )
+  texture.anisotropy = anisotropy
+  texture.generateMipmaps = true
+  texture.minFilter = THREE.LinearMipmapLinearFilter
+  texture.magFilter = THREE.LinearFilter
   return texture
 }
 
@@ -218,16 +285,11 @@ const createWarmEnvironment = ( renderer ) =>
 const createBallMaterial = ( color, texture ) => new THREE.MeshPhysicalMaterial( {
   color: texture ? '#ffffff' : color,
   map: texture,
-  roughness: 0.075,
-  metalness: 0,
-  clearcoat: 1,
-  clearcoatRoughness: 0.035,
-  ior: 1.54,
-  reflectivity: 0.82,
+  ...MATERIAL_CONTRACT.ball,
   envMapIntensity: 0.78,
 } )
 
-const buildWorld = ( canvas, simulation ) =>
+const buildWorld = ( canvas, simulation, requestRender ) =>
 {
   const scene = new THREE.Scene()
   const camera = new THREE.PerspectiveCamera( 36, 1, 0.01, 40 )
@@ -241,12 +303,11 @@ const buildWorld = ( canvas, simulation ) =>
   renderer.outputColorSpace = THREE.SRGBColorSpace
   renderer.toneMapping = THREE.ACESFilmicToneMapping
   renderer.toneMappingExposure = 0.95
-  // The photo already carries the table shading, so do not add a second shadow layer.
+  // The photo carries broad table shading; explicit contact planes add ball grounding without a shadow-map pass.
   renderer.shadowMap.enabled = false
 
   const maximumAnisotropy = Math.min( 8, renderer.capabilities.getMaxAnisotropy() )
   const disposableTextures = new Set()
-  let renderWorld = () => {}
   const environmentTarget = createWarmEnvironment( renderer )
   scene.environment = environmentTarget.texture
   scene.environmentIntensity = 0.68
@@ -257,8 +318,34 @@ const buildWorld = ( canvas, simulation ) =>
   const radius = simulation.config.ball.radius
   const ballGeometry = new THREE.SphereGeometry( radius, 48, 32 )
   const ballMeshes = []
+  const contactShadowTexture = createContactShadowTexture( maximumAnisotropy )
+  disposableTextures.add( contactShadowTexture )
+  const contactShadowMaterial = new THREE.MeshBasicMaterial( {
+    map: contactShadowTexture,
+    color: '#020403',
+    transparent: true,
+    opacity: 0.42,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
+  } )
+  const contactShadowGeometry = new THREE.PlaneGeometry( radius * 2.8, radius * 2.8 )
+  contactShadowGeometry.rotateX( -Math.PI / 2 )
+  const shadowGroup = new THREE.Group()
+  tableRoot.add( shadowGroup )
+  const ballShadows = []
+  const addBallShadow = () =>
+  {
+    const shadow = new THREE.Mesh( contactShadowGeometry, contactShadowMaterial )
+    shadow.position.y = 0.001
+    shadow.renderOrder = 1
+    shadowGroup.add( shadow )
+    ballShadows.push( shadow )
+  }
 
-  const logoTexture = createLogoTexture( maximumAnisotropy, () => renderWorld() )
+  const logoAsset = createLogoTexture( maximumAnisotropy, requestRender )
+  const logoTexture = logoAsset.texture
   disposableTextures.add( logoTexture )
   const strikerMaterial = createBallMaterial( '#070807', null )
   const strikerMesh = new THREE.Mesh( ballGeometry, strikerMaterial )
@@ -273,9 +360,7 @@ const buildWorld = ( canvas, simulation ) =>
     emissive: '#26382f',
     emissiveIntensity: 0.35,
     transparent: true,
-    roughness: 0.12,
-    clearcoat: 0.9,
-    clearcoatRoughness: 0.05,
+    ...MATERIAL_CONTRACT.decal,
     depthWrite: false,
     polygonOffset: true,
     polygonOffsetFactor: -2,
@@ -300,6 +385,7 @@ const buildWorld = ( canvas, simulation ) =>
   strikerGroup.add( strikerMesh )
   tableRoot.add( strikerGroup )
   ballMeshes.push( strikerGroup )
+  addBallShadow()
 
   RACK_BALL_NUMBERS.forEach( ( number ) =>
   {
@@ -315,17 +401,34 @@ const buildWorld = ( canvas, simulation ) =>
     mesh.receiveShadow = false
     tableRoot.add( mesh )
     ballMeshes.push( mesh )
+    addBallShadow()
   } )
 
-  // The pendant supplies warm specular light; ground shadows stay off against the photo plate.
+  // The pendant supplies warm specular light while the contact planes anchor balls to the photo plate.
   const pendantSpot = new THREE.SpotLight( '#ffe5b5', 18, 7, Math.PI / 3.1, 0.82, 1.35 )
   pendantSpot.castShadow = false
   pendantSpot.target.position.set( 0, 0, simulation.config.rack.apexZ )
   scene.add( pendantSpot, pendantSpot.target )
 
+  const baseLightPosition = new THREE.Vector3()
+  let hoverResponse = resolvePhotoHoverResponse()
+  const setHoverResponse = ( nextResponse = resolvePhotoHoverResponse() ) =>
+  {
+    hoverResponse = nextResponse
+    // Keep the existing key light and 8-ball reflection response aligned with the camera hover cue.
+    pendantSpot.position.set(
+      baseLightPosition.x + nextResponse.x * 0.045,
+      baseLightPosition.y + nextResponse.y * 0.035,
+      baseLightPosition.z - nextResponse.x * 0.02 + nextResponse.y * 0.02,
+    )
+    strikerMaterial.envMapIntensity = 0.78 + nextResponse.strength * 0.12
+    decalMaterial.envMapIntensity = 1 + nextResponse.strength * 0.1
+    decalMaterial.emissiveIntensity = 0.35 + nextResponse.strength * 0.04
+  }
+
   const feltBounce = new THREE.HemisphereLight( '#1b5b43', '#020302', 0.42 )
   scene.add( feltBounce )
-  const warmFill = new THREE.DirectionalLight( '#d9a36e', 0.34 )
+  const warmFill = new THREE.DirectionalLight( LIGHTING_CONTRACT.key.color, 0.28 )
   warmFill.position.set( 1.8, 1.05, 0.55 )
   scene.add( warmFill )
 
@@ -333,8 +436,6 @@ const buildWorld = ( canvas, simulation ) =>
   {
     renderer.render( scene, camera )
   }
-  renderWorld = render
-
   const resize = () =>
   {
     const width = Math.max( 1, canvas.clientWidth || window.innerWidth )
@@ -345,84 +446,62 @@ const buildWorld = ( canvas, simulation ) =>
     const plane = calibration.tablePlane
 
     camera.aspect = aspect
-    camera.fov = calibration.fov
-    camera.position.set( ...calibration.camera.position )
-    camera.lookAt( ...calibration.camera.target )
     camera.updateProjectionMatrix()
-    camera.updateMatrixWorld()
 
     tableRoot.position.set( ...plane.position )
     tableRoot.rotation.set( ...plane.rotation )
     tableRoot.scale.setScalar( plane.scale )
-    pendantSpot.position.set( ...calibration.lightPosition )
+    baseLightPosition.set( ...calibration.lightPosition )
+    setHoverResponse( hoverResponse )
 
-    // Cap fill rate on dense mobile screens while preserving ball material detail.
-    const pixelRatioCap = width <= 768 ? 1.5 : 2
-    const pixelRatio = Math.min( window.devicePixelRatio || 1, pixelRatioCap )
+    // Keep CSS size and camera framing unchanged while limiting internal render pixels.
+    const pixelRatio = Math.min( window.devicePixelRatio || 1, DRAFT1_PIXEL_RATIO_CAP )
     renderer.setPixelRatio( pixelRatio )
     renderer.setSize( width, height, false )
 
-    const apex = new THREE.Vector3(
-      simulation.config.rack.apexX,
-      radius,
-      simulation.config.rack.apexZ,
-    )
-    const contact = new THREE.Vector3(
-      simulation.initial.strikerImpact.x,
-      radius,
-      simulation.initial.strikerImpact.z,
-    )
-    const expectedApex = adaptReferenceUv(
-      calibration.projectedAnchors.rackApex,
-      calibration,
-      aspect,
-    )
-    const expectedContact = adaptReferenceUv(
-      calibration.projectedAnchors.strikerContact,
-      calibration,
-      aspect,
-    )
-    const actualApex = projectUv( apex, camera )
-    const actualContact = projectUv( contact, camera )
-    const anchorError = Math.max(
-      Math.hypot(
-        ( actualApex[ 0 ] - expectedApex[ 0 ] ) * width,
-        ( actualApex[ 1 ] - expectedApex[ 1 ] ) * height,
-      ),
-      Math.hypot(
-        ( actualContact[ 0 ] - expectedContact[ 0 ] ) * width,
-        ( actualContact[ 1 ] - expectedContact[ 1 ] ) * height,
-      ),
-    )
     canvas.dataset.plate = mode
-    canvas.dataset.anchorError = anchorError.toFixed( 2 )
     canvas.dataset.farRail = `${calibration.farRailAnchors.left.join( ',' )};${calibration.farRailAnchors.right.join( ',' )}`
     canvas.dataset.pockets = calibration.pocketProjection.length
-    render()
+    canvas.dataset.contactShadows = String( ballShadows.length )
   }
 
   const dispose = () =>
   {
+    if ( dispose.called ) return
+    dispose.called = true
+    logoAsset.dispose()
+    const geometries = new Set()
+    const disposableMaterials = new Set()
     scene.traverse( ( object ) =>
     {
-      if ( object.geometry && object.geometry !== ballGeometry ) object.geometry.dispose()
+      if ( object.geometry ) geometries.add( object.geometry )
       if ( object.material )
       {
-        const materials = Array.isArray( object.material ) ? object.material : [ object.material ]
-        materials.forEach( ( material ) => material.dispose() )
+        const objectMaterials = Array.isArray( object.material ) ? object.material : [ object.material ]
+        objectMaterials.forEach( ( material ) => disposableMaterials.add( material ) )
       }
     } )
-    ballGeometry.dispose()
+    geometries.forEach( ( geometry ) => geometry.dispose() )
+    disposableMaterials.forEach( ( material ) => material.dispose() )
     disposableTextures.forEach( ( texture ) => texture.dispose() )
+    // Detach scene references before releasing the PMREM target so Three.js cannot
+    // retain a disposed environment or background through the scene graph.
+    scene.environment = null
+    scene.background = null
     environmentTarget.dispose()
+    renderer.renderLists.dispose()
     renderer.dispose()
   }
 
   return {
+    camera,
+    radius,
     ballMeshes,
+    ballShadows,
     renderer,
     resize,
     render,
+    setHoverResponse,
     dispose,
   }
 }
@@ -443,11 +522,29 @@ export function PoolPovDraft ( { active, onController } )
     let world = null
     let isActive = active
     let progress = 0
+    let resizePending = true
+    let destroyed = false
+    let renderFrame = () => {}
+    let renderContinuation = false
+    const diagnosticsEnabled = isFramingDiagnosticsEnabled( window )
+
+    const scheduler = createDemandFrameScheduler( {
+      active: isActive,
+      requestAnimationFrame: ( callback ) => window.requestAnimationFrame( callback ),
+      cancelAnimationFrame: ( handle ) => window.cancelAnimationFrame( handle ),
+      render: ( frameState ) => renderFrame( frameState ),
+      shouldContinue: () => renderContinuation,
+    } )
 
     try
     {
-      world = buildWorld( canvas, simulation )
+      world = buildWorld( canvas, simulation, () => scheduler.invalidate() )
       root.dataset.webglError = 'false'
+      // Diagnostics expose the shared physical contract without retaining Three.js objects.
+      root.dataset.ballRoughness = String( MATERIAL_CONTRACT.ball.roughness )
+      root.dataset.ballClearcoat = String( MATERIAL_CONTRACT.ball.clearcoat )
+      root.dataset.ballIor = String( MATERIAL_CONTRACT.ball.ior )
+      root.dataset.materialColorSpace = 'srgb'
     }
     catch ( error )
     {
@@ -456,9 +553,21 @@ export function PoolPovDraft ( { active, onController } )
       console.warn( 'Cinematic pool overlay unavailable:', error )
     }
 
-    const updateScene = ( nextProgress ) =>
+    const requestRender = () => scheduler.invalidate()
+
+    // Fine-pointer input shares Draft 2's bounded damping for the transparent 3D ball layer.
+    const prefersReducedMotion = window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches
+    const pointer = createPointerParallax( {
+      windowObject: window,
+      isActive: () => isActive,
+      requestRender,
+      onResize: () => { resizePending = true },
+      // Reduced-motion visitors get the neutral plate composition without a damped hover loop.
+      enabled: !prefersReducedMotion,
+    } )
+
+    const renderScene = () =>
     {
-      progress = clamp( nextProgress )
       const state = sampleCinematicBreakState( progress, simulation )
 
       if ( world )
@@ -475,9 +584,71 @@ export function PoolPovDraft ( { active, onController } )
             ball.quaternion.w,
           )
           mesh.visible = ball.visibility
+
+          const shadow = world.ballShadows[ index ]
+          if ( shadow )
+          {
+            shadow.position.set( ball.position.x, 0.001, ball.position.z )
+            // Keep the shadow on the felt plane, fading it as a ball drops into a pocket.
+            const heightOffset = Math.max( 0, ( ball.position.y - world.radius ) / world.radius )
+            const pocketFade = ball.pocketDepth ? Math.max( 0, 1 - ball.pocketDepth * 4 ) : 1
+            const shadowScale = ( 1 - heightOffset * 0.8 ) * pocketFade
+            shadow.scale.setScalar( Math.max( 0.001, shadowScale ) )
+            shadow.visible = ball.visibility && shadowScale > 0.02
+          }
         } )
 
+        const framing = resolveIntroCameraFraming( {
+          progress,
+          transitionReadyProgress: STORY_TIMING.intro.draft1.transitionReady,
+          aspect: world.camera.aspect,
+          sourceScale: 1 / DRAFT2_SCENE_SCALE,
+          pointerX: pointer.state.x,
+          pointerY: pointer.state.y,
+          pointerEnabled: pointer.state.enabled,
+          lockToPlate: true,
+        } )
+        const hoverResponse = resolvePhotoHoverResponse( {
+          pointerX: pointer.state.x,
+          pointerY: pointer.state.y,
+          pointerEnabled: pointer.state.enabled,
+        } )
+        world.setHoverResponse( hoverResponse )
+        world.camera.fov = framing.fov
+        world.camera.position.set( ...framing.camera )
+        world.camera.lookAt( ...framing.target )
+        world.camera.updateProjectionMatrix()
+        world.camera.updateMatrixWorld( true )
+        if ( diagnosticsEnabled )
+        {
+          const width = Math.max( 1, canvas.clientWidth || window.innerWidth )
+          const height = Math.max( 1, canvas.clientHeight || window.innerHeight )
+          const calibration = PLATE_CALIBRATIONS[ canvas.dataset.plate ]
+          const photoRegistration = calibration
+            ? getPhotoRegistration(
+              world.camera,
+              simulation,
+              world.radius,
+              calibration,
+              world.camera.aspect,
+              width,
+              height,
+            )
+            : null
+          publishFramingDiagnostics(
+            canvas,
+            world.camera,
+            state.balls,
+            world.radius,
+            framing,
+            photoRegistration,
+            hoverResponse,
+          )
+        }
         world.render()
+        // Keep render-completion timing behind the existing benchmark seam so
+        // normal visitors pay no dataset mutation on each WebGL paint.
+        if ( diagnosticsEnabled ) root.dataset.webglRenderAt = performance.now().toFixed( 3 )
       }
 
       // Fade the photograph, lighting, and balls as one reversible composition.
@@ -485,11 +656,14 @@ export function PoolPovDraft ( { active, onController } )
       root.dataset.phase = state.phase
     }
 
-    const handleResize = () =>
+    const updateScene = ( nextProgress ) =>
     {
-      world?.resize()
-      updateScene( progress )
+      progress = clamp( nextProgress )
+      // Keep the selected Draft's Story playhead observable even while its render is demand-driven.
+      root.dataset.webglProgress = progress.toFixed( 4 )
+      requestRender()
     }
+
     const handleContextLost = ( event ) =>
     {
       event.preventDefault()
@@ -497,27 +671,58 @@ export function PoolPovDraft ( { active, onController } )
     }
 
     const controller = {
-      setProgress: updateScene,
+      setProgress ( nextProgress )
+      {
+        updateScene( nextProgress )
+      },
       setActive ( nextActive )
       {
         isActive = nextActive
         root.classList.toggle( 'is-active', isActive )
         root.setAttribute( 'aria-hidden', String( !isActive ) )
-        if ( isActive ) updateScene( progress )
+        if ( !isActive )
+        {
+          pointer.reset()
+          // Clear the hidden Draft's light response so reactivation starts from neutral.
+          world?.setHoverResponse( resolvePhotoHoverResponse() )
+        }
+
+        if ( isActive ) pointer.syncCapability()
+        scheduler.setActive( isActive )
+        updateScene( progress )
       },
+    }
+
+    renderFrame = () =>
+    {
+      renderContinuation = false
+      if ( destroyed || !isActive || !world ) return
+
+      if ( resizePending )
+      {
+        world.resize()
+        resizePending = false
+      }
+
+      renderScene()
+
+      const pointerSettled = pointer.advance()
+      // Pointer damping or a pending resize keeps the demand-driven scheduler alive until settled.
+      renderContinuation = !pointerSettled || resizePending
     }
 
     controllerRef.current = controller
     onController?.( controller )
     canvas.addEventListener( 'webglcontextlost', handleContextLost )
-    window.addEventListener( 'resize', handleResize )
-    world?.resize()
+    pointer.addListeners()
     controller.setProgress( progress )
     controller.setActive( active )
 
     return () =>
     {
-      window.removeEventListener( 'resize', handleResize )
+      destroyed = true
+      scheduler.destroy()
+      pointer.removeListeners()
       canvas.removeEventListener( 'webglcontextlost', handleContextLost )
       onController?.( null )
       if ( controllerRef.current === controller ) controllerRef.current = null
