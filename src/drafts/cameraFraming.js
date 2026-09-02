@@ -40,8 +40,9 @@ const CAMERA_SOURCE = Object.freeze( {
   } ),
 } )
 
-// This damping keeps desktop parallax tactile without making the camera jump to each pointer event.
-export const CAMERA_POINTER_DAMPING = 0.045
+// This damping keeps desktop parallax tactile while bringing a neutral pointer back
+// to the centered ball quickly enough that the demand scheduler can settle promptly.
+export const CAMERA_POINTER_DAMPING = 0.06
 // Stop the pointer loop once the remaining offset is below a visually sub-pixel tolerance.
 const CAMERA_POINTER_SETTLE_TOLERANCE = 0.0015
 
@@ -186,10 +187,13 @@ export const createPointerParallax = ( {
 
   const advance = () =>
   {
-    state.x += ( state.targetX - state.x ) * CAMERA_POINTER_DAMPING
-    state.y += ( state.targetY - state.y ) * CAMERA_POINTER_DAMPING
-    return Math.abs( state.targetX - state.x ) <= CAMERA_POINTER_SETTLE_TOLERANCE &&
-      Math.abs( state.targetY - state.y ) <= CAMERA_POINTER_SETTLE_TOLERANCE
+    const nextX = state.x + ( state.targetX - state.x ) * CAMERA_POINTER_DAMPING
+    const nextY = state.y + ( state.targetY - state.y ) * CAMERA_POINTER_DAMPING
+    // Snap only inside the sub-pixel tolerance; this removes a long tail of tiny
+    // camera motion without changing the smooth path that visitors see.
+    state.x = Math.abs( state.targetX - nextX ) <= CAMERA_POINTER_SETTLE_TOLERANCE ? state.targetX : nextX
+    state.y = Math.abs( state.targetY - nextY ) <= CAMERA_POINTER_SETTLE_TOLERANCE ? state.targetY : nextY
+    return state.x === state.targetX && state.y === state.targetY
   }
 
   return {

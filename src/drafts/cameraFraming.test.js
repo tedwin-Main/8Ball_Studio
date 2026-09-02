@@ -64,7 +64,7 @@ test( 'fine-pointer parallax uses the shared bounded offsets and damping contrac
     pointerEnabled: true,
   } )
 
-  assert.equal( CAMERA_POINTER_DAMPING, 0.045 )
+  assert.equal( CAMERA_POINTER_DAMPING, 0.06 )
   assert.equal( moved.pointerEnabled, true )
   assertClose( moved.camera[ 0 ] - centered.camera[ 0 ], 0.12 )
   assertClose( moved.camera[ 1 ] - centered.camera[ 1 ], -0.05 )

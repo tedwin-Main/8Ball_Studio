@@ -812,32 +812,41 @@ function App ()
             </a>
             <nav className="header-meta" aria-label="Page navigation">
               <a
-                className="header-link header-projects-link"
+                className="header-link header-work-link"
                 href="#projects"
                 onClick={ ( event ) =>
                 {
-                  // Stop the browser jump so the pager can land on the stable Projects target.
+                  // Stop the browser jump so the pager can land on the stable Work target.
                   event.preventDefault()
                   goToPage( 'projects', { interrupt: true } )
                 } }
               >
-                Our Projects
+                Work
               </a>
               <a
-                className="header-link header-contact-link"
+                className="header-link header-studio-link"
+                href="#studio"
+                onClick={ ( event ) =>
+                {
+                  // Use the same Lenis motion as pagination for the stable Studio target.
+                  event.preventDefault()
+                  goToPage( 'studio', { interrupt: true } )
+                } }
+              >
+                Studio
+              </a>
+              <a
+                className="header-action"
                 href="#contact"
                 onClick={ ( event ) =>
                 {
-                  // Use the same Lenis motion as pagination for the stable Contact target.
+                  // Keep the single header action on the shared Contact destination.
                   event.preventDefault()
                   goToPage( 'contact', { interrupt: true } )
                 } }
               >
-                Contact Us
+                Start a project <span aria-hidden="true">↗</span>
               </a>
-              <button className="top-link" onClick={ replay } type="button" aria-label="Go back to top of page">
-                Top
-              </button>
             </nav>
           </header>
 
@@ -859,7 +868,7 @@ function App ()
             </div>
           </div>
 
-          <section className="title-screen" aria-labelledby="studio-title">
+          <section id="studio" className="title-screen" aria-labelledby="studio-title">
             <div className="final-orbit orbit-one" aria-hidden="true" />
             <div className="final-orbit orbit-two" aria-hidden="true" />
             <div className="final-content">

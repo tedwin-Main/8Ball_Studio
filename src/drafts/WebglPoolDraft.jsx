@@ -53,7 +53,7 @@ const DRAFT2_QUALITY_TIERS = Object.freeze( {
     id: 'high',
     pixelRatioCap: QUALITY_CONTRACT.high.pixelRatioCap,
     shadowMapSize: QUALITY_CONTRACT.high.shadowMapSize,
-    useSsao: true,
+    useSsao: QUALITY_CONTRACT.high.ssao,
     renderBudgetMs: 20,
     ballWidthSegments: QUALITY_CONTRACT.high.ball[ 0 ],
     ballHeightSegments: QUALITY_CONTRACT.high.ball[ 1 ],
@@ -64,7 +64,7 @@ const DRAFT2_QUALITY_TIERS = Object.freeze( {
     id: 'standard',
     pixelRatioCap: QUALITY_CONTRACT.standard.pixelRatioCap,
     shadowMapSize: QUALITY_CONTRACT.standard.shadowMapSize,
-    useSsao: true,
+    useSsao: QUALITY_CONTRACT.standard.ssao,
     renderBudgetMs: 24,
     ballWidthSegments: QUALITY_CONTRACT.standard.ball[ 0 ],
     ballHeightSegments: QUALITY_CONTRACT.standard.ball[ 1 ],
@@ -75,7 +75,7 @@ const DRAFT2_QUALITY_TIERS = Object.freeze( {
     id: 'low',
     pixelRatioCap: QUALITY_CONTRACT.low.pixelRatioCap,
     shadowMapSize: QUALITY_CONTRACT.low.shadowMapSize,
-    useSsao: false,
+    useSsao: QUALITY_CONTRACT.low.ssao,
     renderBudgetMs: 32,
     ballWidthSegments: QUALITY_CONTRACT.low.ball[ 0 ],
     ballHeightSegments: QUALITY_CONTRACT.low.ball[ 1 ],
@@ -130,6 +130,7 @@ const createQualityMonitor = ( initialTier, signals, applyTier ) =>
 {
   let currentTier = initialTier
   let pendingTier = null
+  let deferredTier = null
   let slowSamples = 0
   let healthySamples = 0
   const renderDurations = []
@@ -169,7 +170,18 @@ const createQualityMonitor = ( initialTier, signals, applyTier ) =>
     slowSamples = 0
     healthySamples = 0
     renderDurations.length = 0
-    applyTier( currentTier )
+    // The monitor only commits the decision here. Resource work is flushed by the
+    // controller after the active render callback returns.
+    deferredTier = currentTier
+    return true
+  }
+
+  const flushPending = () =>
+  {
+    if ( !deferredTier ) return false
+    const tier = deferredTier
+    deferredTier = null
+    applyTier( tier )
     return true
   }
 
@@ -207,9 +219,10 @@ const createQualityMonitor = ( initialTier, signals, applyTier ) =>
 
   return {
     get current () { return currentTier },
-    get pending () { return Boolean( pendingTier ) },
+    get pending () { return Boolean( pendingTier || deferredTier ) },
     observe,
     suggestFromSignals,
+    flushPending,
   }
 }
 
@@ -1271,6 +1284,11 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
     {
       return qualityMonitor.pending
     },
+    // Flush geometry, map, shadow, and post-process changes outside the RAF render sample.
+    applyPendingQuality ()
+    {
+      return qualityMonitor.flushPending()
+    },
     getResourceSnapshot ()
     {
       // Publish renderer-owned counts only for diagnostics. This does not retain
@@ -1315,6 +1333,7 @@ export function WebglPoolDraft ( {
     let destroyed = false
     let renderFrame = () => {}
     let renderContinuation = false
+    let qualityApplyTimer = null
     let lastRenderedProgress = null
     let stableProgressFrames = 0
     const renderTimestamps = []
@@ -1331,6 +1350,23 @@ export function WebglPoolDraft ( {
       shouldContinue: () => renderContinuation,
     } )
     const requestRender = () => scheduler.invalidate()
+
+    const scheduleQualityApply = () =>
+    {
+      if ( qualityApplyTimer !== null ) return
+      // Let the RAF sample finish before allocating replacement GPU resources. The
+      // scheduler stays alive through this timer and repaints after the swap.
+      qualityApplyTimer = window.setTimeout( () =>
+      {
+        qualityApplyTimer = null
+        if ( destroyed || !world ) return
+        if ( world.applyPendingQuality?.() )
+        {
+          resizePending = true
+          requestRender()
+        }
+      }, 0 )
+    }
 
     const pointer = createPointerParallax( {
       windowObject: window,
@@ -1526,13 +1562,13 @@ export function WebglPoolDraft ( {
       const sceneSettled = stableProgressFrames >= 4 && pointerSettled && !resizePending
       if ( world.observeRender( renderDurationMs, sceneSettled ) )
       {
-        // Apply a pending tier only after motion settles; the next scheduler frame picks up
-        // the new DPR/effects/shadow target without popping during a swipe or break gesture.
-        resizePending = true
+        // Apply a pending tier only after motion settles; allocation runs on the timer
+        // above, after this active render sample has returned.
+        scheduleQualityApply()
       }
       // Pointer damping, a settled quality change, or a resize are renderer-owned
       // continuations. The shared scheduler keeps them alive until all settle.
-      renderContinuation = !pointerSettled || resizePending || world.hasPendingQuality()
+      renderContinuation = !pointerSettled || resizePending || world.hasPendingQuality() || qualityApplyTimer !== null
     }
 
     const controller = {
@@ -1573,6 +1609,8 @@ export function WebglPoolDraft ( {
     return () =>
     {
       destroyed = true
+      if ( qualityApplyTimer !== null ) window.clearTimeout( qualityApplyTimer )
+      qualityApplyTimer = null
       scheduler.destroy()
       pointer.removeListeners()
       canvas.removeEventListener( 'webglcontextlost', handleContextLost )

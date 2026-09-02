@@ -23,6 +23,9 @@ test( 'quality contract preserves composition while reducing internal cost', () 
   assert.deepEqual( QUALITY_CONTRACT.standard.ball, [ 40, 24 ] )
   assert.deepEqual( QUALITY_CONTRACT.low.ball, [ 32, 20 ] )
   assert.equal( QUALITY_CONTRACT.low.shadowMapSize, 768 )
+  assert.equal( QUALITY_CONTRACT.high.ssao, true )
+  assert.equal( QUALITY_CONTRACT.standard.ssao, false )
+  assert.equal( QUALITY_CONTRACT.low.ssao, false )
 } )
 
 test( 'lighting contract documents the three production roles', () =>
@@ -30,4 +33,3 @@ test( 'lighting contract documents the three production roles', () =>
   assert.deepEqual( LIGHTING_CONTRACT.balance, { key: 1, ambient: 0.25, rim: 0.4 } )
   assert.equal( LIGHTING_CONTRACT.rim.color, '#79B8B2' )
 } )
-

@@ -484,6 +484,10 @@ const buildWorld = ( canvas, simulation, requestRender ) =>
     geometries.forEach( ( geometry ) => geometry.dispose() )
     disposableMaterials.forEach( ( material ) => material.dispose() )
     disposableTextures.forEach( ( texture ) => texture.dispose() )
+    // Detach scene references before releasing the PMREM target so Three.js cannot
+    // retain a disposed environment or background through the scene graph.
+    scene.environment = null
+    scene.background = null
     environmentTarget.dispose()
     renderer.renderLists.dispose()
     renderer.dispose()

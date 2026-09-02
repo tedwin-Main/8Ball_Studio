@@ -60,8 +60,8 @@ export const LIGHTING_CONTRACT = Object.freeze( {
 
 // Tier budgets alter internal cost only; CSS bounds and Story framing remain invariant.
 export const QUALITY_CONTRACT = Object.freeze( {
-  high: Object.freeze( { pixelRatioCap: 1.5, ball: Object.freeze( [ 48, 32 ] ), texture: Object.freeze( [ 1024, 512 ] ), shadowMapSize: 2048 } ),
-  standard: Object.freeze( { pixelRatioCap: 1.25, ball: Object.freeze( [ 40, 24 ] ), texture: Object.freeze( [ 768, 384 ] ), shadowMapSize: 1024 } ),
-  low: Object.freeze( { pixelRatioCap: 1, ball: Object.freeze( [ 32, 20 ] ), texture: Object.freeze( [ 512, 256 ] ), shadowMapSize: 768 } ),
+  high: Object.freeze( { pixelRatioCap: 1.5, ball: Object.freeze( [ 48, 32 ] ), texture: Object.freeze( [ 1024, 512 ] ), shadowMapSize: 2048, ssao: true } ),
+  // Standard is the balanced default: no full-screen AO pass unless a future measured tier explicitly opts in.
+  standard: Object.freeze( { pixelRatioCap: 1.25, ball: Object.freeze( [ 40, 24 ] ), texture: Object.freeze( [ 768, 384 ] ), shadowMapSize: 1024, ssao: false } ),
+  low: Object.freeze( { pixelRatioCap: 1, ball: Object.freeze( [ 32, 20 ] ), texture: Object.freeze( [ 512, 256 ] ), shadowMapSize: 768, ssao: false } ),
 } )
-

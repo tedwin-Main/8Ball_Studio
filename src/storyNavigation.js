@@ -172,9 +172,12 @@ export function createStoryNavigation ( {
 
   const getCurrentPage = () => resolvePage( transitioning ? targetPage : activePage ) || pageAtProgress( getProgress() )
 
-  const notifyProgress = () =>
+  const notifyProgress = ( suppliedProgress = null ) =>
   {
-    const progress = getProgress()
+    // A resize can only land on integer scroll pixels, so the final guarded
+    // notification may carry the captured normalized value to keep the Story
+    // playhead stable even when the new range has a different rounding step.
+    const progress = Number.isFinite( suppliedProgress ) ? clamp( suppliedProgress ) : getProgress()
     if ( !preservingResizeProgress ) lastScrollProgress = progress
     onProgress?.( progress )
 
@@ -506,6 +509,7 @@ export function createStoryNavigation ( {
         // New user scroll updates may replace the retained position after this guard.
         lastScrollProgress = preservedProgress
         preservingResizeProgress = false
+        notifyProgress( preservedProgress )
       }, RESIZE_RESTORE_GUARD_MS )
     }, resizeSettleMs )
   }
