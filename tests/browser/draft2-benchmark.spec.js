@@ -9,8 +9,8 @@ const VIEWPORTS = [
 ]
 
 const FRAME_BUDGETS = Object.freeze( {
-  desktop: Object.freeze( { medianMs: 20, p95Ms: 33 } ),
-  portrait: Object.freeze( { medianMs: 25, p95Ms: 40 } ),
+  desktop: Object.freeze( { medianMs: 18.5, p95Ms: 25, rollingFps: 55 } ),
+  portrait: Object.freeze( { medianMs: 18.5, p95Ms: 25, rollingFps: 55 } ),
 } )
 const MAX_LONG_TASK_MS = 100
 const INACTIVE_RENDER_FRAME_BUDGET = 0
@@ -43,6 +43,18 @@ const percentile = ( values, ratio ) =>
 const toIntervals = ( timestamps ) => timestamps.slice( 1 )
   .map( ( timestamp, index ) => timestamp - timestamps[ index ] )
   .filter( Number.isFinite )
+
+const maxRollingFrameCount = ( timestamps, windowMs = 1_000 ) =>
+{
+  let windowStart = 0
+  let maximum = 0
+  timestamps.forEach( ( timestamp, windowEnd ) =>
+  {
+    while ( windowStart < windowEnd && timestamp - timestamps[ windowStart ] > windowMs ) windowStart += 1
+    maximum = Math.max( maximum, windowEnd - windowStart + 1 )
+  } )
+  return maximum
+}
 
 const installBenchmarkProbe = async ( page ) =>
 {
@@ -744,12 +756,16 @@ test( 'Draft 2 page controls reach Projects and Contact', async ( { browser, bas
   {
     await page.goto( `${baseURL}/?draft=webgl&benchmark=draft2`, { waitUntil: 'domcontentloaded' } )
     await waitForDraftTwo( page )
+    // Project media is assigned only when its Page becomes useful; Intro does not
+    // fetch the large portfolio image while the first viewport is active.
+    await expect( page.locator( '.featured-media img' ) ).not.toHaveAttribute( 'src', /.+/ )
 
     const projectsButton = page.getByRole( 'button', { name: 'Go to Projects page' } )
     await projectsButton.click()
     await expect( projectsButton ).toHaveAttribute( 'aria-current', 'page' )
     await expect( page.locator( '.projects-screen' ) ).toHaveCSS( 'opacity', '1' )
     await expect( page.getByRole( 'heading', { name: 'Our Projects' } ) ).toBeVisible()
+    await expect( page.locator( '.featured-media img' ) ).toHaveAttribute( 'src', /.+/ )
 
     const contactButton = page.getByRole( 'button', { name: 'Go to Contact page' } )
     await contactButton.click()
@@ -805,6 +821,20 @@ test( 'Story indicator activates with each visible Page reveal', async ( { brows
     await expect( page.locator( 'main' ) ).toHaveAttribute( 'data-story-state', 'settled' )
   }
 
+  const expectTransitionOrSettledPage = async ( destinationPage, sourcePage ) =>
+  {
+    // A direct control may settle before a poll observes the transient frame;
+    // accept either observable state while requiring the same destination.
+    await expect.poll( async () =>
+    {
+      const snapshot = await readPagination()
+      return snapshot.indicatorPage === destinationPage && (
+        snapshot.state === 'settled' && snapshot.stablePage === destinationPage ||
+        snapshot.state === 'transitioning' && snapshot.stablePage === sourcePage
+      )
+    }, { timeout: 2_000 } ).toBe( true )
+  }
+
   try
   {
     await page.goto( `${baseURL}/?draft=webgl&benchmark=draft2`, { waitUntil: 'domcontentloaded' } )
@@ -835,9 +865,8 @@ test( 'Story indicator activates with each visible Page reveal', async ( { brows
     await expect( contactButton ).toHaveAttribute( 'aria-current', 'page' )
     await expectSettledPage( 'contact' )
 
-    // The reverse control can settle before the poll observes the transient state;
-    // the durable contract is the selected destination and settled story state.
     await studioButton.click()
+    await expectTransitionOrSettledPage( 'studio', 'contact' )
     await expect( studioButton ).toHaveAttribute( 'aria-current', 'page' )
     await expectSettledPage( 'studio' )
   }
@@ -937,7 +966,7 @@ const driveStoryProgress = async ( page, progress ) =>
   return target
 }
 
-const driveDraftTwoRenderBurst = ( page, sampleCount = 32 ) => page.evaluate( async ( count ) =>
+const driveDraftTwoRenderBurst = ( page, sampleCount = 72 ) => page.evaluate( async ( count ) =>
 {
   if ( !window.__storyNavigationBenchmark ) throw new Error( "Story navigation benchmark seam is not ready." )
 
@@ -1086,6 +1115,7 @@ for ( const viewport of VIEWPORTS )
           maxMs: Math.max( 0, ...renderIntervals ),
           source: "data-webgl-render-at after world.render()",
         },
+        rollingFrameCount: maxRollingFrameCount( performanceMeasured.draftRenderTimes ),
         pageFrameIntervals: {
           samples: pageFrameIntervals.length,
           medianMs: median( pageFrameIntervals ),
@@ -1133,6 +1163,7 @@ for ( const viewport of VIEWPORTS )
       expect( performanceMeasured.drawCalls ).toBeGreaterThan( 0 )
       expect( median( renderIntervals ) ).toBeLessThanOrEqual( budget.medianMs )
       expect( percentile( renderIntervals, 0.95 ) ).toBeLessThanOrEqual( budget.p95Ms )
+      expect( report.rollingFrameCount ).toBeGreaterThanOrEqual( budget.rollingFps )
       expect( Math.max( 0, ...longTasks.map( ( entry ) => entry.duration ) ) )
         .toBeLessThanOrEqual( MAX_LONG_TASK_MS )
 

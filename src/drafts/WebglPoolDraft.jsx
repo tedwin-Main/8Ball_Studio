@@ -51,36 +51,36 @@ const summarizeCadence = ( timestamps ) =>
 const DRAFT2_QUALITY_TIERS = Object.freeze( {
   high: Object.freeze( {
     id: 'high',
-    pixelRatioCap: 1.5,
-    shadowMapSize: 2048,
+    pixelRatioCap: QUALITY_CONTRACT.high.pixelRatioCap,
+    shadowMapSize: QUALITY_CONTRACT.high.shadowMapSize,
     useSsao: true,
     renderBudgetMs: 20,
-    ballWidthSegments: 48,
+    ballWidthSegments: QUALITY_CONTRACT.high.ball[ 0 ],
     ballHeightSegments: QUALITY_CONTRACT.high.ball[ 1 ],
-    ballTextureWidth: 1024,
-    ballTextureHeight: 512,
+    ballTextureWidth: QUALITY_CONTRACT.high.texture[ 0 ],
+    ballTextureHeight: QUALITY_CONTRACT.high.texture[ 1 ],
   } ),
   standard: Object.freeze( {
     id: 'standard',
-    pixelRatioCap: 1.25,
+    pixelRatioCap: QUALITY_CONTRACT.standard.pixelRatioCap,
     shadowMapSize: QUALITY_CONTRACT.standard.shadowMapSize,
     useSsao: true,
     renderBudgetMs: 24,
-    ballWidthSegments: 40,
-    ballHeightSegments: 24,
-    ballTextureWidth: 768,
-    ballTextureHeight: 384,
+    ballWidthSegments: QUALITY_CONTRACT.standard.ball[ 0 ],
+    ballHeightSegments: QUALITY_CONTRACT.standard.ball[ 1 ],
+    ballTextureWidth: QUALITY_CONTRACT.standard.texture[ 0 ],
+    ballTextureHeight: QUALITY_CONTRACT.standard.texture[ 1 ],
   } ),
   low: Object.freeze( {
     id: 'low',
-    pixelRatioCap: 1,
+    pixelRatioCap: QUALITY_CONTRACT.low.pixelRatioCap,
     shadowMapSize: QUALITY_CONTRACT.low.shadowMapSize,
     useSsao: false,
     renderBudgetMs: 32,
-    ballWidthSegments: 32,
-    ballHeightSegments: 20,
-    ballTextureWidth: 512,
-    ballTextureHeight: 256,
+    ballWidthSegments: QUALITY_CONTRACT.low.ball[ 0 ],
+    ballHeightSegments: QUALITY_CONTRACT.low.ball[ 1 ],
+    ballTextureWidth: QUALITY_CONTRACT.low.texture[ 0 ],
+    ballTextureHeight: QUALITY_CONTRACT.low.texture[ 1 ],
   } ),
 } )
 
@@ -732,7 +732,7 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
   } )
 
   // Slice 1: Simonis 860 worsted wool cloth with grazing sheen and micro-weave normal map.
-  const feltTextures = createFeltTextures(
+  let feltTextures = createFeltTextures(
     maxAnisotropy,
     64,
     64,
@@ -939,15 +939,18 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
   const ballShadows = []
 
   // Physics-driven Ball Mesh Generation (16 balls: 0 = striker, 1..15 = rack)
-  // Geometry is shared by all 16 balls. It is selected once at mount so a settled
-  // screen-quality change never recreates meshes or causes a visual pop mid-break.
-  const ballQuality = initialQuality
-  const ballGeometry = new THREE.SphereGeometry(
+  // Geometry is shared by all 16 balls. Tier changes replace it only after the
+  // quality monitor reports a settled frame, so motion never pops mid-break.
+  let ballQualityTierId = initialQualityTier
+  let ballTextureSize = `${initialQuality.ballTextureWidth}x${initialQuality.ballTextureHeight}`
+  let ballGeometry = new THREE.SphereGeometry(
     BALL_RADIUS,
-    ballQuality.ballWidthSegments,
-    ballQuality.ballHeightSegments,
+    initialQuality.ballWidthSegments,
+    initialQuality.ballHeightSegments,
   )
   const ballMeshes = []
+  const rackBallEntries = []
+  const decalMeshes = []
   const disposableMaterials = []
 
   // Cue / Striker 8-Ball with double-sided front and back brand decals
@@ -988,6 +991,7 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
       decalMaterial,
     )
     decal.renderOrder = 2
+    decalMeshes.push( { mesh: decal, decalZ, yaw } )
     strikerGroup.add( decal )
   } )
   strikerGroup.add( strikerSphere )
@@ -1005,8 +1009,8 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
     const texture = createPoolBallTexture(
       BALL_COLORS[ number - 1 ],
       number,
-      ballQuality.ballTextureWidth,
-      ballQuality.ballTextureHeight,
+      initialQuality.ballTextureWidth,
+      initialQuality.ballTextureHeight,
       maxAnisotropy,
     )
     ownTextures( texture )
@@ -1017,6 +1021,7 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
     mesh.receiveShadow = true
     table.add( mesh )
     ballMeshes.push( mesh )
+    rackBallEntries.push( { mesh, material, color: BALL_COLORS[ number - 1 ], number } )
 
     const shadow = new THREE.Mesh( contactShadowGeometry, contactShadowMaterial )
     shadow.position.y = 0.001
@@ -1079,10 +1084,84 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
   let ssaoPass = null
   let qualityTierId = initialQualityTier
 
+  const replaceMaterialTexture = ( material, property, nextTexture ) =>
+  {
+    const previousTexture = material[ property ]
+    if ( previousTexture )
+    {
+      disposableTextures.delete( previousTexture )
+      previousTexture.dispose()
+    }
+    material[ property ] = nextTexture
+    ownTextures( nextTexture )
+    material.needsUpdate = true
+  }
+
+  const applyBallQuality = ( tier ) =>
+  {
+    if ( tier.id !== ballQualityTierId )
+    {
+      const previousGeometry = ballGeometry
+      ballGeometry = new THREE.SphereGeometry(
+        BALL_RADIUS,
+        tier.ballWidthSegments,
+        tier.ballHeightSegments,
+      )
+      strikerSphere.geometry = ballGeometry
+      rackBallEntries.forEach( ( entry ) => { entry.mesh.geometry = ballGeometry } )
+      decalMeshes.forEach( ( entry ) =>
+      {
+        const previousDecalGeometry = entry.mesh.geometry
+        entry.mesh.geometry = new DecalGeometry(
+          strikerSphere,
+          new THREE.Vector3( 0, 0, entry.decalZ ),
+          new THREE.Euler( 0, entry.yaw, 0 ),
+          new THREE.Vector3( BALL_RADIUS * 1.58, BALL_RADIUS * 1.58, BALL_RADIUS * 0.42 ),
+        )
+        previousDecalGeometry.dispose()
+      } )
+      previousGeometry.dispose()
+      ballQualityTierId = tier.id
+    }
+
+    const currentTextureSize = `${tier.ballTextureWidth}x${tier.ballTextureHeight}`
+    if ( currentTextureSize === ballTextureSize ) return
+
+    rackBallEntries.forEach( ( entry ) =>
+    {
+      const nextTexture = createPoolBallTexture(
+        entry.color,
+        entry.number,
+        tier.ballTextureWidth,
+        tier.ballTextureHeight,
+        maxAnisotropy,
+      )
+      replaceMaterialTexture( entry.material, 'map', nextTexture )
+    } )
+
+    const nextFeltTextures = createFeltTextures(
+      maxAnisotropy,
+      64,
+      64,
+      tier.ballTextureWidth,
+      tier.ballTextureHeight,
+    )
+    replaceMaterialTexture( feltMaterial, 'map', nextFeltTextures.map )
+    replaceMaterialTexture( feltMaterial, 'normalMap', nextFeltTextures.normalMap )
+    replaceMaterialTexture( feltMaterial, 'roughnessMap', nextFeltTextures.roughnessMap )
+    replaceMaterialTexture( feltMaterial, 'bumpMap', nextFeltTextures.bumpMap )
+    feltTextures = nextFeltTextures
+    ballTextureSize = currentTextureSize
+  }
+
   const applyQualityTier = ( nextTierId ) =>
   {
     const tier = DRAFT2_QUALITY_TIERS[ nextTierId ]
     qualityTierId = tier.id
+
+    // Geometry and generated maps follow the selected tier only at a settled
+    // boundary, keeping the budget diagnostics tied to real GPU resources.
+    applyBallQuality( tier )
 
     // Rebuild the shadow target only when a settled quality change is applied; tuned bias
     // and normal-bias values remain untouched so balls stay grounded at every tier.
@@ -1212,6 +1291,7 @@ export function WebglPoolDraft ( {
   onUnavailable,
   draftId = 'webgl',
   variant = 'break',
+  diagnostic = false,
 } )
 {
   const rootRef = useRef( null )
@@ -1271,7 +1351,9 @@ export function WebglPoolDraft ( {
         root.dataset.webglShadowMap = String( qualityState.shadowMapSize )
         root.dataset.webglBallSegments = qualityState.ballSegments
         root.dataset.webglTextureSize = qualityState.textureSize
-        root.dataset.webglLighting = 'key:1;ambient:0.25;rim:0.4'
+        root.dataset.webglLighting = Object.entries( LIGHTING_CONTRACT.balance )
+          .map( ( [ role, contribution ] ) => `${role}:${contribution}` )
+          .join( ';' )
         root.dataset.ballRoughness = String( MATERIAL_CONTRACT.ball.roughness )
         root.dataset.ballClearcoat = String( MATERIAL_CONTRACT.ball.clearcoat )
         root.dataset.ballIor = String( MATERIAL_CONTRACT.ball.ior )
@@ -1461,9 +1543,10 @@ export function WebglPoolDraft ( {
       setActive ( nextActive )
       {
         isActive = nextActive
-        // Keep the declared status above the 2.5D fallback if WebGL setup failed.
-        // It remains readable even after App switches the active visual to Draft 1.
-        const showFallback = failed
+        // Keep a failed layer visible only for diagnostic inspection. The public
+        // fallback unmounts this canvas before Cinematic becomes active, preventing
+        // a stacked failed canvas over the usable fallback treatment.
+        const showFallback = failed && diagnostic
         root.classList.toggle( 'is-active', nextActive || showFallback )
         root.setAttribute( 'aria-hidden', String( !nextActive && !showFallback ) )
         if ( !nextActive )

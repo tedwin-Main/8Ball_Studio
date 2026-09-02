@@ -1,21 +1,21 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useStoryPager } from './hooks/useStoryPager'
 import { DraftSwitcher } from './components/DraftSwitcher'
-import { PoolPovDraft } from './drafts/PoolPovDraft'
 import { WebglPoolDraft } from './drafts/WebglPoolDraft'
 import { STORY_TIMING, easeWeightedProgress, toStoryProgress, toTimelineUnits } from './storyTiming'
 import { getStoryPages } from './storySchedule'
 // One V4 asset supplies both the header brand mark and animated 8-ball surface.
 import brandLogo from './assets/8BALL-V4.jpg'
-// The PNG has a baked checkerboard; CSS clips its square to the logo circle at render time.
-import artigustoGelato from './assets/Artigusto-Gelato_Clearned.png'
-import ersEnergyLogo from './assets/ers-energy-logo.png'
-import haruplateLogo from './assets/haruplate-logo.png'
-import shopeeLogo from './assets/shopee-logo.svg'
 
 gsap.registerPlugin( ScrollTrigger )
+
+// Keep the photo-backed fallback and its large source images out of the public
+// Production load; the chunk is fetched only for diagnostics or WebGL failure.
+const PoolPovDraft = lazy( () => import( './drafts/PoolPovDraft' ).then( ( module ) => ( {
+  default: module.PoolPovDraft,
+} ) ) )
 
 // Keep the Draft 2 camera cut aligned with the shared intro timeline.
 const DRAFT2_TRANSITION_READY_STORY_PROGRESS = toStoryProgress( STORY_TIMING.intro.draft2.transitionReady )
@@ -58,36 +58,36 @@ const PROJECT_ITEMS = [
   // Logos are the only approved project evidence in this repository; roster copy says so plainly.
   {
     id: 'artigusto-gelato',
-    src: artigustoGelato,
     alt: 'Artigusto Gelato',
     type: 'artigusto',
+    load: () => import( './assets/Artigusto-Gelato_Clearned.png' ).then( ( module ) => module.default ),
     client: 'Artigusto Gelato',
-    discipline: 'Brand / Social',
-    summary: 'Approved client mark shown as roster reference; project details available on request.',
+    discipline: 'Roster content',
+    summary: 'Approved client mark shown as roster content; discipline and project details are not published.',
   },
   {
     id: 'ers-energy',
-    src: ersEnergyLogo,
     alt: 'ERS Energy',
     client: 'ERS Energy',
-    discipline: 'Brand / Content',
-    summary: 'Approved client mark shown as roster reference; project details available on request.',
+    load: () => import( './assets/ers-energy-logo.png' ).then( ( module ) => module.default ),
+    discipline: 'Roster content',
+    summary: 'Approved client mark shown as roster content; discipline and project details are not published.',
   },
   {
     id: 'haruplate',
-    src: haruplateLogo,
     alt: 'Haruplate',
     client: 'Haruplate',
-    discipline: 'Brand / Content',
-    summary: 'Approved client mark shown as roster reference; project details available on request.',
+    load: () => import( './assets/haruplate-logo.png' ).then( ( module ) => module.default ),
+    discipline: 'Roster content',
+    summary: 'Approved client mark shown as roster content; discipline and project details are not published.',
   },
   {
     id: 'shopee',
-    src: shopeeLogo,
     alt: 'Shopee',
     client: 'Shopee',
-    discipline: 'Content / Design',
-    summary: 'Approved client mark shown as roster reference; project details available on request.',
+    load: () => import( './assets/shopee-logo.svg' ).then( ( module ) => module.default ),
+    discipline: 'Roster content',
+    summary: 'Approved client mark shown as roster content; discipline and project details are not published.',
   },
 ]
 
@@ -197,6 +197,7 @@ function App ()
   const diagnosticsState = useMemo( getDraftDiagnosticsState, [] )
   const [ activeDraft, setActiveDraft ] = useState( getInitialDraft )
   const [ selectedProjectId, setSelectedProjectId ] = useState( PROJECT_ITEMS[ 0 ].id )
+  const [ featuredProjectSrc, setFeaturedProjectSrc ] = useState( null )
   const [ webglFallbackActive, setWebglFallbackActive ] = useState( false )
   const [ activePage, setActivePage ] = useState( 'intro' )
   const [ indicatorPage, setIndicatorPage ] = useState( 'intro' )
@@ -269,6 +270,29 @@ function App ()
   }, [ switchDraft ] )
 
   const featuredProject = PROJECT_ITEMS.find( ( project ) => project.id === selectedProjectId ) || PROJECT_ITEMS[ 0 ]
+
+  useEffect( () =>
+  {
+    let cancelled = false
+    if ( activePage !== 'projects' )
+    {
+      setFeaturedProjectSrc( null )
+      return () => { cancelled = true }
+    }
+
+    // Fetch one approved mark only once Projects is the active Page; Intro keeps
+    // its first viewport free from lower-Page media requests.
+    setFeaturedProjectSrc( null )
+    featuredProject.load().then( ( source ) =>
+    {
+      if ( !cancelled ) setFeaturedProjectSrc( source )
+    } ).catch( () =>
+    {
+      if ( !cancelled ) setFeaturedProjectSrc( null )
+    } )
+
+    return () => { cancelled = true }
+  }, [ activePage, featuredProject.id ] )
 
   useEffect( () =>
   {
@@ -754,16 +778,19 @@ function App ()
           <div className="ambient ambient-two" aria-hidden="true" />
 
           { ( diagnosticsState.mountAll || activeDraft === 'cinematic' ) && (
-            <PoolPovDraft
-              active={ activeDraft === 'cinematic' }
-              onController={ registerCinematicController }
-            />
+            <Suspense fallback={ null }>
+              <PoolPovDraft
+                active={ activeDraft === 'cinematic' }
+                onController={ registerCinematicController }
+              />
+            </Suspense>
           ) }
           { ( diagnosticsState.mountAll || activeDraft === 'webgl' ) && (
             <WebglPoolDraft
               active={ activeDraft === 'webgl' }
               onController={ registerWebglController }
               onUnavailable={ handleWebglUnavailable }
+              diagnostic={ diagnosticsState.mountAll }
               draftId="webgl"
             />
           ) }
@@ -821,7 +848,8 @@ function App ()
                 <span className="hero-title-line">Roll</span>
                 <span className="hero-title-line hero-title-line-offset">with us.</span>
               </h1>
-              <p className="hero-note">Social Content Management.<br />Video &amp; Photography.<br />Graphic Design.</p>
+              <p className="hero-note">Social-first stories, moving images, and graphic worlds with a sharp point of view.</p>
+              <p className="hero-disciplines" aria-label="Studio disciplines">Social content management&nbsp; / &nbsp;Video &amp; photography&nbsp; / &nbsp;Graphic design</p>
               <span className="hero-rule" aria-hidden="true" />
             </div>
 
@@ -864,7 +892,12 @@ function App ()
               </h2>
               <div className="projects-featured" id="featured-project" role="tabpanel" aria-labelledby={ `project-tab-${featuredProject.id}` } aria-live="polite">
                 <div className={ `featured-media${featuredProject.type ? ` is-${featuredProject.type}` : ''}` }>
-                  <img src={ featuredProject.src } alt={ featuredProject.alt } />
+                  <img
+                    src={ activePage === 'projects' ? featuredProjectSrc || undefined : undefined }
+                    alt={ featuredProject.alt }
+                    loading={ activePage === 'projects' ? 'eager' : 'lazy' }
+                    fetchPriority={ activePage === 'projects' ? 'high' : 'low' }
+                  />
                 </div>
                 <div className="featured-copy">
                   <p className="featured-label">Featured / approved roster</p>
@@ -951,7 +984,7 @@ function App ()
       ) }
 
       <nav className="page-dots" aria-label="Story page navigation">
-        { storyPages.map( ( page ) => (
+        { storyPages.map( ( page, index ) => (
           <button
             className={ `page-dot${indicatorPage === page.id ? ' is-active' : ''}` }
             type="button"
@@ -960,7 +993,8 @@ function App ()
             onClick={ () => goToPage( page.id, { interrupt: true } ) }
             key={ page.id }
           >
-            <span>{ page.label }</span>
+            <span className="page-dot-number">{ String( index + 1 ).padStart( 2, '0' ) }</span>
+            <span className="page-dot-label">{ page.label }</span>
           </button>
         ) ) }
       </nav>
