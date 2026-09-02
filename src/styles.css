@@ -1429,6 +1429,14 @@ a.contact-item:focus-visible .contact-icon {
   display: block;
 }
 
+/* Diagnostics keep the failure status readable while removing the failed canvas
+   from the visual stack before the Cinematic fallback takes over publicly. */
+.draft-layer-webgl[data-webgl-error='true'] .webgl-pool-canvas,
+.draft-layer-webgl[data-webgl-error='true'] .webgl-vignette,
+.draft-layer-webgl[data-webgl-error='true'] .webgl-phase {
+  visibility: hidden;
+}
+
 /* This control is separate from page dots so draft testing never changes story navigation. */
 .draft-switcher {
   position: fixed;
