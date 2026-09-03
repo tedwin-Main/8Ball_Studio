@@ -142,7 +142,8 @@ const buildPhotorealScene = ( canvas, onTextureReady, onQualityState ) =>
   renderer.toneMapping = THREE.ACESFilmicToneMapping
   renderer.toneMappingExposure = 1.18
   renderer.shadowMap.enabled = true
-  renderer.shadowMap.type = THREE.PCFShadowMap
+  // Soft percentage-closer filtering eliminates harsh pixelated shadow edges.
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap
 
   const scene = new THREE.Scene()
   const camera = new THREE.PerspectiveCamera( 42, 1, 0.1, 80 )
@@ -210,10 +211,11 @@ const buildPhotorealScene = ( canvas, onTextureReady, onQualityState ) =>
   createRailSights( materials, table, disposableGeometries )
 
   // 5. Apron skirt box
-  const apronGeom = new RoundedBoxGeometry( TABLE_DIMS.width + 0.5, 0.9, TABLE_DIMS.length + 0.5, 3, 0.12 )
+  // Positioned so top of apron skirt (-0.06) sits below felt (0.00) to eliminate co-planar Z-fighting.
+  const apronGeom = new RoundedBoxGeometry( TABLE_DIMS.width + 0.5, 0.72, TABLE_DIMS.length + 0.5, 3, 0.12 )
   disposableGeometries.add( apronGeom )
   const apronMesh = new THREE.Mesh( apronGeom, materials.apron )
-  apronMesh.position.set( 0, -0.45, 0 )
+  apronMesh.position.set( 0, -0.42, 0 )
   apronMesh.receiveShadow = true
   table.add( apronMesh )
 
@@ -301,14 +303,16 @@ const buildPhotorealScene = ( canvas, onTextureReady, onQualityState ) =>
   keyLight.target.position.set( 0, 0, -2.5 )
   keyLight.castShadow = true
   keyLight.shadow.mapSize.set( 2048, 2048 )
-  keyLight.shadow.camera.left = -7
-  keyLight.shadow.camera.right = 7
-  keyLight.shadow.camera.top = 8
-  keyLight.shadow.camera.bottom = -13
-  keyLight.shadow.camera.near = 0.1
+  // Enclose entire table in shadow camera frustum to avoid edge clipping.
+  keyLight.shadow.camera.left = -12
+  keyLight.shadow.camera.right = 12
+  keyLight.shadow.camera.top = 9
+  keyLight.shadow.camera.bottom = -11
+  keyLight.shadow.camera.near = 0.5
   keyLight.shadow.camera.far = 28
-  keyLight.shadow.bias = -0.00008
-  keyLight.shadow.normalBias = 0.015
+  // Positive bias and normalBias eliminate self-shadowing acne across flat cloth receiver.
+  keyLight.shadow.bias = 0.00005
+  keyLight.shadow.normalBias = 0.02
   scene.add( keyLight, keyLight.target )
 
   const leftChamferFill = new THREE.DirectionalLight( "#d4eae0", 0.46 )

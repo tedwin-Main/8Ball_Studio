@@ -3,6 +3,7 @@ import gsap from "gsap"
 import * as THREE from "three"
 import { getBreakSimulation, sampleDraft2BreakState } from "./poolBreakPhysics.js"
 import { TABLE_DIMS } from "./photorealGeometry.js"
+import { DRAFT2_SCENE_SCALE } from "./cameraFraming.js"
 
 const BALL_RADIUS = TABLE_DIMS.ballRadius
 
@@ -105,27 +106,42 @@ export const createPhotorealChoreography = ( {
     // Deterministic ball simulation synchronized with Story progress
     const simState = sampleDraft2BreakState( clampedProgress, simulation )
 
-    // Update striker
-    if ( strikerMesh && simState.striker )
+    // Update striker (ball index 0)
+    const striker = simState.balls[ 0 ]
+    if ( strikerMesh && striker )
     {
-      strikerMesh.position.set( simState.striker.x, BALL_RADIUS, simState.striker.z )
-      strikerMesh.quaternion.copy( simState.striker.quaternion )
+      const strikerX = striker.position.x * DRAFT2_SCENE_SCALE
+      const strikerZ = striker.position.z * DRAFT2_SCENE_SCALE
+      strikerMesh.position.set( strikerX, BALL_RADIUS, strikerZ )
+      strikerMesh.quaternion.set(
+        striker.quaternion.x,
+        striker.quaternion.y,
+        striker.quaternion.z,
+        striker.quaternion.w,
+      )
       if ( contactShadows[ 0 ] )
       {
-        contactShadows[ 0 ].position.set( simState.striker.x, 0.001, simState.striker.z )
+        contactShadows[ 0 ].position.set( strikerX, 0.001, strikerZ )
       }
     }
 
-    // Update rack balls
-    simState.balls.forEach( ( ball, index ) =>
+    // Update 15 object balls (indices 1 to 15 mapped to ballMeshes 0 to 14)
+    simState.balls.slice( 1 ).forEach( ( ball, index ) =>
     {
       const mesh = ballMeshes[ index ]
       const shadow = contactShadows[ index + 1 ]
       if ( mesh && shadow )
       {
-        mesh.position.set( ball.x, BALL_RADIUS, ball.z )
-        mesh.quaternion.copy( ball.quaternion )
-        shadow.position.set( ball.x, 0.001, ball.z )
+        const posX = ball.position.x * DRAFT2_SCENE_SCALE
+        const posZ = ball.position.z * DRAFT2_SCENE_SCALE
+        mesh.position.set( posX, BALL_RADIUS, posZ )
+        mesh.quaternion.set(
+          ball.quaternion.x,
+          ball.quaternion.y,
+          ball.quaternion.z,
+          ball.quaternion.w,
+        )
+        shadow.position.set( posX, 0.001, posZ )
       }
     } )
 

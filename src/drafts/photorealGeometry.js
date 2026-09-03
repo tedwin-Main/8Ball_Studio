@@ -1,13 +1,15 @@
 // Dedicated regulation pool table geometry and cue stick for Draft 5 Photoreal Break.
 import * as THREE from "three"
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js"
+import { DRAFT2_SCENE_SCALE } from "./cameraFraming.js"
 
 export const TABLE_DIMS = Object.freeze( {
   width: 9.8,
   length: 19.6,
   height: 0.45,
   pocketRadius: 0.54,
-  ballRadius: 0.38,
+  // Ball radius matching physical collision radius scaled to scene units (0.035m * 7.559 ~ 0.2646)
+  ballRadius: 0.035 * DRAFT2_SCENE_SCALE,
   railWidth: 0.46,
   cushionHeight: 0.22,
 } )

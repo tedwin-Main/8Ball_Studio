@@ -48,7 +48,8 @@ const DRAFT4_QUALITY_TIERS = Object.freeze( {
 const TABLE_WIDTH = 9.8
 const TABLE_LENGTH = 19.6
 const POCKET_RADIUS = 0.52
-const BALL_RADIUS = 0.38
+// Radius proportional to physical ball radius scaled into scene units (0.035m * 7.559 ~ 0.2646)
+const BALL_RADIUS = 0.035 * DRAFT2_SCENE_SCALE
 
 const BALL_COLORS = Object.freeze( [
   "#f5c518", "#0047bb", "#e53935", "#5b2c86", "#f26522", "#1b5e20", "#7b1113",
@@ -431,7 +432,8 @@ const buildClassicScene = ( canvas, simulation, onTextureReady, onQualityState )
   renderer.toneMapping = THREE.ACESFilmicToneMapping
   renderer.toneMappingExposure = 1.15
   renderer.shadowMap.enabled = true
-  renderer.shadowMap.type = THREE.PCFShadowMap
+  // Soft percentage-closer filtering to eliminate harsh pixelated shadow edges.
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap
 
   const scene = new THREE.Scene()
   const camera = new THREE.PerspectiveCamera( 42, 1, 0.1, 80 )
@@ -639,14 +641,16 @@ const buildClassicScene = ( canvas, simulation, onTextureReady, onQualityState )
   keyLight.target.position.set( 0, 0, -2.5 )
   keyLight.castShadow = true
   keyLight.shadow.mapSize.set( 2048, 2048 )
-  keyLight.shadow.camera.left = -7
-  keyLight.shadow.camera.right = 7
-  keyLight.shadow.camera.top = 8
-  keyLight.shadow.camera.bottom = -13
-  keyLight.shadow.camera.near = 0.1
+  // Enclose entire table in shadow camera frustum to avoid edge clipping.
+  keyLight.shadow.camera.left = -12
+  keyLight.shadow.camera.right = 12
+  keyLight.shadow.camera.top = 9
+  keyLight.shadow.camera.bottom = -11
+  keyLight.shadow.camera.near = 0.5
   keyLight.shadow.camera.far = 28
-  keyLight.shadow.bias = -0.00008
-  keyLight.shadow.normalBias = 0.015
+  // Positive bias and normalBias eliminate self-shadowing acne across flat cloth receiver.
+  keyLight.shadow.bias = 0.00005
+  keyLight.shadow.normalBias = 0.02
   scene.add( keyLight, keyLight.target )
 
   const overheadSpot = new THREE.SpotLight( "#fff3da", 5.6, 26, Math.PI / 3.2, 0.8, 1.3 )
@@ -818,21 +822,42 @@ export default function WebglClassicDraft ( {
       // Sample deterministic break state
       const state = sampleDraft2BreakState( currentProgress, simulation )
 
-      // Update striker ball
-      world.strikerMesh.position.set( state.striker.x, BALL_RADIUS, state.striker.z )
-      world.strikerMesh.quaternion.copy( state.striker.quaternion )
-      world.contactShadows[ 0 ].position.set( state.striker.x, 0.001, state.striker.z )
+      // Scale SI-unit physics positions into WebGL scene units
+      const striker = state.balls[ 0 ]
+      if ( striker && world.strikerMesh )
+      {
+        const strikerX = striker.position.x * DRAFT2_SCENE_SCALE
+        const strikerZ = striker.position.z * DRAFT2_SCENE_SCALE
+        world.strikerMesh.position.set( strikerX, BALL_RADIUS, strikerZ )
+        world.strikerMesh.quaternion.set(
+          striker.quaternion.x,
+          striker.quaternion.y,
+          striker.quaternion.z,
+          striker.quaternion.w,
+        )
+        if ( world.contactShadows[ 0 ] )
+        {
+          world.contactShadows[ 0 ].position.set( strikerX, 0.001, strikerZ )
+        }
+      }
 
-      // Update object balls
-      state.balls.forEach( ( ball, index ) =>
+      // Update 15 object balls and their contact shadows
+      state.balls.slice( 1 ).forEach( ( ball, index ) =>
       {
         const mesh = world.ballMeshes[ index + 1 ]
         const shadow = world.contactShadows[ index + 1 ]
         if ( mesh && shadow )
         {
-          mesh.position.set( ball.x, BALL_RADIUS, ball.z )
-          mesh.quaternion.copy( ball.quaternion )
-          shadow.position.set( ball.x, 0.001, ball.z )
+          const posX = ball.position.x * DRAFT2_SCENE_SCALE
+          const posZ = ball.position.z * DRAFT2_SCENE_SCALE
+          mesh.position.set( posX, BALL_RADIUS, posZ )
+          mesh.quaternion.set(
+            ball.quaternion.x,
+            ball.quaternion.y,
+            ball.quaternion.z,
+            ball.quaternion.w,
+          )
+          shadow.position.set( posX, 0.001, posZ )
         }
       } )
 
