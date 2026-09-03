@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "test": "node --test src/storyTiming.test.js src/storySchedule.test.js src/storyNavigation.test.js src/devServer.test.js src/drafts/poolBreakPhysics.test.js src/drafts/cameraFraming.test.js src/drafts/demandFrameScheduler.test.js",
+    "test": "node --test src/storyTiming.test.js src/storySchedule.test.js src/storyNavigation.test.js src/devServer.test.js src/drafts/poolBreakPhysics.test.js src/drafts/cameraFraming.test.js src/drafts/demandFrameScheduler.test.js src/drafts/draftRegistry.test.js",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",

@@ -5,6 +5,9 @@ import { useStoryPager } from './hooks/useStoryPager'
 import { DraftSwitcher } from './components/DraftSwitcher'
 import { PoolPovDraft } from './drafts/PoolPovDraft'
 import { WebglPoolDraft } from './drafts/WebglPoolDraft'
+import WebglClassicDraft from './drafts/WebglClassicDraft'
+import PhotorealPoolDraft from './drafts/PhotorealPoolDraft'
+import { DRAFT_IDS, normalizeDraftId, getDraftConfig } from './drafts/draftRegistry'
 import { STORY_TIMING, easeWeightedProgress, toStoryProgress, toTimelineUnits } from './storyTiming'
 import { getStoryPages } from './storySchedule'
 // One V4 asset supplies both the header brand mark and animated 8-ball surface.
@@ -26,18 +29,11 @@ const getDraft2ExitProgress = ( progress ) =>
   Math.min( 1, Math.max( 0, ( progress - DRAFT2_TRANSITION_READY_STORY_PROGRESS ) /
     STORY_TIMING.intro.draft2.transitionDurationProgress ) )
 
-const DRAFT_IDS = [ 'cinematic', 'webgl', 'original' ]
-
 const getInitialDraft = () =>
 {
   if ( typeof window === 'undefined' ) return 'cinematic'
-
   const requestedDraft = new URLSearchParams( window.location.search ).get( 'draft' )
-  // Keep old shared links working while naming Draft 1 by what it is now: 3D cinematic.
-  const normalizedDraft = requestedDraft === 'photo' ? 'cinematic' : requestedDraft
-
-  // Invalid URLs use the cinematic 3D draft so the default page is always usable.
-  return DRAFT_IDS.includes( normalizedDraft ) ? normalizedDraft : 'cinematic'
+  return normalizeDraftId( requestedDraft )
 }
 
 const PROJECT_ITEMS = [
@@ -195,6 +191,14 @@ function App ()
     ( controller ) => registerDraftController( 'webgl', controller ),
     [ registerDraftController ],
   )
+  const registerWebglClassicController = useCallback(
+    ( controller ) => registerDraftController( 'webgl-classic', controller ),
+    [ registerDraftController ],
+  )
+  const registerPhotorealController = useCallback(
+    ( controller ) => registerDraftController( 'photoreal', controller ),
+    [ registerDraftController ],
+  )
 
   const switchDraft = useCallback( ( nextDraft ) =>
   {
@@ -214,8 +218,11 @@ function App ()
 
   const handleWebglUnavailable = useCallback( ( draftId ) =>
   {
-    // Draft 1 is the no-WebGL fallback so the opening still has a rendered pool scene.
-    if ( activeDraftRef.current === draftId ) switchDraft( 'cinematic' )
+    const config = getDraftConfig( draftId )
+    if ( activeDraftRef.current === draftId && config.fallbackId )
+    {
+      switchDraft( config.fallbackId )
+    }
   }, [ switchDraft ] )
 
   useEffect( () =>
@@ -470,7 +477,10 @@ function App ()
 
           const syncDraft2Handoff = ( progress ) =>
           {
-            if ( activeDraftRef.current !== 'webgl' ) return
+            const is3dBreak = activeDraftRef.current === 'webgl' ||
+              activeDraftRef.current === 'webgl-classic' ||
+              activeDraftRef.current === 'photoreal'
+            if ( !is3dBreak ) return
 
             const cutPocketDrop = progress >= DRAFT2_POCKET_CUT_STORY_PROGRESS
             // Draft 2 skips the old 8-ball drop and iris hold; Draft 1 remains untouched.
@@ -686,6 +696,18 @@ function App ()
             onController={ registerWebglController }
             onUnavailable={ handleWebglUnavailable }
             draftId="webgl"
+          />
+          <WebglClassicDraft
+            active={ activeDraft === 'webgl-classic' }
+            onController={ registerWebglClassicController }
+            onUnavailable={ handleWebglUnavailable }
+            draftId="webgl-classic"
+          />
+          <PhotorealPoolDraft
+            active={ activeDraft === 'photoreal' }
+            onController={ registerPhotorealController }
+            onUnavailable={ handleWebglUnavailable }
+            draftId="photoreal"
           />
 
           <PoolTable />

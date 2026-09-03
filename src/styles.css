@@ -1447,6 +1447,13 @@ a.contact-item:focus-visible .contact-icon {
 .draft-switcher-options {
   display: flex;
   gap: 3px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.draft-switcher-options::-webkit-scrollbar {
+  display: none;
 }
 
 .draft-switcher-button {

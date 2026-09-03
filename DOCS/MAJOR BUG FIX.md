@@ -1,5 +1,45 @@
 # Major Bug Fixes
 
+## Draft 4 Classic and Draft 5 Photoreal Break Implementation (03/09/2026, 07:51 PM)
+
+### Problem
+
+Draft 2 had evolved through multiple texture passes, losing the ability to compare the pre-weave visual direction (`1b9d299`), while the Story lacked an uncompromised photoreal 3D draft built around dedicated table geometry, PBR physical materials, and GSAP choreography.
+
+### Fix
+
+- Implemented centralized data-driven registry `draftRegistry.js` supporting all 5 drafts: `cinematic`, `webgl`, `original`, `webgl-classic`, `photoreal`.
+- Implemented **Draft 4 — 3D Break Classic** (`WebglClassicDraft.jsx`): Restored commit `1b9d299` pre-weave visual profile (fiber cloth, warm mahogany rails, leather pockets, earlier ball clearcoat) with modern lifecycle and scheduling.
+- Implemented **Draft 5 — Photoreal Break** (`PhotorealPoolDraft.jsx`): Built purpose-authored 3D table geometry (`photorealGeometry.js`), production PBR materials (`photorealMaterials.js`), and paused GSAP choreography timeline (`photorealTimeline.js`) sought from Story progress.
+- Extended `storySchedule.js`, `App.jsx`, and `styles.css` to seamlessly map all 3D Break drafts to the Studio handoff.
+
+### Files Changed
+
+- [src/drafts/draftRegistry.js](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/draftRegistry.js)
+  - Created — unified data-driven configuration for all 5 drafts with query normalization.
+- [src/drafts/draftRegistry.test.js](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/draftRegistry.test.js)
+  - Created — unit tests for draft registry IDs, aliases, and fallbacks.
+- [src/drafts/WebglClassicDraft.jsx](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/WebglClassicDraft.jsx)
+  - Created — Draft 4 Classic renderer restoring pre-weave `1b9d299` materials.
+- [src/drafts/photorealGeometry.js](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/photorealGeometry.js)
+  - Created — regulation pool table geometry (slate, cushions, 3D pocket cavities, sights, hardware, cue stick).
+- [src/drafts/photorealMaterials.js](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/photorealMaterials.js)
+  - Created — PBR physical materials for felt, rails, sights, pockets, and phenolic balls.
+- [src/drafts/photorealTimeline.js](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/photorealTimeline.js)
+  - Created — paused GSAP master timeline driven by Story progress across named beats.
+- [src/drafts/PhotorealPoolDraft.jsx](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/PhotorealPoolDraft.jsx)
+  - Created — Draft 5 Photoreal renderer with 3-point lighting rig and demand scheduler.
+- [src/components/DraftSwitcher.jsx](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/components/DraftSwitcher.jsx)
+  - Modified — uses data-driven options from `draftRegistry.js`.
+- [src/storySchedule.js](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/storySchedule.js)
+  - Modified — maps `webgl`, `webgl-classic`, and `photoreal` to the 3D Break Studio handoff.
+- [src/App.jsx](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/App.jsx)
+  - Modified — registers and mounts Draft 4 and 5 with seamless controller and handoff sync.
+- [src/styles.css](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/styles.css)
+  - Modified — smooth horizontal layout for 5-option draft switcher.
+- [package.json](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/package.json)
+  - Modified — added `draftRegistry.test.js` to test script.
+
 ## Draft 2 (WebGL 3D) overall lighting and exposure increase (03/09/2026, 12:48 AM)
 
 ### Problem

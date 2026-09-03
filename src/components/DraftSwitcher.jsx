@@ -1,8 +1,7 @@
-const DRAFT_OPTIONS = [
-  { id: 'cinematic', label: '01 3D POV' },
-  { id: 'webgl', label: '02 3D Break' },
-  { id: 'original', label: '03 Original' },
-]
+import { getDraftOptions } from '../drafts/draftRegistry.js'
+
+// Options are now data-driven from the central draft registry
+const DRAFT_OPTIONS = getDraftOptions()
 
 export function DraftSwitcher ( { activeDraft, onChange } )
 {
