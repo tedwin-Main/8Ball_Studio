@@ -98,16 +98,15 @@ export const createPocketAssembly = ( pocketCoords, materials, group, disposable
     group.add( bottomMesh )
     disposables.add( bottomGeom )
 
-    // Metallic pocket casting rim
-    const isCorner = type.startsWith( "corner" )
-    const rimGeom = isCorner
-      ? new RoundedBoxGeometry( 1.15, 0.14, 1.15, 3, 0.06 )
-      : new RoundedBoxGeometry( 0.42, 0.14, 1.05, 3, 0.04 )
-    const rimMesh = new THREE.Mesh( rimGeom, materials.metalCastings )
-    rimMesh.position.set( x * ( isCorner ? 1.02 : 1.03 ), 0.28, z * ( isCorner ? 1.01 : 1 ) )
-    rimMesh.castShadow = true
-    group.add( rimMesh )
-    disposables.add( rimGeom )
+    // Beveled metallic collar bracket around pocket aperture (flush with felt, open aperture)
+    const collarGeom = new THREE.TorusGeometry( TABLE_DIMS.pocketRadius * 0.94, 0.08, 16, 48 )
+    collarGeom.rotateX( Math.PI / 2 )
+    const collarMesh = new THREE.Mesh( collarGeom, materials.metalCastings )
+    collarMesh.position.set( x, 0.02, z )
+    collarMesh.castShadow = true
+    collarMesh.receiveShadow = true
+    group.add( collarMesh )
+    disposables.add( collarGeom )
   } )
 }
 

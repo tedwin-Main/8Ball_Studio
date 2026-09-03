@@ -249,21 +249,32 @@ const buildPhotorealScene = ( canvas, onTextureReady, onQualityState ) =>
     transparent: true,
     depthTest: true,
     depthWrite: false,
-    roughness: 0.04,
-    clearcoat: 1.0,
-    clearcoatRoughness: 0.02,
+    roughness: 0.12,
+    metalness: 0,
+    clearcoat: 0.85,
+    clearcoatRoughness: 0.05,
     polygonOffset: true,
     polygonOffsetFactor: -4,
+    polygonOffsetUnits: -4,
   } )
   disposableMaterials.add( decalMaterial )
-  const decalGeom = new DecalGeometry(
-    strikerMesh,
-    new THREE.Vector3( 0, TABLE_DIMS.ballRadius, 0 ),
-    new THREE.Euler( -Math.PI / 2, 0, 0 ),
-    new THREE.Vector3( TABLE_DIMS.ballRadius * 1.08, TABLE_DIMS.ballRadius * 1.08, TABLE_DIMS.ballRadius * 1.08 ),
-  )
-  disposableGeometries.add( decalGeom )
-  strikerMesh.add( new THREE.Mesh( decalGeom, decalMaterial ) )
+
+  // Update world matrix before projecting DecalGeometry
+  strikerMesh.updateMatrixWorld( true )
+  // Double-sided 8-ball decals facing front (+Z) and back (-Z)
+  ;[ [ TABLE_DIMS.ballRadius, 0 ], [ -TABLE_DIMS.ballRadius, Math.PI ] ].forEach( ( [ decalZ, yaw ] ) =>
+  {
+    const decalGeom = new DecalGeometry(
+      strikerMesh,
+      new THREE.Vector3( 0, 0, decalZ ),
+      new THREE.Euler( 0, yaw, 0 ),
+      new THREE.Vector3( TABLE_DIMS.ballRadius * 1.58, TABLE_DIMS.ballRadius * 1.58, TABLE_DIMS.ballRadius * 0.42 ),
+    )
+    disposableGeometries.add( decalGeom )
+    const decal = new THREE.Mesh( decalGeom, decalMaterial )
+    decal.renderOrder = 2
+    strikerMesh.add( decal )
+  } )
 
   const strikerShadow = new THREE.Mesh( contactShadowGeom, materials.contactShadow )
   strikerShadow.position.y = 0.001
