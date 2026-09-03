@@ -20,15 +20,9 @@ export const DRAFT_CONFIGS = Object.freeze( {
     hasWebgl: false,
     fallbackId: null,
   } ),
-  'webgl-classic': Object.freeze( {
-    id: 'webgl-classic',
-    label: '04 3D Classic',
-    hasWebgl: true,
-    fallbackId: 'cinematic',
-  } ),
   photoreal: Object.freeze( {
     id: 'photoreal',
-    label: '05 Photoreal',
+    label: '04 Photoreal',
     hasWebgl: true,
     fallbackId: 'cinematic',
   } ),
@@ -39,7 +33,7 @@ export const DRAFT_IDS = Object.freeze( Object.keys( DRAFT_CONFIGS ) )
 // Maps legacy query aliases to current stable draft identifiers.
 const DRAFT_ALIASES = Object.freeze( {
   photo: 'cinematic',
-  classic: 'webgl-classic',
+  classic: 'webgl',
 } )
 
 // Resolves a URL query string to a validated draft ID, defaulting to cinematic.

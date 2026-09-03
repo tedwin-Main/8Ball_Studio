@@ -5,7 +5,6 @@ import { useStoryPager } from './hooks/useStoryPager'
 import { DraftSwitcher } from './components/DraftSwitcher'
 import { PoolPovDraft } from './drafts/PoolPovDraft'
 import { WebglPoolDraft } from './drafts/WebglPoolDraft'
-import WebglClassicDraft from './drafts/WebglClassicDraft'
 import PhotorealPoolDraft from './drafts/PhotorealPoolDraft'
 import { DRAFT_IDS, normalizeDraftId, getDraftConfig } from './drafts/draftRegistry'
 import { STORY_TIMING, easeWeightedProgress, toStoryProgress, toTimelineUnits } from './storyTiming'
@@ -189,10 +188,6 @@ function App ()
   )
   const registerWebglController = useCallback(
     ( controller ) => registerDraftController( 'webgl', controller ),
-    [ registerDraftController ],
-  )
-  const registerWebglClassicController = useCallback(
-    ( controller ) => registerDraftController( 'webgl-classic', controller ),
     [ registerDraftController ],
   )
   const registerPhotorealController = useCallback(
@@ -478,7 +473,6 @@ function App ()
           const syncDraft2Handoff = ( progress ) =>
           {
             const is3dBreak = activeDraftRef.current === 'webgl' ||
-              activeDraftRef.current === 'webgl-classic' ||
               activeDraftRef.current === 'photoreal'
             if ( !is3dBreak ) return
 
@@ -696,12 +690,6 @@ function App ()
             onController={ registerWebglController }
             onUnavailable={ handleWebglUnavailable }
             draftId="webgl"
-          />
-          <WebglClassicDraft
-            active={ activeDraft === 'webgl-classic' }
-            onController={ registerWebglClassicController }
-            onUnavailable={ handleWebglUnavailable }
-            draftId="webgl-classic"
           />
           <PhotorealPoolDraft
             active={ activeDraft === 'photoreal' }

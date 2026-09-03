@@ -8,8 +8,8 @@ const createPage = ( id, label, start, target ) => Object.freeze( {
   targetProgress: toStoryProgress( target ),
 } )
 
-// Drafts 2, 4, and 5 reach Studio on the measured 3D Break handoff; Drafts 1 and 3 use the cinematic threshold.
-const is3dBreakDraft = ( id ) => id === 'webgl' || id === 'webgl-classic' || id === 'photoreal'
+// Drafts 2 and 4 (photoreal) reach Studio on the measured 3D Break handoff; Drafts 1 and 3 use the cinematic threshold.
+const is3dBreakDraft = ( id ) => id === 'webgl' || id === 'photoreal'
 
 export const getStoryPages = ( draftId = 'cinematic' ) =>
   Object.freeze( [
