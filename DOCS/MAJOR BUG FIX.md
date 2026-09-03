@@ -1,5 +1,30 @@
 # Major Bug Fixes
 
+## Blank Screen Crash in WebglClassicDraft and PhotorealPoolDraft (03/09/2026, 09:30 PM)
+
+### Problem
+
+Loading the application produced a blank black screen. The browser console reported `Uncaught TypeError: A requestAnimationFrame function is required` at `demandFrameScheduler.js:21` originating from `<WebglClassicDraft>` and `<PhotorealPoolDraft>` during component layout effects.
+
+### Fix
+
+- Added window fallback defaults and `renderFrame` / `requestRender` compatibility aliases to `demandFrameScheduler.js`.
+- Corrected scheduler and pointer initialization in `WebglClassicDraft.jsx` and `PhotorealPoolDraft.jsx` to supply explicit animation frame delegates, bind `pointer.advance()`, and pass camera framing outputs into Three.js camera position/target.
+- Imported `STORY_TIMING` in `PhotorealPoolDraft.jsx` for camera framing progress calculations.
+
+### Files Changed
+
+- [src/drafts/demandFrameScheduler.js](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/demandFrameScheduler.js)
+  - Modified — [line 12](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/demandFrameScheduler.js:12) provides window defaults for `requestAnimationFrame` and `cancelAnimationFrame`, and accepts `renderFrame`.
+  - Added — [line 128](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/demandFrameScheduler.js:128) provides `requestRender` alias.
+- [src/drafts/WebglClassicDraft.jsx](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/WebglClassicDraft.jsx)
+  - Modified — [line 744](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/WebglClassicDraft.jsx:744) passes explicit `requestAnimationFrame` and `cancelAnimationFrame` functions.
+  - Modified — [line 793](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/WebglClassicDraft.jsx:793) maps camera framing output arrays to `cameraPos` and `cameraTgt`.
+- [src/drafts/PhotorealPoolDraft.jsx](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/PhotorealPoolDraft.jsx)
+  - Added — [line 31](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/PhotorealPoolDraft.jsx:31) imports `STORY_TIMING`.
+  - Modified — [line 422](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/PhotorealPoolDraft.jsx:422) passes explicit `requestAnimationFrame` and `cancelAnimationFrame` functions.
+  - Modified — [line 471](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/PhotorealPoolDraft.jsx:471) maps camera framing output arrays to `cameraPos` and `cameraTgt`.
+
 ## Draft 4 Classic and Draft 5 Photoreal Break Implementation (03/09/2026, 07:51 PM)
 
 ### Problem

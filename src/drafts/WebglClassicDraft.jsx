@@ -737,21 +737,27 @@ export default function WebglClassicDraft ( {
     let failed = false
     let currentProgress = 0
     let isActive = active
+    let renderContinuation = false
     let resizePending = false
 
     const simulation = getBreakSimulation()
 
+    // Demand-driven frame scheduler coordinates repaints with window animation frames.
     const scheduler = createDemandFrameScheduler( {
-      renderFrame: () => renderScene(),
-      onIdleStateChange: () => {},
+      active: isActive,
+      requestAnimationFrame: ( callback ) => window.requestAnimationFrame( callback ),
+      cancelAnimationFrame: ( handle ) => window.cancelAnimationFrame( handle ),
+      render: () => renderScene(),
+      shouldContinue: () => renderContinuation,
     } )
 
-    const requestRender = () => scheduler.requestRender()
+    const requestRender = () => scheduler.invalidate()
 
+    // Pointer parallax responds to fine mouse input while staying neutral on mobile.
     const pointer = createPointerParallax( {
-      element: window,
-      enabled: true,
-      onMove: () => requestRender(),
+      windowObject: window,
+      isActive: () => isActive,
+      requestRender,
       onResize: () => { resizePending = true },
     } )
 
@@ -790,19 +796,23 @@ export default function WebglClassicDraft ( {
         resizePending = false
       }
 
+      // Shared camera framing with pointer parallax and transition progress.
       const framing = resolveIntroCameraFraming( {
-        viewportWidth: width,
-        viewportHeight: height,
-        sceneScale: DRAFT2_SCENE_SCALE,
-        pointerOffsetX: pointer.offsetX,
-        pointerOffsetY: pointer.offsetY,
-        pointerEnabled: pointer.isPointerActive(),
+        progress: currentProgress,
+        transitionReadyProgress: STORY_TIMING.intro.draft2.transitionReady,
+        aspect: world.camera.aspect,
+        sourceScale: 1,
+        pointerX: pointer.state.x,
+        pointerY: pointer.state.y,
+        pointerEnabled: pointer.state.enabled,
       } )
 
-      cameraPos.copy( framing.position )
-      cameraTgt.copy( framing.target )
+      cameraPos.set( ...framing.camera )
+      cameraTgt.set( ...framing.target )
       world.camera.position.copy( cameraPos )
       world.camera.lookAt( cameraTgt )
+      world.camera.fov = framing.fov
+      world.camera.updateProjectionMatrix()
       world.camera.updateMatrixWorld( true )
 
       // Sample deterministic break state
@@ -835,7 +845,8 @@ export default function WebglClassicDraft ( {
       root.dataset.webglTextures = String( info.textures )
       root.dataset.webglPrograms = String( world.renderer.info.programs?.length ?? 0 )
 
-      return pointer.hasPendingParallax() || resizePending
+      const pointerSettled = pointer.advance()
+      renderContinuation = !pointerSettled || resizePending
     }
 
     const controller = {

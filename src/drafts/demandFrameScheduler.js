@@ -9,13 +9,18 @@
  * the state has already settled.
  */
 export const createDemandFrameScheduler = ( {
-  requestAnimationFrame,
-  cancelAnimationFrame,
+  // Use browser window functions as defaults when running in DOM environment.
+  requestAnimationFrame = typeof window !== 'undefined' ? ( cb ) => window.requestAnimationFrame( cb ) : undefined,
+  cancelAnimationFrame = typeof window !== 'undefined' ? ( id ) => window.cancelAnimationFrame( id ) : undefined,
   render,
+  renderFrame,
   shouldContinue = () => false,
   active = true,
 } = {} ) =>
 {
+  // Support renderFrame as alias for render.
+  const actualRender = render || renderFrame
+
   if ( typeof requestAnimationFrame !== 'function' )
   {
     throw new TypeError( 'A requestAnimationFrame function is required.' )
@@ -24,7 +29,7 @@ export const createDemandFrameScheduler = ( {
   {
     throw new TypeError( 'A cancelAnimationFrame function is required.' )
   }
-  if ( typeof render !== 'function' )
+  if ( typeof actualRender !== 'function' )
   {
     throw new TypeError( 'A render function is required.' )
   }
@@ -74,7 +79,7 @@ export const createDemandFrameScheduler = ( {
     isRendering = true
     try
     {
-      render( { timestamp, dirty: renderDirty } )
+      actualRender( { timestamp, dirty: renderDirty } )
     }
     finally
     {
@@ -121,6 +126,8 @@ export const createDemandFrameScheduler = ( {
 
   return {
     invalidate,
+    // Provide requestRender alias for component callers.
+    requestRender: invalidate,
     setActive,
     destroy,
     get isDirty () { return dirty },
