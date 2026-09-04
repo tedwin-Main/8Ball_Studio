@@ -1170,6 +1170,40 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
     clearcoat: 0,
   } )
 
+  // Slice 2: Recessed leather-lined pockets with dark interior cavity walls and drop cups
+  const pocketLeatherTextures = createPocketLeatherTextures( maxAnisotropy )
+  ownTextures( ...Object.values( pocketLeatherTextures ) )
+  const pocketInteriorMaterial = new THREE.MeshPhysicalMaterial( {
+    map: pocketLeatherTextures.map,
+    normalMap: pocketLeatherTextures.normalMap,
+    normalScale: new THREE.Vector2( 0.22, 0.22 ),
+    roughnessMap: pocketLeatherTextures.roughnessMap,
+    color: '#151412',
+    roughness: 0.82,
+    metalness: 0.05,
+    envMapIntensity: 0.25,
+    side: THREE.DoubleSide,
+  } )
+  const pocketBottomMaterial = new THREE.MeshPhysicalMaterial( {
+    map: pocketLeatherTextures.map,
+    normalMap: pocketLeatherTextures.normalMap,
+    normalScale: new THREE.Vector2( 0.18, 0.18 ),
+    roughnessMap: pocketLeatherTextures.roughnessMap,
+    color: '#121110',
+    roughness: 0.86,
+    metalness: 0.02,
+    envMapIntensity: 0.15,
+  } )
+  const pocketCollarMaterial = new THREE.MeshPhysicalMaterial( {
+    color: '#3e3b36',
+    metalness: 0.72,
+    roughness: 0.28,
+    clearcoat: 0.55,
+    clearcoatRoughness: 0.14,
+    ior: 1.52,
+    envMapIntensity: 0.6,
+  } )
+
   // Apron skirt box
   addRoundedBox( table, [ 10.75, 0.72, 20.55 ], [ 0, -0.42, 0 ], apronMaterial, 0.14 )
 
@@ -1231,40 +1265,6 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
     cushion.position.set( cfg.x, 0.22, cfg.z )
     cushion.castShadow = true
     table.add( cushion )
-  } )
-
-  // Slice 2: Recessed leather-lined pockets with dark interior cavity walls and drop cups
-  const pocketLeatherTextures = createPocketLeatherTextures( maxAnisotropy )
-  ownTextures( ...Object.values( pocketLeatherTextures ) )
-  const pocketInteriorMaterial = new THREE.MeshPhysicalMaterial( {
-    map: pocketLeatherTextures.map,
-    normalMap: pocketLeatherTextures.normalMap,
-    normalScale: new THREE.Vector2( 0.22, 0.22 ),
-    roughnessMap: pocketLeatherTextures.roughnessMap,
-    color: '#151412',
-    roughness: 0.82,
-    metalness: 0.05,
-    envMapIntensity: 0.25,
-    side: THREE.DoubleSide,
-  } )
-  const pocketBottomMaterial = new THREE.MeshPhysicalMaterial( {
-    map: pocketLeatherTextures.map,
-    normalMap: pocketLeatherTextures.normalMap,
-    normalScale: new THREE.Vector2( 0.18, 0.18 ),
-    roughnessMap: pocketLeatherTextures.roughnessMap,
-    color: '#121110',
-    roughness: 0.86,
-    metalness: 0.02,
-    envMapIntensity: 0.15,
-  } )
-  const pocketCollarMaterial = new THREE.MeshPhysicalMaterial( {
-    color: '#3e3b36',
-    metalness: 0.72,
-    roughness: 0.28,
-    clearcoat: 0.55,
-    clearcoatRoughness: 0.14,
-    ior: 1.52,
-    envMapIntensity: 0.6,
   } )
 
   POCKET_POSITIONS.forEach( ( [ x, z ] ) =>
@@ -1908,7 +1908,12 @@ export function WebglPoolDraft ( {
   }, [ active ] )
 
   return (
-    <div className={ `draft-layer draft-layer-webgl draft-layer-webgl-${variant}` } ref={ rootRef } aria-hidden={ !active }>
+    <div
+      className={ `draft-layer draft-layer-webgl draft-layer-webgl-${variant}` }
+      ref={ rootRef }
+      aria-hidden={ !active }
+      data-draft-id={ draftId }
+    >
       <canvas ref={ canvasRef } className="webgl-pool-canvas" aria-hidden="true" />
       <div className="webgl-vignette" aria-hidden="true" />
       <p className="webgl-phase" aria-hidden="true">TABLE / SET</p>

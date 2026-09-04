@@ -12,6 +12,26 @@ test( 'localhost mounts the Story without a blank root or page errors', async ( 
   expect( pageErrors ).toEqual( [] )
 } )
 
+test( 'Draft 2 (3D break) renders without fallback activation or runtime errors', async ( { page } ) =>
+{
+  const pageErrors = []
+  const warnings = []
+  page.on( 'pageerror', ( error ) => pageErrors.push( error.message ) )
+  page.on( 'console', ( msg ) => {
+    if ( msg.type() === 'warning' && msg.text().includes( 'WebGL setup failed' ) ) {
+      warnings.push( msg.text() )
+    }
+  } )
+
+  await page.goto( '/?draft=webgl', { waitUntil: 'domcontentloaded' } )
+  const draftRoot = page.locator( '.draft-layer[data-draft-id="webgl"]' )
+  await expect( draftRoot ).toHaveAttribute( 'data-webgl-error', 'false' )
+  await expect( draftRoot ).toHaveClass( /is-active/ )
+
+  expect( warnings ).toEqual( [] )
+  expect( pageErrors ).toEqual( [] )
+} )
+
 test( 'Draft 4 (photoreal) renders without missing balls or runtime errors', async ( { page } ) =>
 {
   const pageErrors = []

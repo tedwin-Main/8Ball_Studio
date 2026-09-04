@@ -1,5 +1,26 @@
 # Major Bug Fixes
 
+## Draft 2 (WebGL 3D) Unavailable / Fallback to 2.5D Fix (04/09/2026, 10:23 AM)
+
+### Problem
+
+Navigating to `?draft=webgl` displayed "3D draft unavailable on this device. Showing 2.5D draft." and switched to Draft 1. The browser console reported:
+`ReferenceError: Cannot access 'pocketCollarMaterial' before initialization at buildScene (WebglPoolDraft.jsx:915)`.
+`pocketCollarMaterial` was used by corner castings and side pocket hardware at lines 1185 and 1191 before its definition at line 1260, triggering a temporal dead zone (TDZ) ReferenceError that caused `buildScene` to fail and activate the fallback.
+
+### Fix
+
+- Moved declarations of `pocketLeatherTextures`, `pocketInteriorMaterial`, `pocketBottomMaterial`, and `pocketCollarMaterial` ahead of the table assembly, corner castings, and side hardware in `WebglPoolDraft.jsx`.
+- Added `data-draft-id={draftId}` to the root container of `WebglPoolDraft.jsx`.
+- Added automated browser regression test in `tests/browser/localhost-smoke.spec.js` asserting `data-webgl-error="false"`, active layer presence, and absence of fallback activation or console errors when loading `/?draft=webgl`.
+
+### Files Changed
+
+- [src/drafts/WebglPoolDraft.jsx](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/WebglPoolDraft.jsx)
+  - Modified — moved pocket material declarations before table assembly to fix TDZ ReferenceError. Added `data-draft-id`.
+- [tests/browser/localhost-smoke.spec.js](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/tests/browser/localhost-smoke.spec.js)
+  - Added — Draft 2 browser smoke test verifying error-free WebGL mounting.
+
 ## Blank Screen Crash in WebglClassicDraft and PhotorealPoolDraft (03/09/2026, 09:30 PM)
 
 ### Problem
