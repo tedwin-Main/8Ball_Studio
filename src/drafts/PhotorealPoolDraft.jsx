@@ -29,6 +29,7 @@ import {
   DRAFT2_SCENE_SCALE,
   resolveIntroCameraFraming,
 } from "./cameraFraming.js"
+import { TABLE_PALETTE } from "./tablePalette.js"
 import { STORY_TIMING } from "../storyTiming.js"
 import { createDemandFrameScheduler } from "./demandFrameScheduler.js"
 
@@ -115,7 +116,7 @@ const createStudioEnvironment = ( renderer ) =>
   addCard( new THREE.PlaneGeometry( 18, 28 ), "#fff8e6", 3.0, [ 0, 14, 0 ], [ 0, 0, 0 ] )
   addCard( new THREE.PlaneGeometry( 12, 22 ), "#ffcaa0", 1.4, [ -15, 9, 3 ], [ 0, 0, 0 ] )
   addCard( new THREE.PlaneGeometry( 12, 22 ), "#c4e6d4", 0.9, [ 15, 9, -3 ], [ 0, 0, 0 ] )
-  addCard( new THREE.PlaneGeometry( 22, 32 ), "#144632", 0.4, [ 0, -6, 0 ], [ 0, 0, 0 ] )
+  addCard( new THREE.PlaneGeometry( 22, 32 ), TABLE_PALETTE.feltBounce, 0.4, [ 0, -6, 0 ], [ 0, 0, 0 ] )
 
   const pmremGenerator = new THREE.PMREMGenerator( renderer )
   pmremGenerator.compileEquirectangularShader()
@@ -364,7 +365,7 @@ const buildPhotorealScene = ( canvas, onTextureReady, onQualityState ) =>
   overheadSpot.castShadow = false
   scene.add( overheadSpot, overheadSpot.target )
 
-  const feltBounce = new THREE.HemisphereLight( "#1a5a41", "#020403", 0.35 )
+  const feltBounce = new THREE.HemisphereLight( TABLE_PALETTE.feltBounce, "#020403", 0.35 )
   scene.add( feltBounce )
 
   const rimLight = new THREE.DirectionalLight( "#df9654", 0.48 )

@@ -26,6 +26,7 @@ import {
   publishFramingDiagnostics,
 } from './framingDiagnostics'
 import { createDemandFrameScheduler } from './demandFrameScheduler'
+import { TABLE_PALETTE } from './tablePalette'
 
 const clamp = ( value, min = 0, max = 1 ) => Math.min( max, Math.max( min, value ) )
 const lerp = ( start, end, progress ) => start + ( end - start ) * progress
@@ -404,13 +405,13 @@ const createFeltTextures = ( anisotropy = 16, microRepeatX = 38.4, microRepeatY 
       normalData[ pixelIdx + 2 ] = Math.round( ( nz * 0.5 + 0.5 ) * 255 )
       normalData[ pixelIdx + 3 ] = 255
 
-      // Albedo Map: a restrained tournament green with yarn crest illumination and crevice shadow.
+      // Albedo Map: rich tournament green with yarn crest illumination and crevice shadow.
       const h = heightMap[ idx ]
       // Low-frequency organic dye mottling
       const dyeShift = Math.sin( x * 0.035 ) * Math.cos( y * 0.035 ) * 4
-      const r = Math.max( 0, Math.min( 255, Math.round( 10 + h * 5 + dyeShift * 0.5 ) ) )
-      const g = Math.max( 0, Math.min( 255, Math.round( 45 + h * 14 + dyeShift * 0.8 ) ) )
-      const b = Math.max( 0, Math.min( 255, Math.round( 30 + h * 9 + dyeShift * 0.6 ) ) )
+      const r = Math.max( 0, Math.min( 255, Math.round( 8 + h * 24 + dyeShift ) ) )
+      const g = Math.max( 0, Math.min( 255, Math.round( 48 + h * 76 + dyeShift * 1.5 ) ) )
+      const b = Math.max( 0, Math.min( 255, Math.round( 32 + h * 50 + dyeShift ) ) )
 
       albedoData[ pixelIdx ] = r
       albedoData[ pixelIdx + 1 ] = g
@@ -1080,9 +1081,8 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
     metalness: 0.0,
     sheen: 0.44,
     sheenRoughness: 0.82,
-    sheenColor: new THREE.Color( 0x8caf99 ),
-    // The albedo map is authored in the correct green; a white tint avoids double-darkening it.
-    color: '#ffffff',
+    sheenColor: new THREE.Color( TABLE_PALETTE.feltSheen ),
+    color: TABLE_PALETTE.felt,
     // Balanced envMapIntensity keeps the cloth green while retaining a bright studio response.
     envMapIntensity: 0.28,
     clearcoat: 0,
@@ -1133,7 +1133,7 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
     normalMap: woodTextures.normalMap,
     normalScale: new THREE.Vector2( 0.045, 0.045 ),
     roughnessMap: woodTextures.roughnessMap,
-    color: '#ffffff',
+    color: TABLE_PALETTE.rail,
     roughness: 0.34,
     metalness: 0.0,
     clearcoat: 0.55,
@@ -1147,7 +1147,7 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
     normalMap: woodTextures.normalMap,
     normalScale: new THREE.Vector2( 0.035, 0.035 ),
     roughnessMap: woodTextures.roughnessMap,
-    color: '#ffffff',
+    color: TABLE_PALETTE.apron,
     roughness: 0.38,
     metalness: 0.0,
     clearcoat: 0.42,
@@ -1165,8 +1165,8 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
     metalness: 0.0,
     sheen: 0.24,
     sheenRoughness: 0.86,
-    sheenColor: new THREE.Color( 0x789887 ),
-    color: '#ffffff',
+    sheenColor: new THREE.Color( TABLE_PALETTE.feltSheen ),
+    color: TABLE_PALETTE.cushion,
     clearcoat: 0,
   } )
 
@@ -1178,7 +1178,7 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
     normalMap: pocketLeatherTextures.normalMap,
     normalScale: new THREE.Vector2( 0.22, 0.22 ),
     roughnessMap: pocketLeatherTextures.roughnessMap,
-    color: '#151412',
+    color: TABLE_PALETTE.pocketInterior,
     roughness: 0.82,
     metalness: 0.05,
     envMapIntensity: 0.25,
@@ -1189,13 +1189,13 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
     normalMap: pocketLeatherTextures.normalMap,
     normalScale: new THREE.Vector2( 0.18, 0.18 ),
     roughnessMap: pocketLeatherTextures.roughnessMap,
-    color: '#121110',
+    color: TABLE_PALETTE.pocketBottom,
     roughness: 0.86,
     metalness: 0.02,
     envMapIntensity: 0.15,
   } )
   const pocketCollarMaterial = new THREE.MeshPhysicalMaterial( {
-    color: '#3e3b36',
+    color: TABLE_PALETTE.pocketCollar,
     metalness: 0.72,
     roughness: 0.28,
     clearcoat: 0.55,
@@ -1499,7 +1499,7 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
   scene.add( overheadSpot, overheadSpot.target )
 
   // Ambient felt bounce light softens dark shadows under balls and rail returns.
-  const feltBounce = new THREE.HemisphereLight( '#1c5e45', '#030504', 0.48 )
+  const feltBounce = new THREE.HemisphereLight( TABLE_PALETTE.feltBounce, '#030504', 0.48 )
   scene.add( feltBounce )
 
   // Warm rim light sharpens ball silhouettes and gloss edge catchlights.

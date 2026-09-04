@@ -1,5 +1,6 @@
 // Production PBR materials for Draft 5 Photoreal Break.
 import * as THREE from "three"
+import { TABLE_PALETTE } from "./tablePalette.js"
 
 const createContactShadowTexture = () =>
 {
@@ -62,13 +63,13 @@ export const createPhotorealMaterials = ( disposables ) =>
 {
   // Tournament worsted cloth with directional sheen
   const cloth = new THREE.MeshPhysicalMaterial( {
-    color: "#124e36",
-    roughness: 0.84,
+    color: TABLE_PALETTE.feltPbr,
+    roughness: 1.0,
     metalness: 0,
-    sheen: 0.65,
-    sheenRoughness: 0.58,
-    sheenColor: new THREE.Color( 0x4dd897 ),
-    envMapIntensity: 0.32,
+    sheen: 0.44,
+    sheenRoughness: 0.82,
+    sheenColor: new THREE.Color( TABLE_PALETTE.feltSheen ),
+    envMapIntensity: 0.28,
     clearcoat: 0,
   } )
 
@@ -84,12 +85,12 @@ export const createPhotorealMaterials = ( disposables ) =>
 
   // Cushions matching cloth profile
   const cushions = new THREE.MeshPhysicalMaterial( {
-    color: "#175b3e",
-    roughness: 0.76,
+    color: TABLE_PALETTE.feltPbr,
+    roughness: 1.0,
     metalness: 0,
-    sheen: 0.48,
-    sheenRoughness: 0.65,
-    sheenColor: new THREE.Color( 0x4dd897 ),
+    sheen: 0.24,
+    sheenRoughness: 0.86,
+    sheenColor: new THREE.Color( TABLE_PALETTE.feltSheen ),
   } )
 
   // Leather pocket drop liner
