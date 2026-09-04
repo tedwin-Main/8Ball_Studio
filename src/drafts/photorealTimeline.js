@@ -34,7 +34,7 @@ export const createPhotorealChoreography = ( {
     cueZ: 0,
     cueOpacity: 1,
     cameraFov: 40,
-    keyIntensity: 1.85,
+    keyIntensity: 1.25,
     storyProgress: 0,
   }
 
@@ -47,7 +47,7 @@ export const createPhotorealChoreography = ( {
   timeline
     .addLabel( "establish", 0.0 )
     .to( proxy, {
-      keyIntensity: 2.1,
+      keyIntensity: 1.45,
       duration: 0.08,
       ease: "power1.out",
     }, 0.0 )

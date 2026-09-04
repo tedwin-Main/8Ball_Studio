@@ -1,25 +1,24 @@
 # Major Bug Fixes
 
-## Draft 2 (WebGL 3D) Unavailable / Fallback to 2.5D Fix (04/09/2026, 10:23 AM)
+## Draft 4 (Photoreal 3D) Overall Lighting Reduction (04/09/2026, 11:25 AM)
 
 ### Problem
 
-Navigating to `?draft=webgl` displayed "3D draft unavailable on this device. Showing 2.5D draft." and switched to Draft 1. The browser console reported:
-`ReferenceError: Cannot access 'pocketCollarMaterial' before initialization at buildScene (WebglPoolDraft.jsx:915)`.
-`pocketCollarMaterial` was used by corner castings and side pocket hardware at lines 1185 and 1191 before its definition at line 1260, triggering a temporal dead zone (TDZ) ReferenceError that caused `buildScene` to fail and activate the fallback.
+Draft 4 rendered over-exposed with blown out specular highlights and washed-out felt colors due to high tone mapping exposure (`1.18`), elevated environment reflection intensity (`0.76`), and strong light intensities (`overheadRectLight: 2.85`, `keyLight: 1.85-2.1`, `overheadSpot: 5.8`).
 
 ### Fix
 
-- Moved declarations of `pocketLeatherTextures`, `pocketInteriorMaterial`, `pocketBottomMaterial`, and `pocketCollarMaterial` ahead of the table assembly, corner castings, and side hardware in `WebglPoolDraft.jsx`.
-- Added `data-draft-id={draftId}` to the root container of `WebglPoolDraft.jsx`.
-- Added automated browser regression test in `tests/browser/localhost-smoke.spec.js` asserting `data-webgl-error="false"`, active layer presence, and absence of fallback activation or console errors when loading `/?draft=webgl`.
+- Reduced `toneMappingExposure` from `1.18` to `0.92` in `PhotorealPoolDraft.jsx`.
+- Reduced `scene.environmentIntensity` from `0.76` to `0.45` for controlled reflections.
+- Scaled studio lighting rig: `overheadRectLight` to `1.85`, `keyLight` to `1.25`, `leftChamferFill` to `0.28`, `rightChamferFill` to `0.25`, `overheadSpot` to `3.6`, `feltBounce` to `0.35`, and `rimLight` to `0.48`.
+- Synchronized GSAP choreography proxy in `photorealTimeline.js`: base `keyIntensity` set to `1.25`, establish accent eased to `1.45`.
 
 ### Files Changed
 
-- [src/drafts/WebglPoolDraft.jsx](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/WebglPoolDraft.jsx)
-  - Modified — moved pocket material declarations before table assembly to fix TDZ ReferenceError. Added `data-draft-id`.
-- [tests/browser/localhost-smoke.spec.js](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/tests/browser/localhost-smoke.spec.js)
-  - Added — Draft 2 browser smoke test verifying error-free WebGL mounting.
+- [src/drafts/PhotorealPoolDraft.jsx](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/PhotorealPoolDraft.jsx)
+  - Modified — lowered `toneMappingExposure` to `0.92`, `environmentIntensity` to `0.45`, and studio light values.
+- [src/drafts/photorealTimeline.js](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/photorealTimeline.js)
+  - Modified — tuned timeline key light animation range (`1.25` - `1.45`).
 
 ## Blank Screen Crash in WebglClassicDraft and PhotorealPoolDraft (03/09/2026, 09:30 PM)
 

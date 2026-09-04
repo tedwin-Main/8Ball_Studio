@@ -141,7 +141,7 @@ const buildPhotorealScene = ( canvas, onTextureReady, onQualityState ) =>
   } )
   renderer.outputColorSpace = THREE.SRGBColorSpace
   renderer.toneMapping = THREE.ACESFilmicToneMapping
-  renderer.toneMappingExposure = 1.18
+  renderer.toneMappingExposure = 0.92
   renderer.shadowMap.enabled = true
   // Soft percentage-closer filtering eliminates harsh pixelated shadow edges.
   renderer.shadowMap.type = THREE.PCFSoftShadowMap
@@ -151,7 +151,7 @@ const buildPhotorealScene = ( canvas, onTextureReady, onQualityState ) =>
 
   const envTarget = createStudioEnvironment( renderer )
   scene.environment = envTarget.texture
-  scene.environmentIntensity = 0.76
+  scene.environmentIntensity = 0.45
 
   const materials = createPhotorealMaterials( disposableMaterials )
 
@@ -326,12 +326,12 @@ const buildPhotorealScene = ( canvas, onTextureReady, onQualityState ) =>
   table.add( cueStick )
 
   // 9. Three-point studio lighting rig
-  const overheadRectLight = new THREE.RectAreaLight( 0xffffff, 2.85, 9.2, 16.2 )
+  const overheadRectLight = new THREE.RectAreaLight( 0xffffff, 1.85, 9.2, 16.2 )
   overheadRectLight.position.set( 0, 7.0, 0 )
   overheadRectLight.rotation.x = -Math.PI / 2
   scene.add( overheadRectLight )
 
-  const keyLight = new THREE.DirectionalLight( "#ffe8c2", 1.85 )
+  const keyLight = new THREE.DirectionalLight( "#ffe8c2", 1.25 )
   keyLight.position.set( -4.8, 8.8, 5.2 )
   keyLight.target.position.set( 0, 0, -2.5 )
   keyLight.castShadow = true
@@ -348,26 +348,26 @@ const buildPhotorealScene = ( canvas, onTextureReady, onQualityState ) =>
   keyLight.shadow.normalBias = 0.02
   scene.add( keyLight, keyLight.target )
 
-  const leftChamferFill = new THREE.DirectionalLight( "#d4eae0", 0.46 )
+  const leftChamferFill = new THREE.DirectionalLight( "#d4eae0", 0.28 )
   leftChamferFill.position.set( -8.5, 3.8, 0 )
   leftChamferFill.target.position.set( 0, 0, 0 )
   scene.add( leftChamferFill, leftChamferFill.target )
 
-  const rightChamferFill = new THREE.DirectionalLight( "#f0e6d6", 0.42 )
+  const rightChamferFill = new THREE.DirectionalLight( "#f0e6d6", 0.25 )
   rightChamferFill.position.set( 8.5, 3.8, 0 )
   rightChamferFill.target.position.set( 0, 0, 0 )
   scene.add( rightChamferFill, rightChamferFill.target )
 
-  const overheadSpot = new THREE.SpotLight( "#fff3da", 5.8, 26, Math.PI / 3.2, 0.8, 1.3 )
+  const overheadSpot = new THREE.SpotLight( "#fff3da", 3.6, 26, Math.PI / 3.2, 0.8, 1.3 )
   overheadSpot.position.set( 0, 8.5, -3.2 )
   overheadSpot.target.position.set( 0, 0, -3.2 )
   overheadSpot.castShadow = false
   scene.add( overheadSpot, overheadSpot.target )
 
-  const feltBounce = new THREE.HemisphereLight( "#1a5a41", "#020403", 0.54 )
+  const feltBounce = new THREE.HemisphereLight( "#1a5a41", "#020403", 0.35 )
   scene.add( feltBounce )
 
-  const rimLight = new THREE.DirectionalLight( "#df9654", 0.72 )
+  const rimLight = new THREE.DirectionalLight( "#df9654", 0.48 )
   rimLight.position.set( 5.5, 4.8, -7.5 )
   rimLight.target.position.set( 0, 0, -3 )
   scene.add( rimLight, rimLight.target )
