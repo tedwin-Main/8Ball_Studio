@@ -24,63 +24,56 @@ export const POCKET_COORDS = Object.freeze( [
 ] )
 
 // Creates slate/cloth bed with pocket openings cut into all six pocket locations.
-// The green felt does not run flat through the pocket throat.
+// The green felt curves inward around pocket throats, leaving dark cavities open and visible.
 export const createSlateGeometry = () =>
 {
   const shape = new THREE.Shape()
   // Boundary coordinates matching cushion-felt interface in XY shape coordinates (y becomes -z in world)
-  const xHeadCorner = 4.14
+  const xHead = 4.144
   const yHead = 9.60
   const xRail = 4.80
-  const yCornerSide = 9.00
-  const ySidePocket = 0.32
-  const cornerArcRadius = 0.54
-  const sideArcRadius = 0.48
+  const yCorner = 9.004
+  const ySide = 0.296
 
   // 1. Head rail edge (from Top-Left to Top-Right)
-  shape.moveTo( -xHeadCorner, yHead )
-  shape.lineTo( xHeadCorner, yHead )
+  shape.moveTo( -xHead, yHead )
+  shape.lineTo( xHead, yHead )
 
-  // 2. Top-Right corner pocket cutout
-  shape.absarc( 4.45, 9.25, cornerArcRadius, Math.PI / 2, 0, true )
-  shape.lineTo( xRail, yCornerSide )
+  // 2. Top-Right corner pocket throat cutout (inward curve around pocket opening at 4.45, 9.25)
+  shape.quadraticCurveTo( 3.80, 8.60, xRail, yCorner )
 
   // 3. Right head-side edge
-  shape.lineTo( xRail, ySidePocket )
+  shape.lineTo( xRail, ySide )
 
-  // 4. Right side pocket cutout
-  shape.absarc( 4.65, 0, sideArcRadius, Math.PI / 2, -Math.PI / 2, true )
-  shape.lineTo( xRail, -ySidePocket )
+  // 4. Right side pocket throat cutout (inward curve around pocket opening at 4.65, 0)
+  shape.quadraticCurveTo( 4.10, 0, xRail, -ySide )
 
   // 5. Right foot-side edge
-  shape.lineTo( xRail, -yCornerSide )
+  shape.lineTo( xRail, -yCorner )
 
-  // 6. Bottom-Right corner pocket cutout
-  shape.absarc( 4.45, -9.25, cornerArcRadius, 0, -Math.PI / 2, true )
-  shape.lineTo( xHeadCorner, -yHead )
+  // 6. Bottom-Right corner pocket throat cutout (inward curve around pocket opening at 4.45, -9.25)
+  shape.quadraticCurveTo( 3.80, -8.60, xHead, -yHead )
 
   // 7. Foot rail edge (from Bottom-Right to Bottom-Left)
-  shape.lineTo( -xHeadCorner, -yHead )
+  shape.lineTo( -xHead, -yHead )
 
-  // 8. Bottom-Left corner pocket cutout
-  shape.absarc( -4.45, -9.25, cornerArcRadius, -Math.PI / 2, -Math.PI, true )
-  shape.lineTo( -xRail, -yCornerSide )
+  // 8. Bottom-Left corner pocket throat cutout (inward curve around pocket opening at -4.45, -9.25)
+  shape.quadraticCurveTo( -3.80, -8.60, -xRail, -yCorner )
 
   // 9. Left foot-side edge
-  shape.lineTo( -xRail, -ySidePocket )
+  shape.lineTo( -xRail, -ySide )
 
-  // 10. Left side pocket cutout
-  shape.absarc( -4.65, 0, sideArcRadius, -Math.PI / 2, Math.PI / 2, true )
-  shape.lineTo( -xRail, ySidePocket )
+  // 10. Left side pocket throat cutout (inward curve around pocket opening at -4.65, 0)
+  shape.quadraticCurveTo( -4.10, 0, -xRail, ySide )
 
   // 11. Left head-side edge
-  shape.lineTo( -xRail, yCornerSide )
+  shape.lineTo( -xRail, yCorner )
 
-  // 12. Top-Left corner pocket cutout
-  shape.absarc( -4.45, 9.25, cornerArcRadius, Math.PI, Math.PI / 2, true )
-  shape.lineTo( -xHeadCorner, yHead )
+  // 12. Top-Left corner pocket throat cutout (inward curve around pocket opening at -4.45, 9.25)
+  shape.quadraticCurveTo( -3.80, 8.60, -xHead, yHead )
   shape.closePath()
 
+  // Triangulate 2D bed polygon and rotate to horizontal XZ plane
   const geometry = new THREE.ShapeGeometry( shape, 24 )
   geometry.rotateX( -Math.PI / 2 )
   geometry.computeVertexNormals()
