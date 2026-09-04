@@ -1,5 +1,23 @@
 # Major Bug Fixes
 
+## Draft 2 (WebGL 3D) Overall Lighting Increase (04/09/2026, 11:26 AM)
+
+### Problem
+
+Draft 2 rendered slightly dim with muted midtones and suppressed specular gleam on the balls and table rails.
+
+### Fix
+
+- Raised `toneMappingExposure` from `0.95` to `1.15` in `WebglPoolDraft.jsx`.
+- Raised `scene.environmentIntensity` from `0.48` to `0.68` for luminous ambient fill and reflections.
+- Boosted cloth `feltMaterial` sheen from `0.34` to `0.44` and `envMapIntensity` from `0.20` to `0.28`.
+- Scaled studio lighting rig: `overheadRectLight` to `2.75`, `keyLight` to `1.85`, `leftChamferFill` to `0.45`, `rightChamferFill` to `0.42`, `farRailFill` to `1.25`, `overheadSpot` to `5.5`, `feltBounce` to `0.48`, and `rimLight` to `0.68`.
+
+### Files Changed
+
+- [src/drafts/WebglPoolDraft.jsx](/Users/sloth/ALL%20PROJECTS/8Ball_Studio_Codex/src/drafts/WebglPoolDraft.jsx)
+  - Modified — increased `toneMappingExposure`, `environmentIntensity`, cloth sheen, and studio light intensities.
+
 ## Draft 4 (Photoreal 3D) Overall Lighting Reduction (04/09/2026, 11:25 AM)
 
 ### Problem
