@@ -100,12 +100,12 @@ export const createPhotorealMaterials = ( disposables ) =>
     side: THREE.DoubleSide,
   } )
 
-  // Cast metal corner/side miters
+  // Dark gunmetal/bronze corner castings and matching rail hardware
   const metalCastings = new THREE.MeshStandardMaterial( {
-    color: "#d8dadc",
-    metalness: 0.94,
-    roughness: 0.16,
-    envMapIntensity: 1.0,
+    color: "#383736",
+    metalness: 0.86,
+    roughness: 0.26,
+    envMapIntensity: 0.75,
   } )
 
   // Table apron skirt

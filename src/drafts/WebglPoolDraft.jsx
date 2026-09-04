@@ -220,9 +220,9 @@ const POCKET_RADIUS = 0.54
 const ROOM_FLOOR_Z = -4
 
 const POCKET_POSITIONS = [
-  [ -4.18, -9.08 ], [ 4.18, -9.08 ],
-  [ -4.24, 0 ], [ 4.24, 0 ],
-  [ -4.18, 9.08 ], [ 4.18, 9.08 ],
+  [ -4.45, -9.25 ], [ 4.45, -9.25 ],
+  [ -4.65, 0 ], [ 4.65, 0 ],
+  [ -4.45, 9.25 ], [ 4.45, 9.25 ],
 ]
 
 /**
@@ -878,25 +878,100 @@ const addRoundedBox = ( parent, size, position, material, radius = 0.08 ) =>
   return mesh
 }
 
+// Cut pocket openings into the cloth/slate bed at all six pocket locations.
+// The green felt does not run flat through the pocket throat, stopping at each pocket entrance.
 const createFeltGeometry = () =>
 {
   const shape = new THREE.Shape()
-  shape.moveTo( -TABLE_WIDTH / 2, -TABLE_LENGTH / 2 )
-  shape.lineTo( TABLE_WIDTH / 2, -TABLE_LENGTH / 2 )
-  shape.lineTo( TABLE_WIDTH / 2, TABLE_LENGTH / 2 )
-  shape.lineTo( -TABLE_WIDTH / 2, TABLE_LENGTH / 2 )
+  // Boundary coordinates matching the cushion-felt interface in XY shape coordinates (y becomes -z in world)
+  const xHeadCorner = 4.14
+  const yHead = 9.60 // corresponds to world z = -9.60
+  const xRail = 4.80
+  const yCornerSide = 9.00 // corresponds to world z = -9.00
+  const ySidePocket = 0.32 // corresponds to world z = -0.32
+  const cornerArcRadius = 0.54
+  const sideArcRadius = 0.48
+
+  // 1. Head rail edge (from Top-Left to Top-Right)
+  shape.moveTo( -xHeadCorner, yHead )
+  shape.lineTo( xHeadCorner, yHead )
+
+  // 2. Top-Right corner pocket cutout
+  shape.absarc( 4.45, 9.25, cornerArcRadius, Math.PI / 2, 0, true )
+  shape.lineTo( xRail, yCornerSide )
+
+  // 3. Right head-side edge
+  shape.lineTo( xRail, ySidePocket )
+
+  // 4. Right side pocket cutout
+  shape.absarc( 4.65, 0, sideArcRadius, Math.PI / 2, -Math.PI / 2, true )
+  shape.lineTo( xRail, -ySidePocket )
+
+  // 5. Right foot-side edge
+  shape.lineTo( xRail, -yCornerSide )
+
+  // 6. Bottom-Right corner pocket cutout
+  shape.absarc( 4.45, -9.25, cornerArcRadius, 0, -Math.PI / 2, true )
+  shape.lineTo( xHeadCorner, -yHead )
+
+  // 7. Foot rail edge (from Bottom-Right to Bottom-Left)
+  shape.lineTo( -xHeadCorner, -yHead )
+
+  // 8. Bottom-Left corner pocket cutout
+  shape.absarc( -4.45, -9.25, cornerArcRadius, -Math.PI / 2, -Math.PI, true )
+  shape.lineTo( -xRail, -yCornerSide )
+
+  // 9. Left foot-side edge
+  shape.lineTo( -xRail, -ySidePocket )
+
+  // 10. Left side pocket cutout
+  shape.absarc( -4.65, 0, sideArcRadius, -Math.PI / 2, Math.PI / 2, true )
+  shape.lineTo( -xRail, ySidePocket )
+
+  // 11. Left head-side edge
+  shape.lineTo( -xRail, yCornerSide )
+
+  // 12. Top-Left corner pocket cutout
+  shape.absarc( -4.45, 9.25, cornerArcRadius, Math.PI, Math.PI / 2, true )
+  shape.lineTo( -xHeadCorner, yHead )
   shape.closePath()
 
-  POCKET_POSITIONS.forEach( ( [ x, z ] ) =>
-  {
-    const hole = new THREE.Path()
-    hole.absarc( x, -z, POCKET_RADIUS, 0, Math.PI * 2, false )
-    shape.holes.push( hole )
+  const geometry = new THREE.ShapeGeometry( shape, 24 )
+  geometry.rotateX( -Math.PI / 2 )
+  geometry.computeVertexNormals()
+  return geometry
+}
+
+// Generates billiard rail cushion geometry with 40-45 degree beveled facings at both ends.
+const createAngledCushionGeometry = ( noseLength, depth = 0.36, height = 0.20, leftAngleDeg = 42, rightAngleDeg = 42 ) =>
+{
+  const leftTan = Math.tan( ( leftAngleDeg * Math.PI ) / 180 )
+  const rightTan = Math.tan( ( rightAngleDeg * Math.PI ) / 180 )
+
+  const shape = new THREE.Shape()
+  // Nose runs along X from -noseLength/2 to +noseLength/2 at Y=0
+  shape.moveTo( -noseLength / 2, 0 )
+  shape.lineTo( noseLength / 2, 0 )
+  // Right facing angled inward toward pocket throat
+  shape.lineTo( noseLength / 2 + depth * rightTan, depth )
+  // Outer back face seated against the wooden rail
+  shape.lineTo( -noseLength / 2 - depth * leftTan, depth )
+  // Left facing angled inward toward pocket throat
+  shape.lineTo( -noseLength / 2, 0 )
+  shape.closePath()
+
+  const geom = new THREE.ExtrudeGeometry( shape, {
+    depth: height,
+    bevelEnabled: true,
+    bevelThickness: 0.02,
+    bevelSize: 0.02,
+    bevelSegments: 2,
   } )
 
-  const geometry = new THREE.ShapeGeometry( shape, 32 )
-  geometry.rotateX( -Math.PI / 2 )
-  return geometry
+  // Rotate so extrusion depth aligns with vertical Y axis, and depth aligns with Z
+  geom.rotateX( -Math.PI / 2 )
+  geom.computeVertexNormals()
+  return geom
 }
 
 // Keep the room floor open beneath each pocket so the deep cavity is not capped by the studio floor.
@@ -1102,22 +1177,70 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
     clearcoat: 0,
   } )
 
+  // Apron skirt box
   addRoundedBox( table, [ 10.75, 0.72, 20.55 ], [ 0, -0.42, 0 ], apronMaterial, 0.14 )
-  ;[ -10.0, 10.0 ].forEach( ( z ) =>
+
+  // 1. Head and foot rails: run between corner castings, seated flush without gaps or overshoot
+  ;[ -9.87, 9.87 ].forEach( ( z ) =>
   {
-    addRoundedBox( table, [ 7.3, 0.48, 0.54 ], [ 0, 0.22, z ], pianoBlackRailMaterial, 0.1 )
-    addRoundedBox( table, [ 0.26, 0.48, 0.54 ], [ -4.78, 0.22, z ], pianoBlackRailMaterial, 0.08 )
-    addRoundedBox( table, [ 0.26, 0.48, 0.54 ], [ 4.78, 0.22, z ], pianoBlackRailMaterial, 0.08 )
-    addRoundedBox( table, [ 7.2, 0.2, 0.38 ], [ 0, 0.48, z * 0.968 ], cushionMaterial, 0.08 )
-  } )
-  ;[ -4.96, 4.96 ].forEach( ( x ) =>
-  {
-    addRoundedBox( table, [ 0.38, 0.48, 19.45 ], [ x, 0.22, 0 ], pianoBlackRailMaterial, 0.1 )
-    addRoundedBox( table, [ 0.38, 0.2, 7.6 ], [ x * 0.923, 0.48, -4.8 ], cushionMaterial, 0.08 )
-    addRoundedBox( table, [ 0.38, 0.2, 7.6 ], [ x * 0.923, 0.48, 4.8 ], cushionMaterial, 0.08 )
+    addRoundedBox( table, [ 8.96, 0.48, 0.54 ], [ 0, 0.24, z ], pianoBlackRailMaterial, 0.08 )
   } )
 
-  // Slice 2: Recessed leather-lined pockets with a small metallic collar highlight.
+  // 2. Corner pocket castings: sit flush at the 4 table corners bridging head/foot and side rails
+  ;[ [ -4.91, -9.71 ], [ 4.91, -9.71 ], [ -4.91, 9.71 ], [ 4.91, 9.71 ] ].forEach( ( [ cx, cz ] ) =>
+  {
+    addRoundedBox( table, [ 0.86, 0.48, 0.86 ], [ cx, 0.24, cz ], pocketCollarMaterial, 0.08 )
+  } )
+
+  // 3. Side pocket hardware: bridges head-side and foot-side rails at each side pocket
+  ;[ -4.91, 4.91 ].forEach( ( x ) =>
+  {
+    addRoundedBox( table, [ 0.54, 0.48, 1.16 ], [ x, 0.24, 0 ], pocketCollarMaterial, 0.08 )
+  } )
+
+  // 4. Side rails: 4 independent rails seated flush between corner castings and side pocket hardware
+  ;[ -4.91, 4.91 ].forEach( ( x ) =>
+  {
+    ;[ -4.93, 4.93 ].forEach( ( z ) =>
+    {
+      addRoundedBox( table, [ 0.54, 0.48, 8.70 ], [ x, 0.24, z ], pianoBlackRailMaterial, 0.08 )
+    } )
+  } )
+
+  // 5. Cushions with 40-45 degree beveled facings angled inward toward pocket throats
+  const headFootCushionGeom = createAngledCushionGeometry( 7.64, 0.36, 0.20, 42, 42 )
+  const sideCushionGeom = createAngledCushionGeometry( 8.06, 0.36, 0.20, 42, 42 )
+
+  // Head rail cushion (facing inward toward table center +Z)
+  const headCushion = new THREE.Mesh( headFootCushionGeom, cushionMaterial )
+  headCushion.position.set( 0, 0.22, -9.24 )
+  headCushion.castShadow = true
+  table.add( headCushion )
+
+  // Foot rail cushion (facing inward toward table center -Z)
+  const footCushion = new THREE.Mesh( headFootCushionGeom, cushionMaterial )
+  footCushion.rotation.y = Math.PI
+  footCushion.position.set( 0, 0.22, 9.24 )
+  footCushion.castShadow = true
+  table.add( footCushion )
+
+  // Side cushions (4 segments with facings angled inward toward corner and side pockets)
+  const sideCushionConfigs = [
+    { x: 4.44, z: 4.65, rotY: -Math.PI / 2 },
+    { x: 4.44, z: -4.65, rotY: -Math.PI / 2 },
+    { x: -4.44, z: 4.65, rotY: Math.PI / 2 },
+    { x: -4.44, z: -4.65, rotY: Math.PI / 2 },
+  ]
+  sideCushionConfigs.forEach( ( cfg ) =>
+  {
+    const cushion = new THREE.Mesh( sideCushionGeom, cushionMaterial )
+    cushion.rotation.y = cfg.rotY
+    cushion.position.set( cfg.x, 0.22, cfg.z )
+    cushion.castShadow = true
+    table.add( cushion )
+  } )
+
+  // Slice 2: Recessed leather-lined pockets with dark interior cavity walls and drop cups
   const pocketLeatherTextures = createPocketLeatherTextures( maxAnisotropy )
   ownTextures( ...Object.values( pocketLeatherTextures ) )
   const pocketInteriorMaterial = new THREE.MeshPhysicalMaterial( {
@@ -1125,25 +1248,25 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
     normalMap: pocketLeatherTextures.normalMap,
     normalScale: new THREE.Vector2( 0.22, 0.22 ),
     roughnessMap: pocketLeatherTextures.roughnessMap,
-    color: '#25211c',
-    roughness: 0.68,
-    metalness: 0.0,
-    envMapIntensity: 0.35,
-    side: THREE.BackSide,
+    color: '#151412',
+    roughness: 0.82,
+    metalness: 0.05,
+    envMapIntensity: 0.25,
+    side: THREE.DoubleSide,
   } )
   const pocketBottomMaterial = new THREE.MeshPhysicalMaterial( {
     map: pocketLeatherTextures.map,
     normalMap: pocketLeatherTextures.normalMap,
     normalScale: new THREE.Vector2( 0.18, 0.18 ),
     roughnessMap: pocketLeatherTextures.roughnessMap,
-    color: '#25211c',
-    roughness: 0.72,
-    metalness: 0.0,
-    envMapIntensity: 0.28,
+    color: '#121110',
+    roughness: 0.86,
+    metalness: 0.02,
+    envMapIntensity: 0.15,
   } )
   const pocketCollarMaterial = new THREE.MeshPhysicalMaterial( {
-    color: '#524b42',
-    metalness: 0.65,
+    color: '#3e3b36',
+    metalness: 0.72,
     roughness: 0.28,
     clearcoat: 0.55,
     clearcoatRoughness: 0.14,
@@ -1153,26 +1276,37 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
 
   POCKET_POSITIONS.forEach( ( [ x, z ] ) =>
   {
-    // Deep 3D recessed cylinder pocket cavity
+    // Dark interior cavity cylinder showing realistic spatial depth
     const cylinder = new THREE.Mesh(
-      new THREE.CylinderGeometry( POCKET_RADIUS * 0.96, POCKET_RADIUS * 0.88, 8.5, 36, 6, true ),
+      new THREE.CylinderGeometry( POCKET_RADIUS * 0.96, POCKET_RADIUS * 0.88, 3.5, 36, 6, true ),
       pocketInteriorMaterial,
     )
-    cylinder.position.set( x, -4.25, z )
+    cylinder.position.set( x, -1.75, z )
     cylinder.receiveShadow = true
     table.add( cylinder )
 
+    // Drop cup bottom beneath each pocket opening
     const bottom = new THREE.Mesh(
       new THREE.CircleGeometry( POCKET_RADIUS * 0.88, 32 ).rotateX( -Math.PI / 2 ),
       pocketBottomMaterial,
     )
-    bottom.position.set( x, -8.5, z )
+    bottom.position.set( x, -3.5, z )
     bottom.receiveShadow = true
     table.add( bottom )
 
-    // Beveled collar bracket around pocket aperture
+    // Dark leather/rubber pocket liner around throat aperture
+    const liner = new THREE.Mesh(
+      new THREE.TorusGeometry( POCKET_RADIUS * 0.92, 0.075, 16, 48 ),
+      pocketInteriorMaterial,
+    )
+    liner.rotation.x = Math.PI / 2
+    liner.position.set( x, 0.015, z )
+    liner.castShadow = true
+    table.add( liner )
+
+    // Beveled metallic collar bracket around pocket aperture
     const collar = new THREE.Mesh(
-      new THREE.TorusGeometry( POCKET_RADIUS * 0.94, 0.092, 16, 48 ),
+      new THREE.TorusGeometry( POCKET_RADIUS * 0.96, 0.045, 16, 48 ),
       pocketCollarMaterial,
     )
     collar.rotation.x = Math.PI / 2
@@ -1182,7 +1316,7 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
     table.add( collar )
   } )
 
-  // Mother-of-pearl diamond sights on rails
+  // Mother-of-pearl diamond sights seated on rail top surface
   const sightMaterial = new THREE.MeshPhysicalMaterial( {
     color: '#e8d5a3',
     metalness: 0.22,
@@ -1195,19 +1329,19 @@ const buildScene = ( canvas, simulation, onTextureReady, onQualityState ) =>
   {
     const sight = new THREE.Mesh( new THREE.OctahedronGeometry( 0.075, 0 ), sightMaterial )
     sight.scale.set( 1, 0.18, 1 )
-    sight.position.set( x, 0.61, z )
+    sight.position.set( x, 0.49, z )
     sight.castShadow = true
     table.add( sight )
   }
   ;[ -7.35, -3.68, 3.68, 7.35 ].forEach( ( z ) =>
   {
-    addSight( -4.96, z )
-    addSight( 4.96, z )
+    addSight( -4.91, z )
+    addSight( 4.91, z )
   } )
   ;[ -2.65, 0, 2.65 ].forEach( ( x ) =>
   {
-    addSight( x, -10.03 )
-    addSight( x, 10.03 )
+    addSight( x, -9.87 )
+    addSight( x, 9.87 )
   } )
 
   // Dynamic Contact Shadow and AO system

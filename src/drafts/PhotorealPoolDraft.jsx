@@ -14,6 +14,7 @@ import {
   POCKET_COORDS,
   createSlateGeometry,
   createPocketAssembly,
+  createAngledCushionGeometry,
   createRailSights,
   createCueStick,
 } from "./photorealGeometry.js"
@@ -167,44 +168,65 @@ const buildPhotorealScene = ( canvas, onTextureReady, onQualityState ) =>
   // 2. Real 3D pocket cavities & castings
   createPocketAssembly( POCKET_COORDS, materials, table, disposableGeometries )
 
-  // 3. Solid hardwood rails (Head/Foot and Side Rails)
-  ;[ -9.75, 9.75 ].forEach( ( z ) =>
+  // 3. Solid hardwood rails (Head/Foot and 4 Side Rails) seated flush against pocket castings
+  ;[ -9.87, 9.87 ].forEach( ( z ) =>
   {
-    const railGeom = new RoundedBoxGeometry( 9.9, 0.48, 0.38, 3, 0.1 )
+    const railGeom = new RoundedBoxGeometry( 8.96, 0.48, 0.54, 3, 0.08 )
     disposableGeometries.add( railGeom )
     const railMesh = new THREE.Mesh( railGeom, materials.rails )
-    railMesh.position.set( 0, 0.22, z )
+    railMesh.position.set( 0, 0.24, z )
     railMesh.castShadow = true
     railMesh.receiveShadow = true
     table.add( railMesh )
-
-    const cushionGeom = new RoundedBoxGeometry( 7.2, 0.2, 0.38, 3, 0.08 )
-    disposableGeometries.add( cushionGeom )
-    const cushionMesh = new THREE.Mesh( cushionGeom, materials.cushions )
-    cushionMesh.position.set( 0, 0.48, z * 0.968 )
-    cushionMesh.castShadow = true
-    table.add( cushionMesh )
   } )
 
-  ;[ -4.96, 4.96 ].forEach( ( x ) =>
+  // 4 independent side rails seated flush between corner castings and side pocket hardware
+  ;[ -4.91, 4.91 ].forEach( ( x ) =>
   {
-    const railGeom = new RoundedBoxGeometry( 0.38, 0.48, 19.45, 3, 0.1 )
-    disposableGeometries.add( railGeom )
-    const railMesh = new THREE.Mesh( railGeom, materials.rails )
-    railMesh.position.set( x, 0.22, 0 )
-    railMesh.castShadow = true
-    railMesh.receiveShadow = true
-    table.add( railMesh )
-
-    ;[ -4.8, 4.8 ].forEach( ( z ) =>
+    ;[ -4.93, 4.93 ].forEach( ( z ) =>
     {
-      const cushionGeom = new RoundedBoxGeometry( 0.38, 0.2, 7.6, 3, 0.08 )
-      disposableGeometries.add( cushionGeom )
-      const cushionMesh = new THREE.Mesh( cushionGeom, materials.cushions )
-      cushionMesh.position.set( x * 0.923, 0.48, z )
-      cushionMesh.castShadow = true
-      table.add( cushionMesh )
+      const railGeom = new RoundedBoxGeometry( 0.54, 0.48, 8.70, 3, 0.08 )
+      disposableGeometries.add( railGeom )
+      const railMesh = new THREE.Mesh( railGeom, materials.rails )
+      railMesh.position.set( x, 0.24, z )
+      railMesh.castShadow = true
+      railMesh.receiveShadow = true
+      table.add( railMesh )
     } )
+  } )
+
+  // Rail cushions with 40-45 degree beveled facings angled inward toward pocket throats
+  const headFootCushionGeom = createAngledCushionGeometry( 7.64, 0.36, 0.20, 42, 42 )
+  disposableGeometries.add( headFootCushionGeom )
+  const sideCushionGeom = createAngledCushionGeometry( 8.06, 0.36, 0.20, 42, 42 )
+  disposableGeometries.add( sideCushionGeom )
+
+  // Head rail cushion
+  const headCushion = new THREE.Mesh( headFootCushionGeom, materials.cushions )
+  headCushion.position.set( 0, 0.22, -9.24 )
+  headCushion.castShadow = true
+  table.add( headCushion )
+
+  // Foot rail cushion
+  const footCushion = new THREE.Mesh( headFootCushionGeom, materials.cushions )
+  footCushion.rotation.y = Math.PI
+  footCushion.position.set( 0, 0.22, 9.24 )
+  footCushion.castShadow = true
+  table.add( footCushion )
+
+  // Side cushions (4 segments with facings angled inward toward corner and side pockets)
+  ;[
+    { x: 4.44, z: 4.65, rotY: -Math.PI / 2 },
+    { x: 4.44, z: -4.65, rotY: -Math.PI / 2 },
+    { x: -4.44, z: 4.65, rotY: Math.PI / 2 },
+    { x: -4.44, z: -4.65, rotY: Math.PI / 2 },
+  ].forEach( ( cfg ) =>
+  {
+    const cushion = new THREE.Mesh( sideCushionGeom, materials.cushions )
+    cushion.rotation.y = cfg.rotY
+    cushion.position.set( cfg.x, 0.22, cfg.z )
+    cushion.castShadow = true
+    table.add( cushion )
   } )
 
   // 4. Inlaid diamond sights

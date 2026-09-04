@@ -4,102 +4,181 @@ import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.j
 import { DRAFT2_SCENE_SCALE } from "./cameraFraming.js"
 
 export const TABLE_DIMS = Object.freeze( {
-  width: 9.8,
-  length: 19.6,
+  width: 9.6,
+  length: 19.2,
   height: 0.45,
   pocketRadius: 0.54,
   // Ball radius matching physical collision radius scaled to scene units (0.035m * 7.559 ~ 0.2646)
   ballRadius: 0.035 * DRAFT2_SCENE_SCALE,
-  railWidth: 0.46,
-  cushionHeight: 0.22,
+  railWidth: 0.54,
+  cushionHeight: 0.20,
 } )
 
 export const POCKET_COORDS = Object.freeze( [
-  [ -TABLE_DIMS.width / 2 + 0.16, -TABLE_DIMS.length / 2 + 0.16, "corner-tl" ],
-  [ TABLE_DIMS.width / 2 - 0.16, -TABLE_DIMS.length / 2 + 0.16, "corner-tr" ],
-  [ -TABLE_DIMS.width / 2 + 0.04, 0, "side-l" ],
-  [ TABLE_DIMS.width / 2 - 0.04, 0, "side-r" ],
-  [ -TABLE_DIMS.width / 2 + 0.16, TABLE_DIMS.length / 2 - 0.16, "corner-bl" ],
-  [ TABLE_DIMS.width / 2 - 0.16, TABLE_DIMS.length / 2 - 0.16, "corner-br" ],
+  [ -4.45, -9.25, "corner-tl" ],
+  [ 4.45, -9.25, "corner-tr" ],
+  [ -4.65, 0, "side-l" ],
+  [ 4.65, 0, "side-r" ],
+  [ -4.45, 9.25, "corner-bl" ],
+  [ 4.45, 9.25, "corner-br" ],
 ] )
 
-// Creates slate bed with 6 real 3D pocket cutouts.
+// Creates slate/cloth bed with pocket openings cut into all six pocket locations.
+// The green felt does not run flat through the pocket throat.
 export const createSlateGeometry = () =>
 {
   const shape = new THREE.Shape()
-  const hw = TABLE_DIMS.width / 2
-  const hl = TABLE_DIMS.length / 2
+  // Boundary coordinates matching cushion-felt interface in XY shape coordinates (y becomes -z in world)
+  const xHeadCorner = 4.14
+  const yHead = 9.60
+  const xRail = 4.80
+  const yCornerSide = 9.00
+  const ySidePocket = 0.32
+  const cornerArcRadius = 0.54
+  const sideArcRadius = 0.48
 
-  shape.moveTo( -hw, -hl )
-  shape.lineTo( hw, -hl )
-  shape.lineTo( hw, hl )
-  shape.lineTo( -hw, hl )
+  // 1. Head rail edge (from Top-Left to Top-Right)
+  shape.moveTo( -xHeadCorner, yHead )
+  shape.lineTo( xHeadCorner, yHead )
+
+  // 2. Top-Right corner pocket cutout
+  shape.absarc( 4.45, 9.25, cornerArcRadius, Math.PI / 2, 0, true )
+  shape.lineTo( xRail, yCornerSide )
+
+  // 3. Right head-side edge
+  shape.lineTo( xRail, ySidePocket )
+
+  // 4. Right side pocket cutout
+  shape.absarc( 4.65, 0, sideArcRadius, Math.PI / 2, -Math.PI / 2, true )
+  shape.lineTo( xRail, -ySidePocket )
+
+  // 5. Right foot-side edge
+  shape.lineTo( xRail, -yCornerSide )
+
+  // 6. Bottom-Right corner pocket cutout
+  shape.absarc( 4.45, -9.25, cornerArcRadius, 0, -Math.PI / 2, true )
+  shape.lineTo( xHeadCorner, -yHead )
+
+  // 7. Foot rail edge (from Bottom-Right to Bottom-Left)
+  shape.lineTo( -xHeadCorner, -yHead )
+
+  // 8. Bottom-Left corner pocket cutout
+  shape.absarc( -4.45, -9.25, cornerArcRadius, -Math.PI / 2, -Math.PI, true )
+  shape.lineTo( -xRail, -yCornerSide )
+
+  // 9. Left foot-side edge
+  shape.lineTo( -xRail, -ySidePocket )
+
+  // 10. Left side pocket cutout
+  shape.absarc( -4.65, 0, sideArcRadius, -Math.PI / 2, Math.PI / 2, true )
+  shape.lineTo( -xRail, ySidePocket )
+
+  // 11. Left head-side edge
+  shape.lineTo( -xRail, yCornerSide )
+
+  // 12. Top-Left corner pocket cutout
+  shape.absarc( -4.45, 9.25, cornerArcRadius, Math.PI, Math.PI / 2, true )
+  shape.lineTo( -xHeadCorner, yHead )
   shape.closePath()
 
-  POCKET_COORDS.forEach( ( [ x, z ] ) =>
-  {
-    const hole = new THREE.Path()
-    hole.absarc( x, z, TABLE_DIMS.pocketRadius, 0, Math.PI * 2, true )
-    shape.holes.push( hole )
-  } )
-
-  const geometry = new THREE.ShapeGeometry( shape, 32 )
+  const geometry = new THREE.ShapeGeometry( shape, 24 )
   geometry.rotateX( -Math.PI / 2 )
+  geometry.computeVertexNormals()
   return geometry
 }
 
-// Triangular chamfered cushion profile (K-66 nose)
-export const createCushionGeometry = ( length, width = 0.26, height = 0.18 ) =>
+// Generates billiard rail cushion geometry with 40-45 degree beveled facings at both ends.
+export const createAngledCushionGeometry = ( noseLength, depth = 0.36, height = 0.20, leftAngleDeg = 42, rightAngleDeg = 42 ) =>
 {
+  const leftTan = Math.tan( ( leftAngleDeg * Math.PI ) / 180 )
+  const rightTan = Math.tan( ( rightAngleDeg * Math.PI ) / 180 )
+
   const shape = new THREE.Shape()
-  shape.moveTo( 0, 0 )
-  shape.lineTo( width, 0 )
-  shape.lineTo( width * 0.45, height )
-  shape.lineTo( 0, height * 0.75 )
+  shape.moveTo( -noseLength / 2, 0 )
+  shape.lineTo( noseLength / 2, 0 )
+  shape.lineTo( noseLength / 2 + depth * rightTan, depth )
+  shape.lineTo( -noseLength / 2 - depth * leftTan, depth )
+  shape.lineTo( -noseLength / 2, 0 )
   shape.closePath()
 
-  const extrudeSettings = {
-    steps: 1,
-    depth: length,
+  const geom = new THREE.ExtrudeGeometry( shape, {
+    depth: height,
     bevelEnabled: true,
     bevelThickness: 0.02,
     bevelSize: 0.02,
-    bevelSegments: 3,
-  }
+    bevelSegments: 2,
+  } )
 
-  const geometry = new THREE.ExtrudeGeometry( shape, extrudeSettings )
-  return geometry
+  geom.rotateX( -Math.PI / 2 )
+  geom.computeVertexNormals()
+  return geom
 }
 
-// 3D pocket drop cavity with inner leather liner and drop cup.
+// 3D pocket drop cavity with inner leather liner, drop cup, corner castings, and side pocket hardware.
 export const createPocketAssembly = ( pocketCoords, materials, group, disposables ) =>
 {
-  pocketCoords.forEach( ( [ x, z, type ] ) =>
+  // 1. Corner pocket castings seated flush with rail ends at table corners
+  ;[ [ -4.91, -9.71 ], [ 4.91, -9.71 ], [ -4.91, 9.71 ], [ 4.91, 9.71 ] ].forEach( ( [ cx, cz ] ) =>
   {
-    // Real 3D cavity cylinder drop down into table
+    const cornerGeom = new RoundedBoxGeometry( 0.86, 0.48, 0.86, 3, 0.08 )
+    disposables.add( cornerGeom )
+    const cornerMesh = new THREE.Mesh( cornerGeom, materials.metalCastings )
+    cornerMesh.position.set( cx, 0.24, cz )
+    cornerMesh.castShadow = true
+    cornerMesh.receiveShadow = true
+    group.add( cornerMesh )
+  } )
+
+  // 2. Side pocket matching rail hardware bridging head-side and foot-side rails
+  ;[ -4.91, 4.91 ].forEach( ( sx ) =>
+  {
+    const sideGeom = new RoundedBoxGeometry( 0.54, 0.48, 1.16, 3, 0.08 )
+    disposables.add( sideGeom )
+    const sideMesh = new THREE.Mesh( sideGeom, materials.metalCastings )
+    sideMesh.position.set( sx, 0.24, 0 )
+    sideMesh.castShadow = true
+    sideMesh.receiveShadow = true
+    group.add( sideMesh )
+  } )
+
+  // 3. Drop cavity walls, cup bottoms, and dark leather liners at each pocket opening
+  pocketCoords.forEach( ( [ x, z ] ) =>
+  {
+    // Real 3D cavity cylinder drop down into table showing realistic spatial depth
     const cavityGeom = new THREE.CylinderGeometry(
-      TABLE_DIMS.pocketRadius * 0.98,
-      TABLE_DIMS.pocketRadius * 0.75,
-      0.65,
-      24,
+      TABLE_DIMS.pocketRadius * 0.96,
+      TABLE_DIMS.pocketRadius * 0.88,
+      2.4,
+      32,
       1,
       true,
     )
     const cavityMesh = new THREE.Mesh( cavityGeom, materials.pocketLiner )
-    cavityMesh.position.set( x, -0.22, z )
+    cavityMesh.position.set( x, -1.2, z )
+    cavityMesh.receiveShadow = true
     group.add( cavityMesh )
     disposables.add( cavityGeom )
 
     // Drop cup bottom
-    const bottomGeom = new THREE.CircleGeometry( TABLE_DIMS.pocketRadius * 0.75, 24 )
+    const bottomGeom = new THREE.CircleGeometry( TABLE_DIMS.pocketRadius * 0.88, 32 )
     bottomGeom.rotateX( -Math.PI / 2 )
     const bottomMesh = new THREE.Mesh( bottomGeom, materials.pocketLiner )
-    bottomMesh.position.set( x, -0.54, z )
+    bottomMesh.position.set( x, -2.4, z )
+    bottomMesh.receiveShadow = true
     group.add( bottomMesh )
     disposables.add( bottomGeom )
 
-    // Beveled metallic collar bracket around pocket aperture (flush with felt, open aperture)
-    const collarGeom = new THREE.TorusGeometry( TABLE_DIMS.pocketRadius * 0.94, 0.08, 16, 48 )
+    // Dark leather/rubber pocket liner around throat aperture
+    const linerGeom = new THREE.TorusGeometry( TABLE_DIMS.pocketRadius * 0.92, 0.075, 16, 48 )
+    linerGeom.rotateX( Math.PI / 2 )
+    const linerMesh = new THREE.Mesh( linerGeom, materials.pocketLiner )
+    linerMesh.position.set( x, 0.015, z )
+    linerMesh.castShadow = true
+    group.add( linerMesh )
+    disposables.add( linerGeom )
+
+    // Beveled metallic collar bracket around pocket aperture
+    const collarGeom = new THREE.TorusGeometry( TABLE_DIMS.pocketRadius * 0.96, 0.045, 16, 48 )
     collarGeom.rotateX( Math.PI / 2 )
     const collarMesh = new THREE.Mesh( collarGeom, materials.metalCastings )
     collarMesh.position.set( x, 0.02, z )
@@ -110,7 +189,7 @@ export const createPocketAssembly = ( pocketCoords, materials, group, disposable
   } )
 }
 
-// 18 inlaid pearloid/brass diamond rail sights.
+// 18 inlaid pearloid/brass diamond rail sights seated flush on rail top surfaces.
 export const createRailSights = ( materials, group, disposables ) =>
 {
   const sightGeom = new THREE.CylinderGeometry( 0.045, 0.045, 0.015, 12 )
@@ -118,23 +197,23 @@ export const createRailSights = ( materials, group, disposables ) =>
   disposables.add( sightGeom )
 
   // Head and foot rails (3 sights each)
-  ;[ -TABLE_DIMS.length / 2, TABLE_DIMS.length / 2 ].forEach( ( z ) =>
+  ;[ -9.87, 9.87 ].forEach( ( z ) =>
   {
-    ;[ -2.2, 0, 2.2 ].forEach( ( x ) =>
+    ;[ -2.65, 0, 2.65 ].forEach( ( x ) =>
     {
       const sight = new THREE.Mesh( sightGeom, materials.sights )
-      sight.position.set( x, 0.26, z > 0 ? z + 0.12 : z - 0.12 )
+      sight.position.set( x, 0.49, z )
       group.add( sight )
     } )
   } )
 
-  // Long side rails (6 sights on left, 6 sights on right)
-  ;[ -TABLE_DIMS.width / 2 - 0.12, TABLE_DIMS.width / 2 + 0.12 ].forEach( ( x ) =>
+  // Long side rails (2 sights per side rail segment, 4 on each side)
+  ;[ -4.91, 4.91 ].forEach( ( x ) =>
   {
-    ;[ -7.2, -4.8, -2.4, 2.4, 4.8, 7.2 ].forEach( ( z ) =>
+    ;[ -7.35, -3.68, 3.68, 7.35 ].forEach( ( z ) =>
     {
       const sight = new THREE.Mesh( sightGeom, materials.sights )
-      sight.position.set( x, 0.26, z )
+      sight.position.set( x, 0.49, z )
       group.add( sight )
     } )
   } )
