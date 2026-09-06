@@ -1,4 +1,4 @@
-// Paused GSAP master timeline choreography for Draft 5 Photoreal Break.
+// Paused GSAP master timeline choreography for Draft 4 Photoreal Break.
 import gsap from "gsap"
 import * as THREE from "three"
 import { getBreakSimulation, sampleDraft2BreakState } from "./poolBreakPhysics.js"
@@ -112,7 +112,8 @@ export const createPhotorealChoreography = ( {
     {
       const strikerX = striker.position.x * DRAFT2_SCENE_SCALE
       const strikerZ = striker.position.z * DRAFT2_SCENE_SCALE
-      strikerMesh.position.set( strikerX, BALL_RADIUS, strikerZ )
+      strikerMesh.position.set( strikerX, striker.position.y * DRAFT2_SCENE_SCALE, strikerZ )
+      strikerMesh.visible = striker.visibility
       strikerMesh.quaternion.set(
         striker.quaternion.x,
         striker.quaternion.y,
@@ -134,7 +135,8 @@ export const createPhotorealChoreography = ( {
       {
         const posX = ball.position.x * DRAFT2_SCENE_SCALE
         const posZ = ball.position.z * DRAFT2_SCENE_SCALE
-        mesh.position.set( posX, BALL_RADIUS, posZ )
+        mesh.position.set( posX, ball.position.y * DRAFT2_SCENE_SCALE, posZ )
+        mesh.visible = ball.visibility
         mesh.quaternion.set(
           ball.quaternion.x,
           ball.quaternion.y,
@@ -142,6 +144,8 @@ export const createPhotorealChoreography = ( {
           ball.quaternion.w,
         )
         shadow.position.set( posX, 0.001, posZ )
+        shadow.visible = ball.visibility && ball.pocketDepth < 0.25
+        shadow.scale.setScalar( Math.max( 0.001, 1 - ball.pocketDepth * 4 ) )
       }
     } )
 

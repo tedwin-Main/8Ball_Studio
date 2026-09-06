@@ -237,6 +237,7 @@ export const resolveIntroCameraFraming = ( {
   pointerY = 0,
   pointerEnabled = false,
   lockToPlate = false,
+  treatment = 'aligned',
 } = {} ) =>
 {
   const safeAspect = Number.isFinite( aspect ) && aspect > 0 ? aspect : 1
@@ -269,6 +270,26 @@ export const resolveIntroCameraFraming = ( {
     ),
     lerp( startTarget[ 2 ], endTarget[ 2 ], trackEase ),
   ]
+  // Explicit treatments remain in the shared progress contract. Rise finishes before
+  // impact so scatter stays readable, and reverse seeks retrace the same path.
+  if ( !lockToPlate && ( treatment === 'break' || treatment === 'photoreal' ) )
+  {
+    const rise = smoothstep( clamp( progress / ( safeTransition * 0.48 ) ) )
+    const photoreal = treatment === 'photoreal'
+    const opening = photoreal ? [ 0.48, 1.1, 6.9 ] : [ 0, 0.9, 6.5 ]
+    const overview = photoreal ? [ 3.5, 9.8, 12.8 ] : [ 0.5, 5.8, 4.8 ]
+    const openingTarget = [ 0, -0.25, -1.8 ]
+    const overviewTarget = [ 0, 0, -2.5 ]
+    for ( let axis = 0; axis < 3; axis += 1 )
+    {
+      camera[ axis ] = lerp( opening[ axis ], overview[ axis ], rise )
+      target[ axis ] = lerp( openingTarget[ axis ], overviewTarget[ axis ], rise )
+    }
+    camera[ 0 ] *= 1 - portraitMix * 0.7
+    camera[ 1 ] += portraitMix * lerp( 0.7, 4, rise )
+    camera[ 2 ] += portraitMix * lerp( 2.3, 6, rise )
+    target[ 1 ] += portraitMix * 0.8
+  }
   // Draft 1 uses a transparent WebGL layer, so camera parallax is safe while its Story track stays plate-locked.
   const hasPointer = pointerEnabled === true
   const normalizedPointerX = hasPointer && Number.isFinite( pointerX ) ? pointerX : 0

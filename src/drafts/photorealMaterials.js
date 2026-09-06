@@ -1,6 +1,7 @@
-// Production PBR materials for Draft 5 Photoreal Break.
+// Production PBR materials for Draft 4 Photoreal Break.
 import * as THREE from "three"
 import { TABLE_PALETTE } from "./tablePalette.js"
+import { createFeltTextures, createWoodTextures, createPocketLeatherTextures, createBallSurfaceTextures } from './poolSurfaceTextures.js'
 
 const createContactShadowTexture = () =>
 {
@@ -59,11 +60,10 @@ export const createNumberedBallTexture = ( number, color, anisotropy = 16 ) =>
   return texture
 }
 
-export const createPhotorealMaterials = ( disposables ) =>
-{
-  // Tournament worsted cloth with directional sheen
-  const cloth = new THREE.MeshPhysicalMaterial( {
-    color: TABLE_PALETTE.feltPbr,
+export const createPoolFeltMaterial = ( felt ) => new THREE.MeshPhysicalMaterial( {
+    ...felt,
+    normalScale: new THREE.Vector2( 0.18, 0.18 ),
+    color: TABLE_PALETTE.felt,
     roughness: 1.0,
     metalness: 0,
     sheen: 0.44,
@@ -73,19 +73,34 @@ export const createPhotorealMaterials = ( disposables ) =>
     clearcoat: 0,
   } )
 
+export const createPhotorealMaterials = ( disposables, textures, anisotropy, requestRender ) =>
+{
+  const felt = createFeltTextures( anisotropy, 72, 144 )
+  const wood = createWoodTextures( anisotropy, requestRender )
+  const leather = createPocketLeatherTextures( anisotropy )
+  const resin = createBallSurfaceTextures( anisotropy )
+  ;[ felt, wood, leather, resin ].forEach( ( maps ) => Object.values( maps ).forEach( ( texture ) => textures.add( texture ) ) )
+
+  // Tournament worsted cloth with directional sheen
+  const cloth = createPoolFeltMaterial( felt )
+
   // Hardwood rails with lacquer clearcoat
   const rails = new THREE.MeshPhysicalMaterial( {
-    color: "#29150d",
-    roughness: 0.24,
+    ...wood,
+    normalScale: new THREE.Vector2( 0.16, 0.16 ),
+    color: TABLE_PALETTE.rail,
+    roughness: 0.65,
     metalness: 0,
-    clearcoat: 0.86,
-    clearcoatRoughness: 0.12,
+    clearcoat: 0.42,
+    clearcoatRoughness: 0.24,
     envMapIntensity: 0.75,
   } )
 
   // Cushions matching cloth profile
   const cushions = new THREE.MeshPhysicalMaterial( {
-    color: TABLE_PALETTE.feltPbr,
+    ...felt,
+    normalScale: new THREE.Vector2( 0.18, 0.18 ),
+    color: TABLE_PALETTE.felt,
     roughness: 1.0,
     metalness: 0,
     sheen: 0.24,
@@ -95,7 +110,9 @@ export const createPhotorealMaterials = ( disposables ) =>
 
   // Leather pocket drop liner
   const pocketLiner = new THREE.MeshStandardMaterial( {
-    color: "#12110f",
+    ...leather,
+    normalScale: new THREE.Vector2( 0.3, 0.3 ),
+    color: TABLE_PALETTE.pocketInterior,
     roughness: 0.88,
     metalness: 0.05,
     side: THREE.DoubleSide,
@@ -111,7 +128,9 @@ export const createPhotorealMaterials = ( disposables ) =>
 
   // Table apron skirt
   const apron = new THREE.MeshStandardMaterial( {
-    color: "#190e09",
+    ...wood,
+    normalScale: new THREE.Vector2( 0.12, 0.12 ),
+    color: TABLE_PALETTE.apron,
     roughness: 0.46,
     metalness: 0.08,
   } )
@@ -125,13 +144,15 @@ export const createPhotorealMaterials = ( disposables ) =>
 
   // Cue stick materials
   const cueWood = new THREE.MeshPhysicalMaterial( {
-    color: "#d6b588",
+    ...wood,
+    color: "#ecd4b6",
     roughness: 0.32,
     clearcoat: 0.5,
     clearcoatRoughness: 0.18,
   } )
 
   const cueWrap = new THREE.MeshStandardMaterial( {
+    ...leather,
     color: "#252525",
     roughness: 0.82,
   } )
@@ -148,7 +169,7 @@ export const createPhotorealMaterials = ( disposables ) =>
 
   // Contact shadow material
   const shadowTexture = createContactShadowTexture()
-  disposables.add( shadowTexture )
+  textures.add( shadowTexture )
   const contactShadow = new THREE.MeshBasicMaterial( {
     map: shadowTexture,
     transparent: true,
@@ -173,21 +194,24 @@ export const createPhotorealMaterials = ( disposables ) =>
   }
 
   Object.values( materials ).forEach( ( mat ) => disposables.add( mat ) )
-  return materials
+  return { ...materials, resin }
 }
 
-export const createPhenolicBallMaterial = ( color, texture = null, disposables = null ) =>
+export const createPhenolicBallMaterial = ( color, texture = null, disposables = null, surfaceTextures = null ) =>
 {
   const mat = new THREE.MeshPhysicalMaterial( {
     color: texture ? "#ffffff" : color,
     map: texture,
-    roughness: 0.042,
+    roughness: 0.19,
+    roughnessMap: surfaceTextures?.roughnessMap,
+    clearcoatNormalMap: surfaceTextures?.normalMap,
+    clearcoatNormalScale: new THREE.Vector2( 0.04, 0.04 ),
     metalness: 0,
-    clearcoat: 1.0,
-    clearcoatRoughness: 0.032,
+    clearcoat: 0.72,
+    clearcoatRoughness: 0.16,
     ior: 1.54,
-    reflectivity: 0.88,
-    envMapIntensity: 0.96,
+    reflectivity: 0.52,
+    envMapIntensity: 0.65,
   } )
   if ( disposables ) disposables.add( mat )
   return mat

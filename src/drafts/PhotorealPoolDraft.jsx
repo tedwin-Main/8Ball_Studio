@@ -1,18 +1,16 @@
-// Draft 5 — Photoreal Break Intro Draft.
+// Draft 4 — Photoreal Break Intro Draft.
 // Built from scratch with regulation 3D table geometry, PBR materials, and paused GSAP choreography.
 import { useLayoutEffect, useRef } from "react"
 import * as THREE from "three"
 import { DecalGeometry } from "three/addons/geometries/DecalGeometry.js"
-import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js"
-import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js"
-import { OutputPass } from "three/addons/postprocessing/OutputPass.js"
-import { RenderPass } from "three/addons/postprocessing/RenderPass.js"
 import { RectAreaLightUniformsLib } from "three/addons/lights/RectAreaLightUniformsLib.js"
 import brandLogo from "../assets/8BALL-V4.jpg"
 import {
   TABLE_DIMS,
   POCKET_COORDS,
   createSlateGeometry,
+  createApronGeometry,
+  createRailAssembly,
   createPocketAssembly,
   createAngledCushionGeometry,
   createRailSights,
@@ -33,6 +31,9 @@ import { TABLE_PALETTE } from "./tablePalette.js"
 import { STORY_TIMING } from "../storyTiming.js"
 import { createDemandFrameScheduler } from "./demandFrameScheduler.js"
 
+import { createStudioEnvironment } from './poolSurfaceTextures.js'
+import { POOL_QUALITY_TIERS, getPoolQualitySignals, selectPoolQualityTier, createQualityMonitor } from './renderQuality.js'
+
 RectAreaLightUniformsLib.init()
 
 const BALL_COLORS = Object.freeze( [
@@ -40,27 +41,6 @@ const BALL_COLORS = Object.freeze( [
   "#0b0b0d",
   "#f5c518", "#0047bb", "#e53935", "#5b2c86", "#f26522", "#1b5e20", "#7b1113",
 ] )
-
-const DRAFT5_QUALITY_TIERS = Object.freeze( {
-  high: Object.freeze( {
-    id: "high",
-    pixelRatioCap: 1.5,
-    shadowMapSize: 2048,
-    renderBudgetMs: 20,
-  } ),
-  standard: Object.freeze( {
-    id: "standard",
-    pixelRatioCap: 1.25,
-    shadowMapSize: 1024,
-    renderBudgetMs: 24,
-  } ),
-  low: Object.freeze( {
-    id: "low",
-    pixelRatioCap: 1.0,
-    shadowMapSize: 512,
-    renderBudgetMs: 32,
-  } ),
-} )
 
 const createLogoTexture = ( anisotropy, requestRender ) =>
 {
@@ -73,8 +53,11 @@ const createLogoTexture = ( anisotropy, requestRender ) =>
   texture.colorSpace = THREE.SRGBColorSpace
   texture.anisotropy = anisotropy
 
+  let disposed = false
+  texture.addEventListener( "dispose", () => { disposed = true; image.onload = null } )
   const paint = () =>
   {
+    if ( disposed || !image.naturalWidth ) return
     context.clearRect( 0, 0, canvas.width, canvas.height )
     context.save()
     context.beginPath()
@@ -86,44 +69,10 @@ const createLogoTexture = ( anisotropy, requestRender ) =>
     requestRender?.()
   }
 
-  image.addEventListener( "load", paint, { once: true } )
+  image.onload = paint
   image.src = brandLogo
   if ( image.complete ) paint()
   return texture
-}
-
-const createStudioEnvironment = ( renderer ) =>
-{
-  const envScene = new THREE.Scene()
-  envScene.background = new THREE.Color( "#030403" )
-  const resources = []
-
-  const addCard = ( geometry, color, intensity, position, target = [ 0, 0, 0 ] ) =>
-  {
-    const material = new THREE.MeshBasicMaterial( {
-      color,
-      side: THREE.DoubleSide,
-      toneMapped: false,
-    } )
-    material.color.multiplyScalar( intensity )
-    const card = new THREE.Mesh( geometry, material )
-    card.position.set( ...position )
-    card.lookAt( ...target )
-    envScene.add( card )
-    resources.push( geometry, material )
-  }
-
-  addCard( new THREE.PlaneGeometry( 18, 28 ), "#fff8e6", 3.0, [ 0, 14, 0 ], [ 0, 0, 0 ] )
-  addCard( new THREE.PlaneGeometry( 12, 22 ), "#ffcaa0", 1.4, [ -15, 9, 3 ], [ 0, 0, 0 ] )
-  addCard( new THREE.PlaneGeometry( 12, 22 ), "#c4e6d4", 0.9, [ 15, 9, -3 ], [ 0, 0, 0 ] )
-  addCard( new THREE.PlaneGeometry( 22, 32 ), TABLE_PALETTE.feltBounce, 0.4, [ 0, -6, 0 ], [ 0, 0, 0 ] )
-
-  const pmremGenerator = new THREE.PMREMGenerator( renderer )
-  pmremGenerator.compileEquirectangularShader()
-  const renderTarget = pmremGenerator.fromScene( envScene, 0.04 )
-  pmremGenerator.dispose()
-  resources.forEach( ( res ) => res.dispose?.() )
-  return renderTarget
 }
 
 const buildPhotorealScene = ( canvas, onTextureReady, onQualityState ) =>
@@ -145,7 +94,7 @@ const buildPhotorealScene = ( canvas, onTextureReady, onQualityState ) =>
   renderer.toneMappingExposure = 0.92
   renderer.shadowMap.enabled = true
   // Soft percentage-closer filtering eliminates harsh pixelated shadow edges.
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap
+  renderer.shadowMap.type = THREE.PCFShadowMap
 
   const scene = new THREE.Scene()
   const camera = new THREE.PerspectiveCamera( 42, 1, 0.1, 80 )
@@ -154,7 +103,8 @@ const buildPhotorealScene = ( canvas, onTextureReady, onQualityState ) =>
   scene.environment = envTarget.texture
   scene.environmentIntensity = 0.45
 
-  const materials = createPhotorealMaterials( disposableMaterials )
+  const anisotropy = Math.min( 8, renderer.capabilities.getMaxAnisotropy() )
+  const materials = createPhotorealMaterials( disposableMaterials, disposableTextures, anisotropy, onTextureReady )
 
   const table = new THREE.Group()
   scene.add( table )
@@ -169,32 +119,7 @@ const buildPhotorealScene = ( canvas, onTextureReady, onQualityState ) =>
   // 2. Real 3D pocket cavities & castings
   createPocketAssembly( POCKET_COORDS, materials, table, disposableGeometries )
 
-  // 3. Solid hardwood rails (Head/Foot and 4 Side Rails) seated flush against pocket castings
-  ;[ -9.87, 9.87 ].forEach( ( z ) =>
-  {
-    const railGeom = new RoundedBoxGeometry( 8.96, 0.48, 0.54, 3, 0.08 )
-    disposableGeometries.add( railGeom )
-    const railMesh = new THREE.Mesh( railGeom, materials.rails )
-    railMesh.position.set( 0, 0.24, z )
-    railMesh.castShadow = true
-    railMesh.receiveShadow = true
-    table.add( railMesh )
-  } )
-
-  // 4 independent side rails seated flush between corner castings and side pocket hardware
-  ;[ -4.91, 4.91 ].forEach( ( x ) =>
-  {
-    ;[ -4.93, 4.93 ].forEach( ( z ) =>
-    {
-      const railGeom = new RoundedBoxGeometry( 0.54, 0.48, 8.70, 3, 0.08 )
-      disposableGeometries.add( railGeom )
-      const railMesh = new THREE.Mesh( railGeom, materials.rails )
-      railMesh.position.set( x, 0.24, z )
-      railMesh.castShadow = true
-      railMesh.receiveShadow = true
-      table.add( railMesh )
-    } )
-  } )
+  createRailAssembly( materials.rails, table, disposableGeometries, materials.metalCastings )
 
   // Rail cushions with 40-45 degree beveled facings angled inward toward pocket throats
   const headFootCushionGeom = createAngledCushionGeometry( 7.64, 0.36, 0.20, 42, 42 )
@@ -235,7 +160,7 @@ const buildPhotorealScene = ( canvas, onTextureReady, onQualityState ) =>
 
   // 5. Apron skirt box
   // Positioned so top of apron skirt (-0.06) sits below felt (0.00) to eliminate co-planar Z-fighting.
-  const apronGeom = new RoundedBoxGeometry( TABLE_DIMS.width + 0.5, 0.72, TABLE_DIMS.length + 0.5, 3, 0.12 )
+  const apronGeom = createApronGeometry()
   disposableGeometries.add( apronGeom )
   const apronMesh = new THREE.Mesh( apronGeom, materials.apron )
   apronMesh.position.set( 0, -0.42, 0 )
@@ -258,13 +183,13 @@ const buildPhotorealScene = ( canvas, onTextureReady, onQualityState ) =>
   const ballMeshes = []
 
   // Striker (8-Ball)
-  const strikerMaterial = createPhenolicBallMaterial( "#060706", null, disposableMaterials )
+  const strikerMaterial = createPhenolicBallMaterial( "#060706", null, disposableMaterials, materials.resin )
   const strikerMesh = new THREE.Mesh( ballGeometry, strikerMaterial )
   strikerMesh.castShadow = true
   strikerMesh.receiveShadow = true
   table.add( strikerMesh )
 
-  const logoTexture = createLogoTexture( 16, onTextureReady )
+  const logoTexture = createLogoTexture( anisotropy, onTextureReady )
   disposableTextures.add( logoTexture )
   const decalMaterial = new THREE.MeshPhysicalMaterial( {
     map: logoTexture,
@@ -307,9 +232,9 @@ const buildPhotorealScene = ( canvas, onTextureReady, onQualityState ) =>
   // Object balls (1 to 15)
   for ( let number = 1; number <= 15; number += 1 )
   {
-    const texture = createNumberedBallTexture( number, BALL_COLORS[ number - 1 ], 16 )
+    const texture = createNumberedBallTexture( number, BALL_COLORS[ number - 1 ], anisotropy )
     disposableTextures.add( texture )
-    const ballMat = createPhenolicBallMaterial( BALL_COLORS[ number - 1 ], texture, disposableMaterials )
+    const ballMat = createPhenolicBallMaterial( BALL_COLORS[ number - 1 ], texture, disposableMaterials, materials.resin )
     const mesh = new THREE.Mesh( ballGeometry, ballMat )
     mesh.castShadow = true
     mesh.receiveShadow = true
@@ -327,9 +252,9 @@ const buildPhotorealScene = ( canvas, onTextureReady, onQualityState ) =>
   table.add( cueStick )
 
   // 9. Three-point studio lighting rig
-  const overheadRectLight = new THREE.RectAreaLight( 0xffffff, 1.85, 9.2, 16.2 )
-  overheadRectLight.position.set( 0, 7.0, 0 )
-  overheadRectLight.rotation.x = -Math.PI / 2
+  const overheadRectLight = new THREE.RectAreaLight( 0xfff4e5, 2.1, 2.8, 12.0 )
+  overheadRectLight.position.set( -2.8, 6, 1.5 )
+  overheadRectLight.lookAt( 0, 0, -1 )
   scene.add( overheadRectLight )
 
   const keyLight = new THREE.DirectionalLight( "#ffe8c2", 1.25 )
@@ -383,39 +308,43 @@ const buildPhotorealScene = ( canvas, onTextureReady, onQualityState ) =>
     keyLight,
   } )
 
-  // 11. Composer
-  const composer = new EffectComposer( renderer )
-  composer.addPass( new RenderPass( scene, camera ) )
-  composer.addPass( new OutputPass() )
-
-  let activeTier = DRAFT5_QUALITY_TIERS.high
-
-  const updateQuality = ( width, height ) =>
+  let width = canvas.clientWidth || window.innerWidth
+  let height = canvas.clientHeight || window.innerHeight
+  const signals = getPoolQualitySignals( width, height )
+  let activeTier = POOL_QUALITY_TIERS[ selectPoolQualityTier( signals ) ]
+  const applySize = () =>
   {
-    const dpr = Math.min( window.devicePixelRatio || 1, activeTier.pixelRatioCap )
-    renderer.setPixelRatio( dpr )
+    renderer.setPixelRatio( Math.min( window.devicePixelRatio || 1, activeTier.pixelRatioCap ) )
     renderer.setSize( width, height, false )
-    composer.setSize( width, height )
     camera.aspect = width / height
     camera.updateProjectionMatrix()
-    onQualityState?.( {
-      id: activeTier.id,
-      pixelRatioCap: activeTier.pixelRatioCap,
-      shadowMapSize: activeTier.shadowMapSize,
-      ssao: false,
-    } )
   }
-
-  const render = () =>
+  const applyTier = ( id ) =>
   {
-    composer.render()
+    activeTier = POOL_QUALITY_TIERS[ id ]
+    keyLight.shadow.map?.dispose()
+    keyLight.shadow.map = null
+    keyLight.shadow.mapSize.set( activeTier.shadowMapSize, activeTier.shadowMapSize )
+    keyLight.shadow.needsUpdate = true
+    applySize()
+    onQualityState?.( { ...activeTier, ssao: false } )
+    onTextureReady()
   }
+  const qualityMonitor = createQualityMonitor( activeTier.id, signals, applyTier )
+  applyTier( activeTier.id )
+  const updateQuality = ( nextWidth, nextHeight ) =>
+  {
+    width = nextWidth
+    height = nextHeight
+    qualityMonitor.suggestFromSignals( getPoolQualitySignals( width, height ) )
+    applySize()
+  }
+  const render = () => renderer.render( scene, camera )
 
   const dispose = () =>
   {
     choreography.dispose()
     envTarget.dispose()
-    composer.dispose()
     renderer.dispose()
     disposableGeometries.forEach( ( g ) => g.dispose?.() )
     disposableMaterials.forEach( ( m ) => m.dispose?.() )
@@ -426,6 +355,7 @@ const buildPhotorealScene = ( canvas, onTextureReady, onQualityState ) =>
     camera,
     renderer,
     choreography,
+    qualityMonitor,
     updateQuality,
     render,
     dispose,
@@ -457,6 +387,8 @@ export default function PhotorealPoolDraft ( {
     let isActive = active
     let renderContinuation = false
     let resizePending = false
+    let lastRenderedProgress = null
+    let stableProgressFrames = 0
 
     // Demand-driven frame scheduler coordinates repaints with window animation frames.
     const scheduler = createDemandFrameScheduler( {
@@ -467,7 +399,7 @@ export default function PhotorealPoolDraft ( {
       shouldContinue: () => renderContinuation,
     } )
 
-    const requestRender = () => scheduler.invalidate()
+    const requestRender = () => { if ( !destroyed ) scheduler.invalidate() }
 
     // Pointer parallax responds to fine mouse input while staying neutral on mobile.
     const pointer = createPointerParallax( {
@@ -501,7 +433,11 @@ export default function PhotorealPoolDraft ( {
 
     const renderScene = () =>
     {
-      if ( failed || !world ) return
+      renderContinuation = false
+      if ( destroyed || !isActive || failed || !world ) return
+      const renderStartedAt = performance.now()
+      stableProgressFrames = lastRenderedProgress === currentProgress ? stableProgressFrames + 1 : 0
+      lastRenderedProgress = currentProgress
 
       const width = root.clientWidth || window.innerWidth
       const height = root.clientHeight || window.innerHeight
@@ -515,6 +451,7 @@ export default function PhotorealPoolDraft ( {
       // Shared camera framing with pointer parallax and transition progress.
       const framing = resolveIntroCameraFraming( {
         progress: currentProgress,
+        treatment: "photoreal",
         transitionReadyProgress: STORY_TIMING.intro.draft2.transitionReady,
         aspect: world.camera.aspect,
         sourceScale: 1,
@@ -548,7 +485,8 @@ export default function PhotorealPoolDraft ( {
       root.dataset.webglPrograms = String( world.renderer.info.programs?.length ?? 0 )
 
       const pointerSettled = pointer.advance()
-      renderContinuation = !pointerSettled || resizePending
+      const qualityChanged = world.qualityMonitor.observe( performance.now() - renderStartedAt, stableProgressFrames >= 4 && pointerSettled && !resizePending )
+      renderContinuation = !pointerSettled || resizePending || qualityChanged || world.qualityMonitor.pending
     }
 
     const controller = {

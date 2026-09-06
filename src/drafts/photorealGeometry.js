@@ -1,4 +1,4 @@
-// Dedicated regulation pool table geometry and cue stick for Draft 5 Photoreal Break.
+// Dedicated regulation pool table geometry and cue stick for Draft 4 Photoreal Break.
 import * as THREE from "three"
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js"
 import { DRAFT2_SCENE_SCALE } from "./cameraFraming.js"
@@ -28,54 +28,40 @@ export const POCKET_COORDS = Object.freeze( [
 export const createSlateGeometry = () =>
 {
   const shape = new THREE.Shape()
-  // Boundary coordinates matching cushion-felt interface in XY shape coordinates (y becomes -z in world)
-  const xHead = 4.144
-  const yHead = 9.60
-  const xRail = 4.80
-  const yCorner = 9.004
-  const ySide = 0.296
-
-  // 1. Head rail edge (from Top-Left to Top-Right)
-  shape.moveTo( -xHead, yHead )
-  shape.lineTo( xHead, yHead )
-
-  // 2. Top-Right corner pocket throat cutout (inward curve around pocket opening at 4.45, 9.25)
-  shape.quadraticCurveTo( 3.80, 8.60, xRail, yCorner )
-
-  // 3. Right head-side edge
-  shape.lineTo( xRail, ySide )
-
-  // 4. Right side pocket throat cutout (inward curve around pocket opening at 4.65, 0)
-  shape.quadraticCurveTo( 4.10, 0, xRail, -ySide )
-
-  // 5. Right foot-side edge
-  shape.lineTo( xRail, -yCorner )
-
-  // 6. Bottom-Right corner pocket throat cutout (inward curve around pocket opening at 4.45, -9.25)
-  shape.quadraticCurveTo( 3.80, -8.60, xHead, -yHead )
-
-  // 7. Foot rail edge (from Bottom-Right to Bottom-Left)
-  shape.lineTo( -xHead, -yHead )
-
-  // 8. Bottom-Left corner pocket throat cutout (inward curve around pocket opening at -4.45, -9.25)
-  shape.quadraticCurveTo( -3.80, -8.60, -xRail, -yCorner )
-
-  // 9. Left foot-side edge
-  shape.lineTo( -xRail, -ySide )
-
-  // 10. Left side pocket throat cutout (inward curve around pocket opening at -4.65, 0)
-  shape.quadraticCurveTo( -4.10, 0, -xRail, ySide )
-
-  // 11. Left head-side edge
-  shape.lineTo( -xRail, yCorner )
-
-  // 12. Top-Left corner pocket throat cutout (inward curve around pocket opening at -4.45, 9.25)
-  shape.quadraticCurveTo( -3.80, 8.60, -xHead, yHead )
+  const radius = 0.55
+  const cornerAngle = Math.asin( 0.35 / radius )
+  const sideAngle = Math.acos( 0.15 / radius )
+  const cornerInset = Math.sqrt( radius * radius - 0.35 * 0.35 )
+  const sideInset = Math.sqrt( radius * radius - 0.15 * 0.15 )
+  const arc = ( x, y, start, end ) =>
+  {
+    for ( let i = 0; i <= 32; i += 1 )
+    {
+      const angle = start + ( end - start ) * i / 32
+      shape.lineTo( x + Math.cos( angle ) * radius, y + Math.sin( angle ) * radius )
+    }
+  }
+  shape.moveTo( -4.45 + cornerInset, 9.6 )
+  shape.lineTo( 4.45 - cornerInset, 9.6 )
+  arc( 4.45, 9.25, Math.PI - cornerAngle, Math.PI * 1.5 + cornerAngle )
+  shape.lineTo( 4.8, sideInset )
+  arc( 4.65, 0, sideAngle, Math.PI * 2 - sideAngle )
+  shape.lineTo( 4.8, -9.25 + cornerInset )
+  arc( 4.45, -9.25, Math.PI / 2 - cornerAngle, Math.PI + cornerAngle )
+  shape.lineTo( -4.45 + cornerInset, -9.6 )
+  arc( -4.45, -9.25, -cornerAngle, Math.PI / 2 + cornerAngle )
+  shape.lineTo( -4.8, -sideInset )
+  arc( -4.65, 0, Math.PI + sideAngle, Math.PI * 3 - sideAngle )
+  shape.lineTo( -4.8, 9.25 - cornerInset )
+  arc( -4.45, 9.25, Math.PI * 1.5 - cornerAngle, Math.PI * 2 + cornerAngle )
   shape.closePath()
 
   // Triangulate 2D bed polygon and rotate to horizontal XZ plane
   const geometry = new THREE.ShapeGeometry( shape, 24 )
   geometry.rotateX( -Math.PI / 2 )
+  const uv = geometry.attributes.uv
+  const position = geometry.attributes.position
+  for ( let i = 0; i < uv.count; i += 1 ) uv.setXY( i, position.getX( i ) / TABLE_DIMS.width + 0.5, -position.getZ( i ) / TABLE_DIMS.length + 0.5 )
   geometry.computeVertexNormals()
   return geometry
 }
@@ -110,30 +96,6 @@ export const createAngledCushionGeometry = ( noseLength, depth = 0.36, height = 
 // 3D pocket drop cavity with inner leather liner, drop cup, corner castings, and side pocket hardware.
 export const createPocketAssembly = ( pocketCoords, materials, group, disposables ) =>
 {
-  // 1. Corner pocket castings seated flush with rail ends at table corners
-  ;[ [ -4.91, -9.71 ], [ 4.91, -9.71 ], [ -4.91, 9.71 ], [ 4.91, 9.71 ] ].forEach( ( [ cx, cz ] ) =>
-  {
-    const cornerGeom = new RoundedBoxGeometry( 0.86, 0.48, 0.86, 3, 0.08 )
-    disposables.add( cornerGeom )
-    const cornerMesh = new THREE.Mesh( cornerGeom, materials.metalCastings )
-    cornerMesh.position.set( cx, 0.24, cz )
-    cornerMesh.castShadow = true
-    cornerMesh.receiveShadow = true
-    group.add( cornerMesh )
-  } )
-
-  // 2. Side pocket matching rail hardware bridging head-side and foot-side rails
-  ;[ -4.91, 4.91 ].forEach( ( sx ) =>
-  {
-    const sideGeom = new RoundedBoxGeometry( 0.54, 0.48, 1.16, 3, 0.08 )
-    disposables.add( sideGeom )
-    const sideMesh = new THREE.Mesh( sideGeom, materials.metalCastings )
-    sideMesh.position.set( sx, 0.24, 0 )
-    sideMesh.castShadow = true
-    sideMesh.receiveShadow = true
-    group.add( sideMesh )
-  } )
-
   // 3. Drop cavity walls, cup bottoms, and dark leather liners at each pocket opening
   pocketCoords.forEach( ( [ x, z ] ) =>
   {
@@ -186,7 +148,6 @@ export const createPocketAssembly = ( pocketCoords, materials, group, disposable
 export const createRailSights = ( materials, group, disposables ) =>
 {
   const sightGeom = new THREE.CylinderGeometry( 0.045, 0.045, 0.015, 12 )
-  sightGeom.rotateX( -Math.PI / 2 )
   disposables.add( sightGeom )
 
   // Head and foot rails (3 sights each)
@@ -254,4 +215,94 @@ export const createCueStick = ( materials, disposables ) =>
   disposables.add( tipGeom )
 
   return cueGroup
+}
+
+// A recessed apron follows the bed notches; six circular throats continue through it.
+export const createApronGeometry = () =>
+{
+  const shape = new THREE.Shape()
+  shape.moveTo( -5.35, -10.25 )
+  shape.lineTo( 5.35, -10.25 )
+  shape.lineTo( 5.35, 10.25 )
+  shape.lineTo( -5.35, 10.25 )
+  shape.closePath()
+  POCKET_COORDS.forEach( ( [ x, z ] ) =>
+  {
+    const hole = new THREE.Path()
+    hole.absarc( x, -z, TABLE_DIMS.pocketRadius * 1.08, 0, Math.PI * 2, true )
+    shape.holes.push( hole )
+  } )
+  const geometry = new THREE.ExtrudeGeometry( shape, { depth: 0.72, bevelEnabled: false, curveSegments: 24 } )
+  geometry.rotateX( -Math.PI / 2 )
+  geometry.translate( 0, -0.36, 0 )
+  return geometry
+}
+
+// Project the top grain along each rail's long axis, without allocating more maps.
+export const orientRailGrain = ( geometry ) =>
+{
+  geometry.computeBoundingBox()
+  const size = geometry.boundingBox.getSize( new THREE.Vector3() )
+  const position = geometry.attributes.position
+  const uv = geometry.attributes.uv
+  const alongX = size.x > size.z
+  for ( let i = 0; i < uv.count; i += 1 )
+  {
+    const along = alongX ? position.getX( i ) : position.getZ( i )
+    const across = alongX ? position.getZ( i ) : position.getX( i )
+    uv.setXY( i, across / 0.6 + 0.5, along / 5 + 0.5 )
+  }
+  return geometry
+}
+
+const createCornerCastingGeometry = ( x, z ) =>
+{
+  const innerRadius = TABLE_DIMS.pocketRadius * 1.15
+  const outerRadius = TABLE_DIMS.pocketRadius * 1.45
+  const shape = new THREE.Shape()
+  shape.absarc( 0, 0, outerRadius, 0, Math.PI * 2, false )
+  const hole = new THREE.Path()
+  hole.absarc( 0, 0, innerRadius, 0, Math.PI * 2, true )
+  shape.holes.push( hole )
+
+  const geometry = new THREE.ExtrudeGeometry( shape, {
+    depth: 0.48,
+    bevelEnabled: true,
+    bevelThickness: 0.025,
+    bevelSize: 0.035,
+    bevelSegments: 2,
+    curveSegments: 32,
+  } )
+  geometry.rotateX( -Math.PI / 2 )
+  geometry.translate( x, 0, z )
+  return geometry
+}
+
+// Six bevelled rail bodies plus four corner castings close the rail returns without covering the open throats.
+export const createRailAssembly = ( material, group, disposables = new Set(), castingMaterial = material ) =>
+{
+  const segments = [
+    ...[ -9.87, 9.87 ].map( z => ( { size: [ 7.64, 0.48, 0.54 ], position: [ 0, 0.24, z ] } ) ),
+    ...[ -4.91, 4.91 ].flatMap( x => [ -4.93, 4.93 ].map( z => ( { size: [ 0.54, 0.48, 8.06 ], position: [ x, 0.24, z ] } ) ) ),
+  ]
+  segments.forEach( ( { size, position } ) =>
+  {
+    const geometry = orientRailGrain( new RoundedBoxGeometry( ...size, 3, 0.08 ) )
+    disposables.add( geometry )
+    const rail = new THREE.Mesh( geometry, material )
+    rail.position.set( ...position )
+    rail.castShadow = rail.receiveShadow = true
+    group.add( rail )
+  } )
+
+  POCKET_COORDS.filter( ( [ , , name ] ) => name.startsWith( "corner-" ) ).forEach( ( [ x, z, name ] ) =>
+  {
+    const geometry = createCornerCastingGeometry( x, z )
+    disposables.add( geometry )
+    const casting = new THREE.Mesh( geometry, castingMaterial )
+    casting.name = `corner-casting-${name}`
+    casting.castShadow = true
+    casting.receiveShadow = true
+    group.add( casting )
+  } )
 }

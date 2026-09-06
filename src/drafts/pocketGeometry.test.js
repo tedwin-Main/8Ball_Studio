@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import * as THREE from 'three'
 import {
   createSlateGeometry,
+  createRailAssembly,
   createAngledCushionGeometry,
   POCKET_COORDS,
   TABLE_DIMS,
@@ -51,36 +52,55 @@ test( 'cushion geometry bevels facings inward toward pocket throats at 40-45 deg
   assert.ok( bbox.min.x <= -expectedBackHalfLength + 0.05 )
 } )
 
-test( 'rails, corner castings, and side hardware seat flush with zero seam gap or overshoot', () =>
+test( 'actual rail bodies leave six pocket cavities unobstructed', () =>
 {
-  // Rail dimensions
-  const headRailMinX = -4.48
-  const headRailMaxX = 4.48
-  const headRailMinZ = -10.14
-  const headRailMaxZ = -9.60
+  const group = new THREE.Group()
+  const material = new THREE.MeshBasicMaterial( { side: THREE.DoubleSide } )
+  const geometries = new Set()
+  createRailAssembly( material, group, geometries )
+  group.updateMatrixWorld( true )
+  assert.equal( group.children.length, 10 )
+  for ( const [ x, z ] of POCKET_COORDS )
+  {
+    for ( let i = 0; i < 16; i += 1 )
+    {
+      const angle = i * Math.PI / 8
+      const ray = new THREE.Raycaster( new THREE.Vector3( x + Math.cos( angle ) * 0.39, 2, z + Math.sin( angle ) * 0.39 ), new THREE.Vector3( 0, -1, 0 ) )
+      assert.equal( ray.intersectObject( group, true ).length, 0 )
+    }
+  }
+  geometries.forEach( geometry => geometry.dispose() )
+  material.dispose()
+} )
 
-  const cornerTRMinX = 4.48
-  const cornerTRMaxX = 5.34
-  const cornerTRMinZ = -10.14
-  const cornerTRMaxZ = -9.28
+test( 'corner castings close rail junction gaps while keeping the pocket throats open', () =>
+{
+  const group = new THREE.Group()
+  const material = new THREE.MeshBasicMaterial( { side: THREE.DoubleSide } )
+  const geometries = new Set()
+  createRailAssembly( material, group, geometries )
+  group.updateMatrixWorld( true )
 
-  const sideRailMinZ = -9.28
-  const sideRailMaxZ = -0.58
+  assert.deepEqual(
+    group.children.slice( 6 ).map( ( child ) => child.name ),
+    [
+      'corner-casting-corner-tl',
+      'corner-casting-corner-tr',
+      'corner-casting-corner-bl',
+      'corner-casting-corner-br',
+    ],
+  )
 
-  const sideHardwareMinZ = -0.58
-  const sideHardwareMaxZ = 0.58
+  POCKET_COORDS.filter( ( [ , , name ] ) => name.startsWith( 'corner-' ) ).forEach( ( [ x, z, name ] ) =>
+  {
+    const seamPoint = new THREE.Vector3( x + Math.sign( x ) * -0.55, 2, z + Math.sign( z ) * 0.30 )
+    const seamRay = new THREE.Raycaster( seamPoint, new THREE.Vector3( 0, -1, 0 ) )
+    assert.ok( seamRay.intersectObject( group, true ).length > 0, `rail junction ${name} must be covered` )
 
-  const sideRailLowerMinZ = 0.58
-  const sideRailLowerMaxZ = 9.28
+    const throatRay = new THREE.Raycaster( new THREE.Vector3( x, 2, z ), new THREE.Vector3( 0, -1, 0 ) )
+    assert.equal( throatRay.intersectObject( group, true ).length, 0, `pocket ${name} throat must remain open` )
+  } )
 
-  const cornerBRMinZ = 9.28
-  const cornerBRMaxZ = 10.14
-
-  // Seams must be exactly flush (0.00 difference)
-  assert.equal( headRailMaxX, cornerTRMinX, 'Head rail right end flushes against corner casting' )
-  assert.equal( headRailMinZ, cornerTRMinZ, 'Head rail outer edge flushes against corner casting outer edge' )
-  assert.equal( sideRailMinZ, cornerTRMaxZ, 'Side rail upper end flushes against corner casting' )
-  assert.equal( sideRailMaxZ, sideHardwareMinZ, 'Side rail upper end flushes against side pocket hardware' )
-  assert.equal( sideHardwareMaxZ, sideRailLowerMinZ, 'Side pocket hardware flushes against lower side rail' )
-  assert.equal( sideRailLowerMaxZ, cornerBRMinZ, 'Side rail lower end flushes against bottom-right corner casting' )
+  geometries.forEach( ( geometry ) => geometry.dispose() )
+  material.dispose()
 } )
