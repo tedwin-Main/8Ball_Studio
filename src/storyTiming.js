@@ -39,6 +39,18 @@ function assertWindow( start, duration, name )
   assertProgress( start + duration, `${name} end` )
 }
 
+// Validate all numeric dictionary entries are finite and non-negative.
+function validateNumericEntries( entries, prefix, skipKeys = [] )
+{
+  for ( const name in entries )
+  {
+    if ( !skipKeys.includes( name ) )
+    {
+      finiteNonNegative( entries[ name ], `${prefix}.${name}` )
+    }
+  }
+}
+
 // These counts mirror the fixed title spans and contact cards rendered by App.jsx.
 const PROJECTS_TITLE_LINE_COUNT = 2
 const CONTACT_TITLE_LINE_COUNT = 2
@@ -284,11 +296,7 @@ function validateSchedule( schedule )
   }
 
   // Validate navigation settings are non-negative numbers.
-  for ( const name in schedule.navigation )
-  {
-    const value = schedule.navigation[ name ]
-    finiteNonNegative( value, `navigation.${name}` )
-  }
+  validateNumericEntries( schedule.navigation, 'navigation' )
 }
 
 // Resolve once at module load or when an override is supplied; never rebuild this in render loops.
@@ -299,38 +307,11 @@ export function resolveStoryTiming( overrides = {} )
   assertProgress( input.progressEpsilon, 'progressEpsilon' )
 
   // Validate all configuration numbers are valid and non-negative.
-  for ( const name in input.scroll )
-  {
-    const value = input.scroll[ name ]
-    finiteNonNegative( value, `scroll.${name}` )
-  }
-
-  for ( const name in input.navigation )
-  {
-    const value = input.navigation[ name ]
-    finiteNonNegative( value, `navigation.${name}` )
-  }
-
-  for ( const name in input.intro )
-  {
-    if ( name !== 'visual' )
-    {
-      const value = input.intro[ name ]
-      finiteNonNegative( value, `intro.${name}` )
-    }
-  }
-
-  for ( const name in input.intro.visual )
-  {
-    const value = input.intro.visual[ name ]
-    finiteNonNegative( value, `intro.visual.${name}` )
-  }
-
-  for ( const name in input.pages )
-  {
-    const value = input.pages[ name ]
-    finiteNonNegative( value, `pages.${name}` )
-  }
+  validateNumericEntries( input.scroll, 'scroll' )
+  validateNumericEntries( input.navigation, 'navigation' )
+  validateNumericEntries( input.intro, 'intro', [ 'visual' ] )
+  validateNumericEntries( input.intro.visual, 'intro.visual' )
+  validateNumericEntries( input.pages, 'pages' )
 
   const cueReady = assertProgress( input.intro.cueReadyDuration, 'intro.cueReadyDuration' )
   const approachEnd = assertProgress( input.intro.approachDuration, 'intro.approachDuration' )
@@ -425,12 +406,8 @@ export function resolveStoryTiming( overrides = {} )
     [ 'intro tail', 1 - visual.timelineEndEpsilon, visual.timelineEndEpsilon ],
   ]
 
-  for ( let i = 0; i < visualWindows.length; i++ )
+  for ( const [ windowName, windowStart, windowDuration ] of visualWindows )
   {
-    const windowDef = visualWindows[ i ]
-    const windowName = windowDef[ 0 ]
-    const windowStart = windowDef[ 1 ]
-    const windowDuration = windowDef[ 2 ]
     assertWindow( windowStart, windowDuration, windowName )
   }
   const projectsStart = 1 + finiteNonNegative( input.pages.studioHold, 'pages.studioHold' )

@@ -271,24 +271,15 @@ function App ()
     const hasFinePointer = window.matchMedia( '(hover: hover) and (pointer: fine)' ).matches
     const prefersReducedMotion = window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches
 
-    const moveCursorDotX = hasFinePointer
-      ? gsap.quickTo( cursorDot, 'x', { duration: 0.05 } )
-      : null
-    const moveCursorDotY = hasFinePointer
-      ? gsap.quickTo( cursorDot, 'y', { duration: 0.05 } )
-      : null
-    const moveCursorRingX = hasFinePointer
-      ? gsap.quickTo( cursorRing, 'x', { duration: 0.12 } )
-      : null
-    const moveCursorRingY = hasFinePointer
-      ? gsap.quickTo( cursorRing, 'y', { duration: 0.12 } )
-      : null
-    const movePointerGlowX = hasFinePointer
-      ? gsap.quickTo( pointerGlow, 'x', { duration: 0.14, ease: 'power2.out' } )
-      : null
-    const movePointerGlowY = hasFinePointer
-      ? gsap.quickTo( pointerGlow, 'y', { duration: 0.14, ease: 'power2.out' } )
-      : null
+    const createQuickSetter = ( target, prop, duration, ease ) =>
+      hasFinePointer ? gsap.quickTo( target, prop, ease ? { duration, ease } : { duration } ) : null
+
+    const moveCursorDotX = createQuickSetter( cursorDot, 'x', 0.05 )
+    const moveCursorDotY = createQuickSetter( cursorDot, 'y', 0.05 )
+    const moveCursorRingX = createQuickSetter( cursorRing, 'x', 0.12 )
+    const moveCursorRingY = createQuickSetter( cursorRing, 'y', 0.12 )
+    const movePointerGlowX = createQuickSetter( pointerGlow, 'x', 0.14, 'power2.out' )
+    const movePointerGlowY = createQuickSetter( pointerGlow, 'y', 0.14, 'power2.out' )
 
     // Start the glow in the same centered position as the old CSS gradient.
     if ( hasFinePointer )
