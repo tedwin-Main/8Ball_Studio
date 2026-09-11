@@ -1,30 +1,39 @@
 // One editable contract owns scroll-story timing; callers consume the resolved schedule.
 
-const finiteNonNegative = ( value, name ) =>
+// Ensure a numeric value is finite and not negative.
+function finiteNonNegative( value, name )
 {
   if ( !Number.isFinite( value ) || value < 0 )
   {
     throw new RangeError( `${name} must be a finite, non-negative number.` )
   }
-
   return value
 }
 
-const assertProgress = ( value, name ) =>
+// Ensure a progress value is a number between 0.0 and 1.0.
+function assertProgress( value, name )
 {
   finiteNonNegative( value, name )
-  if ( value > 1 ) throw new RangeError( `${name} must be between 0 and 1.` )
+  if ( value > 1 )
+  {
+    throw new RangeError( `${name} must be between 0 and 1.` )
+  }
   return value
 }
 
-const assertPositive = ( value, name ) =>
+// Ensure a value is strictly greater than zero.
+function assertPositive( value, name )
 {
   finiteNonNegative( value, name )
-  if ( value === 0 ) throw new RangeError( `${name} must be greater than zero.` )
+  if ( value === 0 )
+  {
+    throw new RangeError( `${name} must be greater than zero.` )
+  }
   return value
 }
 
-const assertWindow = ( start, duration, name ) =>
+// Validate that an animation window starts and ends within normalized progress (0 to 1).
+function assertWindow( start, duration, name )
 {
   assertProgress( start, `${name} start` )
   assertProgress( start + duration, `${name} end` )
@@ -35,7 +44,11 @@ const PROJECTS_TITLE_LINE_COUNT = 2
 const CONTACT_TITLE_LINE_COUNT = 2
 const FINAL_TITLE_LINE_COUNT = 2
 const CONTACT_ITEM_COUNT = 3
-const freeze = ( value ) => Object.freeze( value )
+
+function freeze( value )
+{
+  return Object.freeze( value )
+}
 
 // Edit these semantic values while Vite is running; all dependent progress is derived below.
 export const STORY_TIMING_DEFAULTS = freeze( {
@@ -146,20 +159,43 @@ export const STORY_TIMING_DEFAULTS = freeze( {
   } ),
 } )
 
-const merge = ( overrides = {} ) => ( {
-  ...STORY_TIMING_DEFAULTS,
-  ...overrides,
-  scroll: { ...STORY_TIMING_DEFAULTS.scroll, ...overrides.scroll },
-  navigation: { ...STORY_TIMING_DEFAULTS.navigation, ...overrides.navigation },
-  intro: {
-    ...STORY_TIMING_DEFAULTS.intro,
-    ...overrides.intro,
-    visual: { ...STORY_TIMING_DEFAULTS.intro.visual, ...overrides.intro?.visual },
-  },
-  pages: { ...STORY_TIMING_DEFAULTS.pages, ...overrides.pages },
-} )
+// Merge default timing configuration with custom overrides.
+function merge( overrides = {} )
+{
+  const overrideScroll = overrides.scroll || {}
+  const overrideNav = overrides.navigation || {}
+  const overrideIntro = overrides.intro || {}
+  const overrideVisual = overrideIntro.visual || {}
+  const overridePages = overrides.pages || {}
 
-const validateSchedule = ( schedule ) =>
+  return {
+    ...STORY_TIMING_DEFAULTS,
+    ...overrides,
+    scroll: {
+      ...STORY_TIMING_DEFAULTS.scroll,
+      ...overrideScroll,
+    },
+    navigation: {
+      ...STORY_TIMING_DEFAULTS.navigation,
+      ...overrideNav,
+    },
+    intro: {
+      ...STORY_TIMING_DEFAULTS.intro,
+      ...overrideIntro,
+      visual: {
+        ...STORY_TIMING_DEFAULTS.intro.visual,
+        ...overrideVisual,
+      },
+    },
+    pages: {
+      ...STORY_TIMING_DEFAULTS.pages,
+      ...overridePages,
+    },
+  }
+}
+
+// Validate that all timeline milestones are valid and in strictly increasing order.
+function validateSchedule( schedule )
 {
   if ( schedule.totalTimelineUnits <= 0 )
   {
@@ -172,9 +208,14 @@ const validateSchedule = ( schedule ) =>
     schedule.pages.projectsStart,
     schedule.pages.contactStart,
   ]
-  if ( starts.some( ( value, index ) => index > 0 && value <= starts[ index - 1 ] ) )
+
+  // Ensure each page start milestone happens after the previous one.
+  for ( let i = 1; i < starts.length; i++ )
   {
-    throw new RangeError( 'page starts must be strictly increasing.' )
+    if ( starts[ i ] <= starts[ i - 1 ] )
+    {
+      throw new RangeError( 'page starts must be strictly increasing.' )
+    }
   }
 
   if ( schedule.pages.cinematicStudioStart >= schedule.pages.projectsStart )
@@ -184,7 +225,7 @@ const validateSchedule = ( schedule ) =>
 
   if ( schedule.pages.draft2StudioStart <= schedule.pages.studioStart || schedule.pages.draft2StudioStart >= schedule.pages.projectsStart )
   {
-    throw new RangeError( "Draft 2 Studio threshold must stay between its handoff and Projects." )
+    throw new RangeError( 'Draft 2 Studio threshold must stay between its handoff and Projects.' )
   }
 
   if ( schedule.pages.projectsFadeEnd > schedule.pages.projectsStable || schedule.pages.projectsTitleEnd > schedule.pages.projectsStable )
@@ -222,9 +263,14 @@ const validateSchedule = ( schedule ) =>
     schedule.pages.contactItemsEnd,
     schedule.pages.timelineEndStart,
   ]
-  if ( milestones.some( ( value ) => value > schedule.totalTimelineUnits ) )
+
+  // Milestones must fit inside total timeline units.
+  for ( let i = 0; i < milestones.length; i++ )
   {
-    throw new RangeError( 'page schedule must fit inside totalTimelineUnits.' )
+    if ( milestones[ i ] > schedule.totalTimelineUnits )
+    {
+      throw new RangeError( 'page schedule must fit inside totalTimelineUnits.' )
+    }
   }
 
   if ( schedule.pages.timelineEndStart < 0 )
@@ -237,43 +283,54 @@ const validateSchedule = ( schedule ) =>
     throw new RangeError( 'pages.timelineEndEpsilon must fit inside totalTimelineUnits.' )
   }
 
-  Object.entries( schedule.navigation ).forEach( ( [ name, value ] ) =>
+  // Validate navigation settings are non-negative numbers.
+  for ( const name in schedule.navigation )
   {
+    const value = schedule.navigation[ name ]
     finiteNonNegative( value, `navigation.${name}` )
-  } )
+  }
 }
 
 // Resolve once at module load or when an override is supplied; never rebuild this in render loops.
-export const resolveStoryTiming = ( overrides = {} ) =>
+export function resolveStoryTiming( overrides = {} )
 {
   const input = merge( overrides )
   finiteNonNegative( input.totalTimelineUnits, 'totalTimelineUnits' )
   assertProgress( input.progressEpsilon, 'progressEpsilon' )
 
-  Object.entries( input.scroll ).forEach( ( [ name, value ] ) =>
+  // Validate all configuration numbers are valid and non-negative.
+  for ( const name in input.scroll )
   {
+    const value = input.scroll[ name ]
     finiteNonNegative( value, `scroll.${name}` )
-  } )
+  }
 
-  Object.entries( input.navigation ).forEach( ( [ name, value ] ) =>
+  for ( const name in input.navigation )
   {
+    const value = input.navigation[ name ]
     finiteNonNegative( value, `navigation.${name}` )
-  } )
+  }
 
-  Object.entries( input.intro ).forEach( ( [ name, value ] ) =>
+  for ( const name in input.intro )
   {
-    if ( name === 'visual' ) return
-    finiteNonNegative( value, `intro.${name}` )
-  } )
-  Object.entries( input.intro.visual ).forEach( ( [ name, value ] ) =>
+    if ( name !== 'visual' )
+    {
+      const value = input.intro[ name ]
+      finiteNonNegative( value, `intro.${name}` )
+    }
+  }
+
+  for ( const name in input.intro.visual )
   {
+    const value = input.intro.visual[ name ]
     finiteNonNegative( value, `intro.visual.${name}` )
-  } )
+  }
 
-  Object.entries( input.pages ).forEach( ( [ name, value ] ) =>
+  for ( const name in input.pages )
   {
+    const value = input.pages[ name ]
     finiteNonNegative( value, `pages.${name}` )
-  } )
+  }
 
   const cueReady = assertProgress( input.intro.cueReadyDuration, 'intro.cueReadyDuration' )
   const approachEnd = assertProgress( input.intro.approachDuration, 'intro.approachDuration' )
@@ -349,7 +406,7 @@ export const resolveStoryTiming = ( overrides = {} ) =>
     titleLineEnd,
     metaStart: pocketIrisStart + visual.metaDelay,
   }
-  ;[
+  const visualWindows = [
     [ 'table open', 0, visual.tableOpenDuration ],
     [ 'hero fade', visual.heroFadeDelay, visual.heroFadeDuration ],
     [ 'scroll prompt fade', visual.promptFadeDelay, visual.promptFadeDuration ],
@@ -366,7 +423,16 @@ export const resolveStoryTiming = ( overrides = {} ) =>
     [ 'title line', visualSchedule.titleLineStart, visualSchedule.titleLineEnd - visualSchedule.titleLineStart ],
     [ 'final meta', visualSchedule.metaStart, visual.metaDuration ],
     [ 'intro tail', 1 - visual.timelineEndEpsilon, visual.timelineEndEpsilon ],
-  ].forEach( ( [ name, start, duration ] ) => assertWindow( start, duration, name ) )
+  ]
+
+  for ( let i = 0; i < visualWindows.length; i++ )
+  {
+    const windowDef = visualWindows[ i ]
+    const windowName = windowDef[ 0 ]
+    const windowStart = windowDef[ 1 ]
+    const windowDuration = windowDef[ 2 ]
+    assertWindow( windowStart, windowDuration, windowName )
+  }
   const projectsStart = 1 + finiteNonNegative( input.pages.studioHold, 'pages.studioHold' )
   // Each later page owns one full timeline unit; holds are measured from that page's stable mark.
   const contactStart = 2 + finiteNonNegative( input.pages.projectsHold, 'pages.projectsHold' )
@@ -452,30 +518,42 @@ export const resolveStoryTiming = ( overrides = {} ) =>
 
 export const STORY_TIMING = resolveStoryTiming()
 
-// Cinematic easing keeps the pool break weighted while still reaching its target.
-export const easeCinematicBreakTransition = ( progress ) =>
-  progress * progress * ( 3 - 2 * progress )
-
-// Later page edges use the same normalized weighted curve.
-export const easeStoryTransition = ( progress ) =>
-  progress * progress * ( 3 - 2 * progress )
-
-// Blend a normalized playhead toward the shared curve so the 8-ball gains momentum without overshooting impact.
-export const easeWeightedProgress = ( progress, weight = STORY_TIMING.scroll.introWeight ) =>
+// Cinematic smooth-step easing curve.
+export function easeCinematicBreakTransition( progress )
 {
-  const normalizedProgress = assertProgress( progress, 'progress' )
-  const normalizedWeight = Math.min( 1, Math.max( 0, finiteNonNegative( weight, 'weight' ) ) )
-  const easedProgress = easeStoryTransition( normalizedProgress )
-
-  return normalizedProgress + ( easedProgress - normalizedProgress ) * normalizedWeight
+  return progress * progress * ( 3 - 2 * progress )
 }
 
-export const toStoryProgress = ( timelineUnit ) =>
-  assertProgress(
-    finiteNonNegative( timelineUnit, 'timelineUnit' ) / STORY_TIMING.totalTimelineUnits,
-    'storyProgress',
-  )
+// Normalized smooth-step easing curve for page transitions.
+export function easeStoryTransition( progress )
+{
+  return progress * progress * ( 3 - 2 * progress )
+}
 
-// Convert normalized ScrollTrigger progress back to the GSAP timeline units used by draft controllers.
-export const toTimelineUnits = ( storyProgress ) =>
-  assertProgress( storyProgress, 'storyProgress' ) * STORY_TIMING.totalTimelineUnits
+// Blend a progress value between linear and smooth easing based on weight.
+export function easeWeightedProgress( progress, weight = STORY_TIMING.scroll.introWeight )
+{
+  const normalizedProgress = assertProgress( progress, 'progress' )
+  const validWeight = finiteNonNegative( weight, 'weight' )
+  const clampedWeight = Math.min( 1, Math.max( 0, validWeight ) )
+
+  const easedProgress = easeStoryTransition( normalizedProgress )
+  const weightedOffset = ( easedProgress - normalizedProgress ) * clampedWeight
+
+  return normalizedProgress + weightedOffset
+}
+
+// Convert timeline units to normalized 0.0 - 1.0 story progress.
+export function toStoryProgress( timelineUnit )
+{
+  const validUnit = finiteNonNegative( timelineUnit, 'timelineUnit' )
+  const normalized = validUnit / STORY_TIMING.totalTimelineUnits
+  return assertProgress( normalized, 'storyProgress' )
+}
+
+// Convert normalized 0.0 - 1.0 story progress to timeline units.
+export function toTimelineUnits( storyProgress )
+{
+  const validProgress = assertProgress( storyProgress, 'storyProgress' )
+  return validProgress * STORY_TIMING.totalTimelineUnits
+}

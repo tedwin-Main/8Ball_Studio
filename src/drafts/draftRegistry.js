@@ -37,20 +37,51 @@ const DRAFT_ALIASES = Object.freeze( {
 } )
 
 // Resolves a URL query string to a validated draft ID, defaulting to cinematic.
-export const normalizeDraftId = ( queryValue ) =>
+export function normalizeDraftId( queryValue )
 {
-  if ( !queryValue ) return 'cinematic'
-  const aliased = DRAFT_ALIASES[ queryValue ] ?? queryValue
-  return DRAFT_CONFIGS[ aliased ] ? aliased : 'cinematic'
+  if ( !queryValue )
+  {
+    return 'cinematic'
+  }
+
+  // Check alias dictionary first.
+  let resolvedId = queryValue
+  if ( DRAFT_ALIASES[ queryValue ] )
+  {
+    resolvedId = DRAFT_ALIASES[ queryValue ]
+  }
+
+  // Check if draft exists in configuration.
+  if ( DRAFT_CONFIGS[ resolvedId ] )
+  {
+    return resolvedId
+  }
+
+  return 'cinematic'
 }
 
 // Returns the options list for DraftSwitcher navigation.
-export const getDraftOptions = () =>
-  DRAFT_IDS.map( ( id ) => ( {
-    id,
-    label: DRAFT_CONFIGS[ id ].label,
-  } ) )
+export function getDraftOptions()
+{
+  const options = []
+  for ( let i = 0; i < DRAFT_IDS.length; i++ )
+  {
+    const id = DRAFT_IDS[ i ]
+    const config = DRAFT_CONFIGS[ id ]
+    options.push( {
+      id: id,
+      label: config.label,
+    } )
+  }
+  return options
+}
 
 // Returns configuration for a specific draft ID.
-export const getDraftConfig = ( id ) =>
-  DRAFT_CONFIGS[ id ] ?? DRAFT_CONFIGS.cinematic
+export function getDraftConfig( id )
+{
+  if ( DRAFT_CONFIGS[ id ] )
+  {
+    return DRAFT_CONFIGS[ id ]
+  }
+  return DRAFT_CONFIGS.cinematic
+}

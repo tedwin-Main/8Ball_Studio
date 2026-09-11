@@ -7,7 +7,19 @@ const DEFAULT_RESIZE_SETTLE_MS = 150
 const RESIZE_RESTORE_GUARD_MS = 320
 const DEFAULT_TRANSITION_BUFFER_MS = 350
 
-const clamp = ( value, min = 0, max = 1 ) => Math.min( max, Math.max( min, value ) )
+// Clamp a number between a minimum and maximum.
+function clamp( value, min = 0, max = 1 )
+{
+  if ( value < min )
+  {
+    return min
+  }
+  if ( value > max )
+  {
+    return max
+  }
+  return value
+}
 
 const defaultClock = Object.freeze( {
   now: () => Date.now(),
@@ -15,9 +27,10 @@ const defaultClock = Object.freeze( {
   clearTimeout: ( timer ) => clearTimeout( timer ),
 } )
 
-const noop = () => {}
+function noop() {}
 
-const resetTouchGesture = ( gesture ) =>
+// Reset touch tracking state back to default empty values.
+function resetTouchGesture( gesture )
 {
   gesture.active = false
   gesture.lastY = null
@@ -26,29 +39,74 @@ const resetTouchGesture = ( gesture ) =>
   gesture.committed = false
 }
 
-const isEditableTarget = ( target ) =>
+// Check if an event target is an interactive form element or editable field.
+function isEditableTarget( target )
 {
-  if ( !target || typeof target !== 'object' ) return false
+  if ( !target || typeof target !== 'object' )
+  {
+    return false
+  }
 
-  return Boolean(
-    target.isContentEditable ||
-    typeof target.matches === 'function' && target.matches( 'input, textarea, select, option' ),
-  )
+  if ( target.isContentEditable )
+  {
+    return true
+  }
+
+  if ( typeof target.matches === 'function' && target.matches( 'input, textarea, select, option' ) )
+  {
+    return true
+  }
+
+  return false
 }
 
 // Touch deltas vary by browser; use the finger coordinate when it exists.
-const getTouchY = ( event ) =>
+function getTouchY( event )
 {
   const point = event?.touches?.[ 0 ] || event?.changedTouches?.[ 0 ] || event?.targetTouches?.[ 0 ]
-  return Number.isFinite( point?.clientY ) ? point.clientY : null
+  if ( Number.isFinite( point?.clientY ) )
+  {
+    return point.clientY
+  }
+  return null
 }
 
-const preventDefault = ( event ) =>
+function preventDefault( event )
 {
-  if ( event?.cancelable ) event.preventDefault()
+  if ( event?.cancelable )
+  {
+    event.preventDefault()
+  }
 }
 
-const normalizePages = ( suppliedPages ) =>
+// Helper to find a page object in a list by its unique string id.
+function findPageById( pageList, pageId )
+{
+  for ( let i = 0; i < pageList.length; i++ )
+  {
+    if ( pageList[ i ].id === pageId )
+    {
+      return pageList[ i ]
+    }
+  }
+  return null
+}
+
+// Helper to find the index of a page in a list by its unique string id.
+function findPageIndex( pageList, pageId )
+{
+  for ( let i = 0; i < pageList.length; i++ )
+  {
+    if ( pageList[ i ].id === pageId )
+    {
+      return i
+    }
+  }
+  return -1
+}
+
+// Validate input pages and format them with default progress numbers.
+function normalizePages( suppliedPages )
 {
   if ( !Array.isArray( suppliedPages ) || suppliedPages.length === 0 )
   {
@@ -56,25 +114,57 @@ const normalizePages = ( suppliedPages ) =>
   }
 
   const ids = new Set()
-  return suppliedPages.map( ( page ) =>
+  const normalizedList = []
+
+  for ( let i = 0; i < suppliedPages.length; i++ )
   {
+    const page = suppliedPages[ i ]
     if ( !page || typeof page.id !== 'string' || page.id.length === 0 )
     {
       throw new TypeError( 'Every Story Page needs a non-empty id.' )
     }
-    if ( ids.has( page.id ) ) throw new TypeError( `Duplicate Story Page id: ${page.id}` )
+    if ( ids.has( page.id ) )
+    {
+      throw new TypeError( `Duplicate Story Page id: ${page.id}` )
+    }
     ids.add( page.id )
 
-    return Object.freeze( {
+    let startProgress = 0
+    if ( Number.isFinite( page.startProgress ) )
+    {
+      startProgress = page.startProgress
+    }
+
+    let targetProgress = 0
+    if ( Number.isFinite( page.targetProgress ) )
+    {
+      targetProgress = page.targetProgress
+    }
+
+    normalizedList.push( Object.freeze( {
       ...page,
-      startProgress: Number.isFinite( page.startProgress ) ? page.startProgress : 0,
-      targetProgress: Number.isFinite( page.targetProgress ) ? page.targetProgress : 0,
-    } )
-  } )
+      startProgress: startProgress,
+      targetProgress: targetProgress,
+    } ) )
+  }
+
+  return normalizedList
 }
 
-const clampPageIndex = ( index, pageCount ) =>
-  Math.min( pageCount - 1, Math.max( 0, index ) )
+// Keep page index within valid 0 to pageCount - 1 bounds.
+function clampPageIndex( index, pageCount )
+{
+  const maxIndex = pageCount - 1
+  if ( index < 0 )
+  {
+    return 0
+  }
+  if ( index > maxIndex )
+  {
+    return maxIndex
+  }
+  return index
+}
 
 /**
  * Owns Story gesture semantics and transition state behind a small interface.
@@ -133,17 +223,42 @@ export function createStoryNavigation ( {
   let accumulatedDelta = 0
   let lastGestureTime = 0
 
-  const resolvePage = ( requestedPage ) =>
+  // Find a page by id or numeric index.
+  function resolvePage( requestedPage )
   {
-    if ( typeof requestedPage === 'string' ) return pages.find( ( page ) => page.id === requestedPage ) || null
-    if ( Number.isInteger( requestedPage ) ) return pages[ clampPageIndex( requestedPage, pages.length ) ] || null
+    if ( typeof requestedPage === 'string' )
+    {
+      const found = findPageById( pages, requestedPage )
+      if ( found )
+      {
+        return found
+      }
+      return null
+    }
+
+    if ( Number.isInteger( requestedPage ) )
+    {
+      const validIndex = clampPageIndex( requestedPage, pages.length )
+      return pages[ validIndex ] || null
+    }
+
     return null
   }
 
-  const pageAtProgress = ( progress ) => pages.reduce(
-    ( currentPage, page ) => progress >= page.startProgress ? page : currentPage,
-    pages[ 0 ],
-  )
+  // Find the active page based on current scroll progress.
+  function pageAtProgress( progress )
+  {
+    let selectedPage = pages[ 0 ]
+    for ( let i = 0; i < pages.length; i++ )
+    {
+      const page = pages[ i ]
+      if ( progress >= page.startProgress )
+      {
+        selectedPage = page
+      }
+    }
+    return selectedPage
+  }
 
   const setIndicatorPage = ( nextPage ) =>
   {
@@ -289,14 +404,28 @@ export function createStoryNavigation ( {
     return true
   }
 
-  const isStoryActive = () =>
+  // Check if current window scroll is within the Story container bounds.
+  function isStoryActive()
   {
     const metrics = getMetrics()
-    if ( !metrics || !Number.isFinite( metrics.range ) ) return false
+    if ( !metrics || !Number.isFinite( metrics.range ) )
+    {
+      return false
+    }
+
     const scrollPosition = adapter.getScrollPosition()
-    if ( !Number.isFinite( scrollPosition ) ) return false
-    const storyEnd = metrics.top + metrics.range
-    return scrollPosition >= metrics.top - 2 && scrollPosition <= storyEnd + 2
+    if ( !Number.isFinite( scrollPosition ) )
+    {
+      return false
+    }
+
+    const storyStart = metrics.top - 2
+    const storyEnd = metrics.top + metrics.range + 2
+    if ( scrollPosition >= storyStart && scrollPosition <= storyEnd )
+    {
+      return true
+    }
+    return false
   }
 
   const handleVirtualScroll = ( scrollInput = {} ) =>
@@ -344,16 +473,28 @@ export function createStoryNavigation ( {
       }
 
       const currentY = getTouchY( event )
-      const fingerDelta = currentY !== null && touchGesture.lastY !== null
-        ? touchGesture.lastY - currentY
-        : Number.isFinite( deltaY ) ? deltaY : 0
+      let fingerDelta = 0
+      if ( currentY !== null && touchGesture.lastY !== null )
+      {
+        fingerDelta = touchGesture.lastY - currentY
+      }
+      else if ( Number.isFinite( deltaY ) )
+      {
+        fingerDelta = deltaY
+      }
 
-      if ( currentY !== null ) touchGesture.lastY = currentY
+      if ( currentY !== null )
+      {
+        touchGesture.lastY = currentY
+      }
 
       if ( fingerDelta !== 0 )
       {
         const direction = Math.sign( fingerDelta )
-        if ( touchGesture.direction !== 0 && direction !== touchGesture.direction ) touchGesture.accumulated = 0
+        if ( touchGesture.direction !== 0 && direction !== touchGesture.direction )
+        {
+          touchGesture.accumulated = 0
+        }
         touchGesture.direction = direction
         touchGesture.accumulated += fingerDelta
         accumulatedDelta = touchGesture.accumulated
@@ -362,8 +503,13 @@ export function createStoryNavigation ( {
       if ( Math.abs( touchGesture.accumulated ) >= gestureThresholdPx )
       {
         const currentPage = getCurrentPage()
-        const currentIndex = pages.findIndex( ( page ) => page.id === currentPage?.id )
-        const nextIndex = currentIndex + ( touchGesture.accumulated > 0 ? 1 : -1 )
+        const currentIndex = findPageIndex( pages, currentPage?.id )
+        let step = 1
+        if ( touchGesture.accumulated < 0 )
+        {
+          step = -1
+        }
+        const nextIndex = currentIndex + step
 
         if ( nextIndex < 0 || nextIndex >= pages.length )
         {
@@ -376,27 +522,48 @@ export function createStoryNavigation ( {
         preventDefault( event )
         touchGesture.committed = true
         const didStart = goToPage( pages[ nextIndex ].id )
-        if ( !didStart ) resetTouchGesture( touchGesture )
+        if ( !didStart )
+        {
+          resetTouchGesture( touchGesture )
+        }
         return false
       }
 
-      if ( eventType === 'touchend' ) resetTouchGesture( touchGesture )
+      if ( eventType === 'touchend' )
+      {
+        resetTouchGesture( touchGesture )
+      }
       return true
     }
 
     const now = clock.now()
-    if ( now - lastGestureTime > gestureResetMs ) accumulatedDelta = 0
+    if ( now - lastGestureTime > gestureResetMs )
+    {
+      accumulatedDelta = 0
+    }
     lastGestureTime = now
-    if ( !Number.isFinite( deltaY ) || deltaY === 0 ) return true
 
-    if ( accumulatedDelta !== 0 && Math.sign( accumulatedDelta ) !== Math.sign( deltaY ) ) accumulatedDelta = 0
+    if ( !Number.isFinite( deltaY ) || deltaY === 0 )
+    {
+      return true
+    }
+
+    if ( accumulatedDelta !== 0 && Math.sign( accumulatedDelta ) !== Math.sign( deltaY ) )
+    {
+      accumulatedDelta = 0
+    }
     accumulatedDelta += deltaY
 
     if ( Math.abs( accumulatedDelta ) >= gestureThresholdPx )
     {
       const currentPage = getCurrentPage()
-      const currentIndex = pages.findIndex( ( page ) => page.id === currentPage?.id )
-      const nextIndex = currentIndex + ( accumulatedDelta > 0 ? 1 : -1 )
+      const currentIndex = findPageIndex( pages, currentPage?.id )
+      let step = 1
+      if ( accumulatedDelta < 0 )
+      {
+        step = -1
+      }
+      const nextIndex = currentIndex + step
 
       if ( nextIndex < 0 || nextIndex >= pages.length )
       {
@@ -421,27 +588,45 @@ export function createStoryNavigation ( {
       event.metaKey ||
       event.altKey ||
       isEditableTarget( event.target )
-    ) return
+    )
+    {
+      return
+    }
 
     const currentPage = getCurrentPage()
-    const currentIndex = pages.findIndex( ( page ) => page.id === currentPage?.id )
+    const currentIndex = findPageIndex( pages, currentPage?.id )
     let requestedIndex = null
 
     if ( event.key === 'ArrowDown' || event.key === 'PageDown' || event.key === ' ' )
     {
-      requestedIndex = currentIndex + ( event.key === ' ' && event.shiftKey ? -1 : 1 )
+      let step = 1
+      if ( event.key === ' ' && event.shiftKey )
+      {
+        step = -1
+      }
+      requestedIndex = currentIndex + step
     }
     else if ( event.key === 'ArrowUp' || event.key === 'PageUp' )
     {
       requestedIndex = currentIndex - 1
     }
-    else if ( event.key === 'Home' ) requestedIndex = 0
-    else if ( event.key === 'End' ) requestedIndex = pages.length - 1
+    else if ( event.key === 'Home' )
+    {
+      requestedIndex = 0
+    }
+    else if ( event.key === 'End' )
+    {
+      requestedIndex = pages.length - 1
+    }
 
-    if ( requestedIndex === null ) return
+    if ( requestedIndex === null )
+    {
+      return
+    }
 
     preventDefault( event )
-    goToPage( pages[ clampPageIndex( requestedIndex, pages.length ) ].id )
+    const targetPageIndex = clampPageIndex( requestedIndex, pages.length )
+    goToPage( pages[ targetPageIndex ].id )
   }
 
   const handleResize = () =>
@@ -502,21 +687,47 @@ export function createStoryNavigation ( {
     }, resizeSettleMs )
   }
 
-  const setPages = ( nextPages ) =>
+  // Update story page definitions and sync active page.
+  function setPages( nextPages )
   {
     pages = normalizePages( nextPages )
-    const nextCurrent = resolvePage( activePage ) || pageAtProgress( getProgress() )
+    let nextCurrent = resolvePage( activePage )
+    if ( !nextCurrent )
+    {
+      nextCurrent = pageAtProgress( getProgress() )
+    }
     activePage = nextCurrent.id
-    targetPage = resolvePage( targetPage )?.id || nextCurrent.id
+
+    const resolvedTarget = resolvePage( targetPage )
+    if ( resolvedTarget )
+    {
+      targetPage = resolvedTarget.id
+    }
+    else
+    {
+      targetPage = nextCurrent.id
+    }
+
     notifyProgress()
   }
 
-  const seekProgress = ( suppliedProgress ) =>
+  // Jump directly to a given progress position.
+  function seekProgress( suppliedProgress )
   {
     const metrics = getMetrics()
-    if ( !metrics || !Number.isFinite( metrics.range ) ) return null
-    const progress = clamp( Number.isFinite( suppliedProgress ) ? suppliedProgress : 0 )
+    if ( !metrics || !Number.isFinite( metrics.range ) )
+    {
+      return null
+    }
+
+    let rawProgress = 0
+    if ( Number.isFinite( suppliedProgress ) )
+    {
+      rawProgress = suppliedProgress
+    }
+    const progress = clamp( rawProgress )
     const targetY = Math.round( metrics.top + metrics.range * progress )
+
     adapter.scrollTo( targetY, {
       immediate: true,
       force: true,
@@ -526,40 +737,100 @@ export function createStoryNavigation ( {
     return { targetScroll: targetY, currentScroll: adapter.getScrollPosition() }
   }
 
-  const mount = () =>
+  // Attach event listeners and initialize starting page.
+  function mount()
   {
-    if ( mounted || destroyed ) return
+    if ( mounted || destroyed )
+    {
+      return
+    }
     mounted = true
-    unsubscribeScroll = adapter.onScroll?.( notifyProgress ) || noop
-    unsubscribeVirtualScroll = adapter.onVirtualScroll?.( handleVirtualScroll ) || noop
-    eventTarget?.addEventListener?.( 'keydown', handleKeyDown )
-    // Capture resize before ScrollTrigger's global refresh listener can rewrite Lenis's pixel position.
-    eventTarget?.addEventListener?.( 'resize', handleResize, true )
 
-    const initial = pageAtProgress( getProgress() ) || resolvePage( initialPage ) || pages[ 0 ]
+    if ( adapter.onScroll )
+    {
+      unsubscribeScroll = adapter.onScroll( notifyProgress ) || noop
+    }
+    else
+    {
+      unsubscribeScroll = noop
+    }
+
+    if ( adapter.onVirtualScroll )
+    {
+      unsubscribeVirtualScroll = adapter.onVirtualScroll( handleVirtualScroll ) || noop
+    }
+    else
+    {
+      unsubscribeVirtualScroll = noop
+    }
+
+    if ( eventTarget && typeof eventTarget.addEventListener === 'function' )
+    {
+      eventTarget.addEventListener( 'keydown', handleKeyDown )
+      // Capture resize before ScrollTrigger's global refresh listener can rewrite Lenis's pixel position.
+      eventTarget.addEventListener( 'resize', handleResize, true )
+    }
+
+    let initial = pageAtProgress( getProgress() )
+    if ( !initial )
+    {
+      initial = resolvePage( initialPage )
+    }
+    if ( !initial )
+    {
+      initial = pages[ 0 ]
+    }
+
     activePage = initial.id
     targetPage = initial.id
     indicatorPage = initial.id
-    onIndicatorPageChange?.( indicatorPage )
-    onPageChange?.( initial.id )
+
+    if ( typeof onIndicatorPageChange === 'function' )
+    {
+      onIndicatorPageChange( indicatorPage )
+    }
+    if ( typeof onPageChange === 'function' )
+    {
+      onPageChange( initial.id )
+    }
     notifyProgress()
   }
 
-  const destroy = () =>
+  // Clean up timers and event listeners.
+  function destroy()
   {
-    if ( destroyed ) return
+    if ( destroyed )
+    {
+      return
+    }
     destroyed = true
+
     clearTransitionTimer()
-    if ( resizeTimer !== null ) clock.clearTimeout( resizeTimer )
-    if ( resizeRestoreTimer !== null ) clock.clearTimeout( resizeRestoreTimer )
-    resizeTimer = null
-    resizeRestoreTimer = null
+    if ( resizeTimer !== null )
+    {
+      clock.clearTimeout( resizeTimer )
+      resizeTimer = null
+    }
+    if ( resizeRestoreTimer !== null )
+    {
+      clock.clearTimeout( resizeRestoreTimer )
+      resizeRestoreTimer = null
+    }
+
     unsubscribeScroll()
     unsubscribeVirtualScroll()
-    eventTarget?.removeEventListener?.( 'keydown', handleKeyDown )
-    eventTarget?.removeEventListener?.( 'resize', handleResize, true )
+
+    if ( eventTarget && typeof eventTarget.removeEventListener === 'function' )
+    {
+      eventTarget.removeEventListener( 'keydown', handleKeyDown )
+      eventTarget.removeEventListener( 'resize', handleResize, true )
+    }
+
     resetTouchGesture( touchGesture )
-    adapter.destroy?.()
+    if ( adapter && typeof adapter.destroy === 'function' )
+    {
+      adapter.destroy()
+    }
   }
 
   return {
