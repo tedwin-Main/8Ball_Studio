@@ -1,64 +1,29 @@
-// Production PBR materials for Draft 4 Photoreal Break.
-import * as THREE from "three"
-import { TABLE_PALETTE } from "./tablePalette.js"
-import { createFeltTextures, createWoodTextures, createPocketLeatherTextures, createBallSurfaceTextures } from './poolSurfaceTextures.js'
+// Production PBR materials for Photoreal Break.
+import * as THREE from 'three'
+import {
+  createFeltTextures,
+  createWoodTextures,
+  createPocketLeatherTextures,
+  createBallSurfaceTextures,
+  createContactShadowTexture,
+  createNumberedBallTexture,
+} from './poolSurfaceTextures.js'
 
-const createContactShadowTexture = () =>
-{
-  const canvas = document.createElement( "canvas" )
-  canvas.width = 128
-  canvas.height = 128
-  const context = canvas.getContext( "2d" )
-  const gradient = context.createRadialGradient( 64, 64, 0, 64, 64, 64 )
-  gradient.addColorStop( 0, "rgba(0, 0, 0, 0.94)" )
-  gradient.addColorStop( 0.25, "rgba(0, 0, 0, 0.78)" )
-  gradient.addColorStop( 0.58, "rgba(0, 0, 0, 0.22)" )
-  gradient.addColorStop( 1, "rgba(0, 0, 0, 0)" )
-  context.fillStyle = gradient
-  context.fillRect( 0, 0, 128, 128 )
-  return new THREE.CanvasTexture( canvas )
-}
+export { createNumberedBallTexture, createContactShadowTexture }
 
-export const createNumberedBallTexture = ( number, color, anisotropy = 16 ) =>
-{
-  const canvas = document.createElement( "canvas" )
-  canvas.width = 1024
-  canvas.height = 512
-  const context = canvas.getContext( "2d" )
-  const isStripe = number > 8
-
-  context.fillStyle = isStripe ? "#faf6ee" : color
-  context.fillRect( 0, 0, canvas.width, canvas.height )
-
-  if ( isStripe )
-  {
-    context.fillStyle = color
-    context.fillRect( 0, 118, canvas.width, 276 )
-  }
-
-  ;[ canvas.width * 0.25, canvas.width * 0.75 ].forEach( ( centerX ) =>
-  {
-    context.fillStyle = "#faf6ee"
-    context.beginPath()
-    context.arc( centerX, 256, 76, 0, Math.PI * 2 )
-    context.fill()
-
-    context.fillStyle = "#111214"
-    context.font = "bold 84px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif"
-    context.textAlign = "center"
-    context.textBaseline = "middle"
-    context.fillText( String( number ), centerX, 260 )
-    if ( number === 6 || number === 9 )
-    {
-      context.fillRect( centerX - 24, 304, 48, 6 )
-    }
-  } )
-
-  const texture = new THREE.CanvasTexture( canvas )
-  texture.colorSpace = THREE.SRGBColorSpace
-  texture.anisotropy = anisotropy
-  return texture
-}
+// Shared pool table palette values across cloth, rails, and pocket hardware.
+export const TABLE_PALETTE = Object.freeze( {
+  felt: '#12442f',
+  feltPbr: '#12442f',
+  feltSheen: '#8fb99a',
+  feltBounce: '#315b43',
+  cushion: '#12442f',
+  rail: '#8d8274',
+  apron: '#766d62',
+  pocketInterior: '#23221f',
+  pocketBottom: '#070907',
+  pocketCollar: '#353a35',
+} )
 
 export const createPoolFeltMaterial = ( felt ) => new THREE.MeshPhysicalMaterial( {
     ...felt,

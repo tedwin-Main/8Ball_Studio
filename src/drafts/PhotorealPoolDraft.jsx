@@ -20,6 +20,7 @@ import {
   createPhotorealMaterials,
   createPhenolicBallMaterial,
   createNumberedBallTexture,
+  TABLE_PALETTE,
 } from "./photorealMaterials.js"
 import { createPhotorealChoreography } from "./photorealTimeline.js"
 import {
@@ -27,11 +28,10 @@ import {
   DRAFT2_SCENE_SCALE,
   resolveIntroCameraFraming,
 } from "./cameraFraming.js"
-import { TABLE_PALETTE } from "./tablePalette.js"
 import { STORY_TIMING } from "../storyTiming.js"
 import { createDemandFrameScheduler } from "./demandFrameScheduler.js"
 
-import { createStudioEnvironment } from './poolSurfaceTextures.js'
+import { createStudioEnvironment, createLogoTexture } from './poolSurfaceTextures.js'
 import { POOL_QUALITY_TIERS, getPoolQualitySignals, selectPoolQualityTier, createQualityMonitor } from './renderQuality.js'
 
 RectAreaLightUniformsLib.init()
@@ -41,39 +41,6 @@ const BALL_COLORS = Object.freeze( [
   "#0b0b0d",
   "#f5c518", "#0047bb", "#e53935", "#5b2c86", "#f26522", "#1b5e20", "#7b1113",
 ] )
-
-const createLogoTexture = ( anisotropy, requestRender ) =>
-{
-  const canvas = document.createElement( "canvas" )
-  canvas.width = 512
-  canvas.height = 512
-  const context = canvas.getContext( "2d" )
-  const image = new Image()
-  const texture = new THREE.CanvasTexture( canvas )
-  texture.colorSpace = THREE.SRGBColorSpace
-  texture.anisotropy = anisotropy
-
-  let disposed = false
-  texture.addEventListener( "dispose", () => { disposed = true; image.onload = null } )
-  const paint = () =>
-  {
-    if ( disposed || !image.naturalWidth ) return
-    context.clearRect( 0, 0, canvas.width, canvas.height )
-    context.save()
-    context.beginPath()
-    context.arc( 256, 256, 230, 0, Math.PI * 2 )
-    context.clip()
-    context.drawImage( image, 24, 24, 464, 464 )
-    context.restore()
-    texture.needsUpdate = true
-    requestRender?.()
-  }
-
-  image.onload = paint
-  image.src = brandLogo
-  if ( image.complete ) paint()
-  return texture
-}
 
 const buildPhotorealScene = ( canvas, onTextureReady, onQualityState ) =>
 {

@@ -1,8 +1,113 @@
 // Shared studio surfaces for Drafts 2 and 4. Color maps are sRGB; data maps stay linear.
 import * as THREE from 'three'
+import brandLogo from '../assets/8BALL-V4.jpg'
 import woodColor from '../assets/materials/walnut-color.jpg'
 import woodNormal from '../assets/materials/walnut-normal.jpg'
 import woodRoughness from '../assets/materials/walnut-roughness.jpg'
+
+// Soft radial Gaussian gradient for ball contact shadows and ambient occlusion.
+export const createContactShadowTexture = ( anisotropy = 1 ) =>
+{
+  const canvas = document.createElement( 'canvas' )
+  canvas.width = 128
+  canvas.height = 128
+  const context = canvas.getContext( '2d' )
+  const gradient = context.createRadialGradient( 64, 64, 0, 64, 64, 64 )
+  gradient.addColorStop( 0, 'rgba(0, 0, 0, 0.95)' )
+  gradient.addColorStop( 0.28, 'rgba(0, 0, 0, 0.8)' )
+  gradient.addColorStop( 0.62, 'rgba(0, 0, 0, 0.25)' )
+  gradient.addColorStop( 1, 'rgba(0, 0, 0, 0)' )
+  context.fillStyle = gradient
+  context.fillRect( 0, 0, 128, 128 )
+  const texture = new THREE.CanvasTexture( canvas )
+  texture.anisotropy = anisotropy
+  texture.generateMipmaps = true
+  texture.minFilter = THREE.LinearMipmapLinearFilter
+  texture.magFilter = THREE.LinearFilter
+  return texture
+}
+
+// Brand 8-ball decal texture with circular clipping.
+export const createLogoTexture = ( anisotropy = 16, requestRender = () => {} ) =>
+{
+  const canvas = document.createElement( 'canvas' )
+  canvas.width = 512
+  canvas.height = 512
+  const context = canvas.getContext( '2d' )
+  const image = new Image()
+  const texture = new THREE.CanvasTexture( canvas )
+  let disposed = false
+  texture.colorSpace = THREE.SRGBColorSpace
+  texture.anisotropy = anisotropy
+
+  const paint = () =>
+  {
+    if ( disposed || !image.naturalWidth ) return
+    context.clearRect( 0, 0, canvas.width, canvas.height )
+    context.save()
+    context.beginPath()
+    context.arc( 256, 256, 230, 0, Math.PI * 2 )
+    context.clip()
+    context.drawImage( image, 24, 24, 464, 464 )
+    context.restore()
+    texture.needsUpdate = true
+    requestRender?.()
+  }
+
+  texture.addEventListener( 'dispose', () =>
+  {
+    disposed = true
+    image.onload = null
+  } )
+
+  image.onload = paint
+  image.src = brandLogo
+  if ( image.complete ) paint()
+  return texture
+}
+
+// Numbered pool ball canvas texture for solids and stripes.
+export const createNumberedBallTexture = ( number, color, anisotropy = 16 ) =>
+{
+  const canvas = document.createElement( 'canvas' )
+  canvas.width = 1024
+  canvas.height = 512
+  const context = canvas.getContext( '2d' )
+  const isStripe = number > 8
+
+  context.fillStyle = isStripe ? '#faf6ee' : color
+  context.fillRect( 0, 0, canvas.width, canvas.height )
+
+  if ( isStripe )
+  {
+    context.fillStyle = color
+    context.fillRect( 0, 118, canvas.width, 276 )
+  }
+
+  ;[ canvas.width * 0.25, canvas.width * 0.75 ].forEach( ( centerX ) =>
+  {
+    context.fillStyle = '#faf6ee'
+    context.beginPath()
+    context.arc( centerX, 256, 76, 0, Math.PI * 2 )
+    context.fill()
+
+    context.fillStyle = '#111214'
+    context.font = 'bold 84px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif'
+    context.textAlign = 'center'
+    context.textBaseline = 'middle'
+    context.fillText( String( number ), centerX, 260 )
+    if ( number === 6 || number === 9 )
+    {
+      context.fillRect( centerX - 24, 304, 48, 6 )
+    }
+  } )
+
+  const texture = new THREE.CanvasTexture( canvas )
+  texture.colorSpace = THREE.SRGBColorSpace
+  texture.anisotropy = anisotropy
+  return texture
+}
+
 
 export const createFeltTextures = ( anisotropy = 16, microRepeatX = 38.4, microRepeatY = 76.8 ) =>
 {

@@ -4,7 +4,6 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useStoryPager } from './hooks/useStoryPager'
 import { DraftSwitcher } from './components/DraftSwitcher'
 import { PoolPovDraft } from './drafts/PoolPovDraft'
-import { WebglPoolDraft } from './drafts/WebglPoolDraft'
 import PhotorealPoolDraft from './drafts/PhotorealPoolDraft'
 import { DRAFT_IDS, normalizeDraftId, getDraftConfig } from './drafts/draftRegistry'
 import { STORY_TIMING, easeWeightedProgress, toStoryProgress, toTimelineUnits } from './storyTiming'
@@ -184,10 +183,6 @@ function App ()
 
   const registerCinematicController = useCallback(
     ( controller ) => registerDraftController( 'cinematic', controller ),
-    [ registerDraftController ],
-  )
-  const registerWebglController = useCallback(
-    ( controller ) => registerDraftController( 'webgl', controller ),
     [ registerDraftController ],
   )
   const registerPhotorealController = useCallback(
@@ -675,12 +670,6 @@ function App ()
           <PoolPovDraft
             active={ activeDraft === 'cinematic' }
             onController={ registerCinematicController }
-          />
-          <WebglPoolDraft
-            active={ activeDraft === 'webgl' }
-            onController={ registerWebglController }
-            onUnavailable={ handleWebglUnavailable }
-            draftId="webgl"
           />
           <PhotorealPoolDraft
             active={ activeDraft === 'photoreal' }
