@@ -36,17 +36,22 @@ export const DEFAULT_BREAK_CONFIG = Object.freeze( {
   } ),
   rack: Object.freeze( {
     apexX: 0,
-    // Place the rack near the foot rail to match a real down-table break composition.
+    // The plate composition pins the rack near the foot rail, so the spread develops in the open table ahead of it.
     apexZ: -0.9,
     gap: 0.00004,
+    // A real rack never seats perfectly; sub-millimetre seating variance lets the pack open unevenly
+    // instead of driving every ball sideways as one flat wall.
+    gapJitter: 0.0003,
   } ),
   striker: Object.freeze( {
     startX: -0.005,
     startZ: 0.5,
-    impactOffsetX: -0.0034,
-    // The heavier striker still follows through, but lower launch energy keeps the rack from darting away.
-    massMultiplier: 2.3,
-    launchSpeed: 5.2,
+    // A cut hit sends the cue ball off the tangent line so the rack opens on one side first.
+    impactOffsetX: -0.004,
+    // An equal-mass cue ball checks up and deflects at contact instead of plowing through the rack.
+    massMultiplier: 1,
+    // Real break pace puts leading balls into the rails so they return and mix the pack.
+    launchSpeed: 7,
   } ),
   milestone: Object.freeze( {
     minimumTime: 1.6,
@@ -165,6 +170,13 @@ const capEnergy = ( balls, beforeEnergy, config ) =>
   return afterEnergy - beforeEnergy
 }
 
+// A fixed hash keeps rack seating variance deterministic across every cached build.
+const rackSeatingOffset = ( seed ) =>
+{
+  const value = Math.sin( seed * 12.9898 + 78.233 ) * 43758.5453
+  return ( value - Math.floor( value ) ) * 2 - 1
+}
+
 const createRackPositions = ( config ) =>
 {
   const { radius } = config.ball
@@ -176,9 +188,13 @@ const createRackPositions = ( config ) =>
   {
     for ( let column = 0; column <= row; column += 1 )
     {
+      const ballIndex = positions.length
+      // The apex ball stays seated exactly so the photo-plate rack anchor remains valid.
+      const jitter = ballIndex === 0 ? 0 : config.rack.gapJitter
+
       positions.push( {
-        x: config.rack.apexX + ( column - row / 2 ) * spacing,
-        z: config.rack.apexZ - row * rowSpacing,
+        x: config.rack.apexX + ( column - row / 2 ) * spacing + rackSeatingOffset( ballIndex * 2 + 1 ) * jitter,
+        z: config.rack.apexZ - row * rowSpacing + rackSeatingOffset( ballIndex * 2 + 2 ) * jitter,
       } )
     }
   }
