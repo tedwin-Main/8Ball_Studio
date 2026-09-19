@@ -125,7 +125,82 @@ test( 'the retuned break spreads into a pack with depth instead of a flat wall',
     interquartileRange( horizontal ) / interquartileRange( vertical ) < 3,
     `spread depth ${interquartileRange( vertical ).toFixed( 4 )} is too thin for width ${interquartileRange( horizontal ).toFixed( 4 )}`,
   )
-  assert.ok( interquartileRange( vertical ) > diameter * 2.5 )
+  // Wider footprint target: vertical interquartile range clears at least 5 ball diameters.
+  assert.ok( interquartileRange( vertical ) >= diameter * 5 )
+} )
+
+test( 'the retuned break drives at least 2 balls out of the rack zone up-table past mid-table', () =>
+{
+  const simulation = getBreakSimulation()
+  const milestoneFrame = simulation.frames[ simulation.milestones.transitionReadyFrame ]
+  const rackBalls = milestoneFrame.balls.slice( 1 ).filter( ( ball ) => !ball.pocketed )
+  // Mid-table is z = 0; balls with z > 0 have passed mid-table into the foreground open felt.
+  const upTableBalls = rackBalls.filter( ( ball ) => ball.position.z > 0 )
+
+  assert.ok(
+    upTableBalls.length >= 2,
+    `expected at least 2 rack balls up-table of mid-table, got ${upTableBalls.length}`,
+  )
+} )
+
+test( 'the retuned break visibly displaces the pack centroid by at least 3 ball diameters', () =>
+{
+  const simulation = getBreakSimulation()
+  const diameter = simulation.config.ball.radius * 2
+  const milestoneFrame = simulation.frames[ simulation.milestones.transitionReadyFrame ]
+  const rackBalls = milestoneFrame.balls.slice( 1 ).filter( ( ball ) => !ball.pocketed )
+  const initialRack = simulation.initial.positions.slice( 1 )
+  const initialCentroid = {
+    x: initialRack.reduce( ( total, ball ) => total + ball.x, 0 ) / initialRack.length,
+    z: initialRack.reduce( ( total, ball ) => total + ball.z, 0 ) / initialRack.length,
+  }
+  const endCentroid = {
+    x: rackBalls.reduce( ( total, ball ) => total + ball.position.x, 0 ) / rackBalls.length,
+    z: rackBalls.reduce( ( total, ball ) => total + ball.position.z, 0 ) / rackBalls.length,
+  }
+  const displacement = Math.hypot( endCentroid.x - initialCentroid.x, endCentroid.z - initialCentroid.z )
+
+  assert.ok(
+    displacement >= diameter * 3,
+    `centroid displacement ${( displacement / diameter ).toFixed( 2 )} diameters should be at least 3`,
+  )
+} )
+
+test( 'all non-pocketed balls remain contained inside playfield bounds in every frame', () =>
+{
+  const simulation = getBreakSimulation()
+  const halfWidth = simulation.config.table.width / 2
+  const halfLength = simulation.config.table.length / 2
+
+  simulation.frames.forEach( ( frame ) =>
+  {
+    frame.balls.forEach( ( ball, ballIndex ) =>
+    {
+      if ( !ball.pocketed )
+      {
+        assert.ok(
+          Math.abs( ball.position.x ) <= halfWidth + 1e-4,
+          `ball ${ballIndex} escaped table x bounds at ${frame.time}s: ${ball.position.x}`,
+        )
+        assert.ok(
+          Math.abs( ball.position.z ) <= halfLength + 1e-4,
+          `ball ${ballIndex} escaped table z bounds at ${frame.time}s: ${ball.position.z}`,
+        )
+      }
+      else if ( ball.pocketIndex >= 0 )
+      {
+        const pocket = simulation.table.pockets[ ball.pocketIndex ]
+        const distanceToPocket = Math.hypot(
+          ball.position.x - pocket.x,
+          ball.position.z - pocket.z,
+        )
+        assert.ok(
+          distanceToPocket <= pocket.radius * 2,
+          `pocketed ball ${ballIndex} drifted out of pocket radius: ${distanceToPocket}`,
+        )
+      }
+    } )
+  } )
 } )
 
 test( 'the retuned break gives the striker cue-ball contact instead of a plow-through mass', () =>
@@ -137,6 +212,10 @@ test( 'the retuned break gives the striker cue-ball contact instead of a plow-th
   assert.ok(
     !simulation.frames[ simulation.milestones.transitionReadyFrame ].balls[ 0 ].pocketed,
     'the striker should still be on the table when the spread settles',
+  )
+  assert.ok(
+    !simulation.frames.some( ( frame ) => frame.balls[ 0 ].pocketed ),
+    'the striker should never be pocketed throughout the simulation',
   )
 } )
 
@@ -161,7 +240,8 @@ test( 'the retuned break reaches the cushions and rebounds', () =>
 {
   const simulation = getBreakSimulation()
 
-  assert.ok( simulation.diagnostics.cushionImpacts >= 8 )
+  // Cushion impacts meet or exceed the previously shipped break count of 15.
+  assert.ok( simulation.diagnostics.cushionImpacts >= 15 )
 } )
 
 test( 'the retuned break reaches its spread milestone naturally inside the time window', () =>

@@ -22,15 +22,18 @@ export const DEFAULT_BREAK_CONFIG = Object.freeze( {
     mass: 0.17,
     // A 35 mm radius gives every ball stronger POV presence; the nearby 8-ball grows naturally through perspective.
     radius: 0.035,
-    restitution: 0.84,
+    // Higher ball-to-ball restitution preserves kinetic energy through the rack rows to drive back balls into open table.
+    restitution: 0.94,
     friction: 0.03,
     slidingFriction: 0.24,
-    rollingDeceleration: 0.28,
+    // Lower rolling deceleration lets balls continue rolling across the table instead of stalling near the foot rail.
+    rollingDeceleration: 0.115,
   } ),
   table: Object.freeze( {
     width: 1.27,
     length: 2.54,
-    cushionRestitution: 0.72,
+    // Livelier cushions return more momentum into the open playfield after rail contact.
+    cushionRestitution: 0.86,
     cornerPocketRadius: 0.068,
     sidePocketRadius: 0.061,
   } ),
@@ -46,18 +49,19 @@ export const DEFAULT_BREAK_CONFIG = Object.freeze( {
   striker: Object.freeze( {
     startX: -0.005,
     startZ: 0.5,
-    // A cut hit sends the cue ball off the tangent line so the rack opens on one side first.
-    impactOffsetX: -0.004,
+    // A slight cut hit directs energy forward into the open table while maintaining centerline asymmetry and photo registration.
+    impactOffsetX: -0.0025,
     // An equal-mass cue ball checks up and deflects at contact instead of plowing through the rack.
     massMultiplier: 1,
-    // Real break pace puts leading balls into the rails so they return and mix the pack.
-    launchSpeed: 7,
+    // Moderate break pace balances realistic physical ball speed with an expansive spread footprint.
+    launchSpeed: 8.5,
   } ),
   milestone: Object.freeze( {
     minimumTime: 1.6,
     maximumTime: 2.6,
     ballsOutsideRack: 12,
-    rmsBallDiameters: 8,
+    // Target spread threshold allowing the wider footprint to naturally develop before freezing for the handoff.
+    rmsBallDiameters: 7.5,
   } ),
 } )
 
