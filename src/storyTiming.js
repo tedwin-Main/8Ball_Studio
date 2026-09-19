@@ -98,10 +98,12 @@ export const STORY_TIMING_DEFAULTS = freeze( {
     // Shared approach and break timings are timeline progress units. Both drafts now move on the first swipe.
     approachDuration: 0.28,
     draft1ScatterDuration: 0.22,
-    draft1TransitionDuration: 0.4,
+    // Scaled to 0.16 so the Studio crossfade takes 0.48s in real time during the 3.0s Intro transition.
+    draft1TransitionDuration: 0.16,
     // Draft 2 uses the same readable spread and fade window; App.jsx handles its short handoff assist.
     draft2ScatterDuration: 0.22,
-    draft2TransitionDuration: 0.4,
+    // Scaled to 0.16 so Draft 2 title and 3D exit handoff take 0.48s in real time during the 3.0s Intro transition.
+    draft2TransitionDuration: 0.16,
     draft2PocketCutLead: 0.04,
     // Lenis duration is seconds, not scroll-story progress.
     draft1BreakTransitionSeconds: 1.8,
@@ -136,8 +138,9 @@ export const STORY_TIMING_DEFAULTS = freeze( {
       ballPocketDuration: 0.14,
       ballVanishDuration: 0.04,
       pocketIrisDuration: 0.18,
-      titleLineDuration: 0.1,
-      titleLineStagger: 0.012,
+      // 0.088 timeline units = 0.264s in real time at 3.0s Intro transition, matching Projects title reveal speed.
+      titleLineDuration: 0.088,
+      titleLineStagger: 0.015,
       metaDelay: 0.06,
       metaDuration: 0.06,
       timelineEndEpsilon: 0.005,

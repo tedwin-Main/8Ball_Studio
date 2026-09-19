@@ -7,7 +7,7 @@ test( 'resolves semantic intro and page milestones in order', () =>
   assert.equal( STORY_TIMING.intro.approachEnd, 0.28 )
   assert.equal( STORY_TIMING.intro.impact, STORY_TIMING.intro.approachEnd )
   assert.equal( STORY_TIMING.intro.draft2.transitionReady, 0.5 )
-  assert.equal( STORY_TIMING.intro.draft2.exitEnd, 0.9 )
+  assert.equal( STORY_TIMING.intro.draft2.exitEnd, 0.66 )
   assert.equal( STORY_TIMING.pages.cinematicStudioStart, 0.5 )
   assert.equal( STORY_TIMING.pages.contactStart, 2.14 )
   assert.equal( STORY_TIMING.pages.projectsFadeDuration, 0.46 )
