@@ -1,9 +1,9 @@
 // Shared studio surfaces for Drafts 2 and 4. Color maps are sRGB; data maps stay linear.
 import * as THREE from 'three'
 import brandLogo from '../assets/8BALL-V4.jpg'
-import woodColor from '../assets/materials/walnut-color.jpg'
-import woodNormal from '../assets/materials/walnut-normal.jpg'
-import woodRoughness from '../assets/materials/walnut-roughness.jpg'
+import woodColor from '../assets/materials/walnut-color.webp'
+import woodNormal from '../assets/materials/walnut-normal.webp'
+import woodRoughness from '../assets/materials/walnut-roughness.webp'
 
 // Soft radial Gaussian gradient for ball contact shadows and ambient occlusion.
 export const createContactShadowTexture = ( anisotropy = 1 ) =>
@@ -27,13 +27,20 @@ export const createContactShadowTexture = ( anisotropy = 1 ) =>
   return texture
 }
 
-// Brand 8-ball decal texture with circular clipping.
+const smoothstep = ( edge0, edge1, value ) =>
+{
+  const t = Math.min( 1, Math.max( 0, ( value - edge0 ) / ( edge1 - edge0 ) ) )
+  return t * t * ( 3 - 2 * t )
+}
+
+// Brand 8-ball decal: only the white glyph is kept so the ball's own resin shows around it.
 export const createLogoTexture = ( anisotropy = 16, requestRender = () => {} ) =>
 {
+  const size = 1024
   const canvas = document.createElement( 'canvas' )
-  canvas.width = 512
-  canvas.height = 512
-  const context = canvas.getContext( '2d' )
+  canvas.width = size
+  canvas.height = size
+  const context = canvas.getContext( '2d', { willReadFrequently: true } )
   const image = new Image()
   const texture = new THREE.CanvasTexture( canvas )
   let disposed = false
@@ -43,13 +50,25 @@ export const createLogoTexture = ( anisotropy = 16, requestRender = () => {} ) =
   const paint = () =>
   {
     if ( disposed || !image.naturalWidth ) return
-    context.clearRect( 0, 0, canvas.width, canvas.height )
+    context.clearRect( 0, 0, size, size )
     context.save()
     context.beginPath()
-    context.arc( 256, 256, 230, 0, Math.PI * 2 )
+    context.arc( size / 2, size / 2, size * 0.449, 0, Math.PI * 2 )
     context.clip()
-    context.drawImage( image, 24, 24, 464, 464 )
+    context.drawImage( image, size * 0.047, size * 0.047, size * 0.906, size * 0.906 )
     context.restore()
+
+    // Luminance becomes alpha: the logo's black disc turns transparent (no halo on the ball)
+    // and the smoothstep band cleans JPEG ringing off the glyph edge.
+    const pixels = context.getImageData( 0, 0, size, size )
+    const data = pixels.data
+    for ( let index = 0; index < data.length; index += 4 )
+    {
+      const luminance = ( data[ index ] * 0.2126 + data[ index + 1 ] * 0.7152 + data[ index + 2 ] * 0.0722 ) / 255
+      data[ index + 3 ] = Math.round( data[ index + 3 ] * smoothstep( 0.35, 0.75, luminance ) )
+      data[ index ] = data[ index + 1 ] = data[ index + 2 ] = 255
+    }
+    context.putImageData( pixels, 0, 0 )
     texture.needsUpdate = true
     requestRender?.()
   }
@@ -66,48 +85,99 @@ export const createLogoTexture = ( anisotropy = 16, requestRender = () => {} ) =
   return texture
 }
 
+// Ball numbers use the site's brand face; fallbacks cover the frame before the webfont arrives.
+const BALL_NUMBER_FONT = '600 84px "Space Grotesk", "Helvetica Neue", Arial, sans-serif'
+
 // Numbered pool ball canvas texture for solids and stripes.
-export const createNumberedBallTexture = ( number, color, anisotropy = 16 ) =>
+export const createNumberedBallTexture = ( number, color, anisotropy = 16, requestRender = () => {} ) =>
 {
   const canvas = document.createElement( 'canvas' )
   canvas.width = 1024
   canvas.height = 512
   const context = canvas.getContext( '2d' )
   const isStripe = number > 8
-
-  context.fillStyle = isStripe ? '#faf6ee' : color
-  context.fillRect( 0, 0, canvas.width, canvas.height )
-
-  if ( isStripe )
-  {
-    context.fillStyle = color
-    context.fillRect( 0, 118, canvas.width, 276 )
-  }
-
-  ;[ canvas.width * 0.25, canvas.width * 0.75 ].forEach( ( centerX ) =>
-  {
-    context.fillStyle = '#faf6ee'
-    context.beginPath()
-    context.arc( centerX, 256, 76, 0, Math.PI * 2 )
-    context.fill()
-
-    context.fillStyle = '#111214'
-    context.font = 'bold 84px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif'
-    context.textAlign = 'center'
-    context.textBaseline = 'middle'
-    context.fillText( String( number ), centerX, 260 )
-    if ( number === 6 || number === 9 )
-    {
-      context.fillRect( centerX - 24, 304, 48, 6 )
-    }
-  } )
-
   const texture = new THREE.CanvasTexture( canvas )
+  let disposed = false
   texture.colorSpace = THREE.SRGBColorSpace
   texture.anisotropy = anisotropy
+
+  const paint = () =>
+  {
+    context.fillStyle = isStripe ? '#faf6ee' : color
+    context.fillRect( 0, 0, canvas.width, canvas.height )
+
+    if ( isStripe )
+    {
+      context.fillStyle = color
+      context.fillRect( 0, 118, canvas.width, 276 )
+    }
+
+    ;[ canvas.width * 0.25, canvas.width * 0.75 ].forEach( ( centerX ) =>
+    {
+      context.fillStyle = '#faf6ee'
+      context.beginPath()
+      context.arc( centerX, 256, 76, 0, Math.PI * 2 )
+      context.fill()
+
+      context.fillStyle = '#111214'
+      context.font = BALL_NUMBER_FONT
+      context.textAlign = 'center'
+      context.textBaseline = 'middle'
+      context.fillText( String( number ), centerX, 260 )
+      if ( number === 6 || number === 9 )
+      {
+        context.fillRect( centerX - 24, 304, 48, 6 )
+      }
+    } )
+  }
+
+  paint()
+  texture.addEventListener( 'dispose', () => { disposed = true } )
+  // Canvas text silently falls back if the webfont is still loading, so repaint once it is ready.
+  document.fonts?.load( BALL_NUMBER_FONT ).then( () =>
+  {
+    if ( disposed ) return
+    paint()
+    texture.needsUpdate = true
+    requestRender?.()
+  } ).catch( () => {} )
   return texture
 }
 
+
+// Deterministic 0..1 hash per lattice point, so every load paints the same cloth.
+const hashLattice = ( x, y ) =>
+{
+  let h = Math.imul( x, 374761393 ) + Math.imul( y, 668265263 ) | 0
+  h = Math.imul( h ^ h >>> 13, 1274126177 )
+  return ( ( h ^ h >>> 16 ) >>> 0 ) / 4294967295
+}
+
+// Tileable value noise: lattice corners wrap at `period`, so each tile edge matches its opposite edge.
+const tileableValueNoise = ( u, v, period ) =>
+{
+  const x = u * period
+  const y = v * period
+  const x0 = Math.floor( x )
+  const y0 = Math.floor( y )
+  const fx = x - x0
+  const fy = y - y0
+  const sx = fx * fx * ( 3 - 2 * fx )
+  const sy = fy * fy * ( 3 - 2 * fy )
+  const xa = x0 % period
+  const ya = y0 % period
+  const xb = ( x0 + 1 ) % period
+  const yb = ( y0 + 1 ) % period
+  const top = hashLattice( xa, ya ) + ( hashLattice( xb, ya ) - hashLattice( xa, ya ) ) * sx
+  const bottom = hashLattice( xa, yb ) + ( hashLattice( xb, yb ) - hashLattice( xa, yb ) ) * sx
+  return top + ( bottom - top ) * sy
+}
+
+// Three octaves of broad cloth mottling (dye and wear), weighted toward the largest blotches.
+const feltMottle = ( u, v ) =>
+  tileableValueNoise( u, v, 4 ) * 0.5 +
+  tileableValueNoise( u, v, 9 ) * 0.3 +
+  tileableValueNoise( u, v, 21 ) * 0.2
 
 export const createFeltTextures = ( anisotropy = 16, microRepeatX = 38.4, microRepeatY = 76.8 ) =>
 {
@@ -228,21 +298,17 @@ export const createFeltTextures = ( anisotropy = 16, microRepeatX = 38.4, microR
       normalData[ pixelIdx + 2 ] = Math.round( ( nz * 0.5 + 0.5 ) * 255 )
       normalData[ pixelIdx + 3 ] = 255
 
-      // Neutral, low-frequency dye variation keeps the fine weave out of the color map.
-      // Tiling remains seamless; the normal map alone carries the small fiber structure.
+      // Neutral, low-frequency dye mottling (about ±7%) breaks up the flat CG slab look.
+      // The fine weave stays out of the color map; the normal map alone carries fiber structure.
       const h = heightMap[ idx ]
-      const dyeShift = Math.sin( x / width * Math.PI * 4 ) * Math.cos( y / height * Math.PI * 6 ) * 2
-      const r = 226 + dyeShift
-      const g = 230 + dyeShift
-      const b = 224 + dyeShift
-
-      albedoData[ pixelIdx ] = r
-      albedoData[ pixelIdx + 1 ] = g
-      albedoData[ pixelIdx + 2 ] = b
+      const mottle = ( feltMottle( x / width, y / height ) - 0.5 ) * 52
+      albedoData[ pixelIdx ] = 226 + mottle
+      albedoData[ pixelIdx + 1 ] = 230 + mottle
+      albedoData[ pixelIdx + 2 ] = 224 + mottle
       albedoData[ pixelIdx + 3 ] = 255
 
       // Roughness Map: broad nap response with only a small yarn-to-yarn difference.
-      const roughnessVal = Math.round( ( 0.96 - h * 0.05 + dyeShift * 0.002 ) * 255 )
+      const roughnessVal = Math.round( ( 0.96 - h * 0.05 ) * 255 )
       roughnessData[ pixelIdx ] = roughnessVal
       roughnessData[ pixelIdx + 1 ] = roughnessVal
       roughnessData[ pixelIdx + 2 ] = roughnessVal
@@ -496,12 +562,13 @@ export const createStudioEnvironment = ( renderer ) =>
 
 // Locally hosted CC0 scan; placeholders preserve a complete material if an image fails.
 // Updating an existing texture avoids recompiling a material when loading finishes.
-export const createWoodTextures = ( anisotropy = 8, requestRender = () => {} ) =>
+// `size` is the GPU resolution: the 2K scans are downsampled into a 1K canvas on the low tier.
+export const createWoodTextures = ( anisotropy = 8, requestRender = () => {}, size = 2048 ) =>
 {
   const load = ( url, color, colorSpace ) =>
   {
     const canvas = document.createElement( 'canvas' )
-    canvas.width = canvas.height = 1024
+    canvas.width = canvas.height = size
     const context = canvas.getContext( '2d' )
     context.fillStyle = color
     context.fillRect( 0, 0, canvas.width, canvas.height )

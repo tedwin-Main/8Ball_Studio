@@ -2,8 +2,8 @@ import { useLayoutEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { DecalGeometry } from 'three/addons/geometries/DecalGeometry.js'
 import brandLogo from '../assets/8BALL-V4.jpg'
-import landscapePool from '../assets/drafts/pool-pov-landscape.png'
-import portraitPool from '../assets/drafts/pool-pov-portrait.png'
+import landscapePool from '../assets/drafts/pool-pov-landscape.webp'
+import portraitPool from '../assets/drafts/pool-pov-portrait.webp'
 import {
   getBreakSimulation,
   sampleCinematicBreakState,
@@ -257,9 +257,7 @@ const buildWorld = ( canvas, simulation, requestRender ) =>
   const decalMaterial = new THREE.MeshPhysicalMaterial( {
     map: logoTexture,
     color: '#ffffff',
-    // Pure-black logo pixels need a low ambient floor or they crush despite the reflected light.
-    emissive: '#26382f',
-    emissiveIntensity: 0.35,
+    // The texture carries only the white glyph; the striker's resin shows through everywhere else.
     transparent: true,
     roughness: 0.12,
     clearcoat: 0.9,
@@ -296,6 +294,7 @@ const buildWorld = ( canvas, simulation, requestRender ) =>
       number,
       BALL_COLORS[ number - 1 ],
       maximumAnisotropy,
+      requestRender,
     )
     disposableTextures.add( texture )
     const material = createBallMaterial( BALL_COLORS[ number - 1 ], texture )

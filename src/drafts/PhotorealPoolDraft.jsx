@@ -70,8 +70,14 @@ const buildPhotorealScene = ( canvas, onTextureReady, onQualityState ) =>
   scene.environment = envTarget.texture
   scene.environmentIntensity = 0.45
 
+  // Pick the starting tier before building materials so texture resolution can follow it.
+  let width = canvas.clientWidth || window.innerWidth
+  let height = canvas.clientHeight || window.innerHeight
+  const signals = getPoolQualitySignals( width, height )
+  let activeTier = POOL_QUALITY_TIERS[ selectPoolQualityTier( signals ) ]
+
   const anisotropy = Math.min( 8, renderer.capabilities.getMaxAnisotropy() )
-  const materials = createPhotorealMaterials( disposableMaterials, disposableTextures, anisotropy, onTextureReady )
+  const materials = createPhotorealMaterials( disposableMaterials, disposableTextures, anisotropy, onTextureReady, activeTier.woodTextureSize )
 
   const table = new THREE.Group()
   scene.add( table )
@@ -199,7 +205,7 @@ const buildPhotorealScene = ( canvas, onTextureReady, onQualityState ) =>
   // Object balls (1 to 15)
   for ( let number = 1; number <= 15; number += 1 )
   {
-    const texture = createNumberedBallTexture( number, BALL_COLORS[ number - 1 ], anisotropy )
+    const texture = createNumberedBallTexture( number, BALL_COLORS[ number - 1 ], anisotropy, onTextureReady )
     disposableTextures.add( texture )
     const ballMat = createPhenolicBallMaterial( BALL_COLORS[ number - 1 ], texture, disposableMaterials, materials.resin )
     const mesh = new THREE.Mesh( ballGeometry, ballMat )
@@ -275,10 +281,6 @@ const buildPhotorealScene = ( canvas, onTextureReady, onQualityState ) =>
     keyLight,
   } )
 
-  let width = canvas.clientWidth || window.innerWidth
-  let height = canvas.clientHeight || window.innerHeight
-  const signals = getPoolQualitySignals( width, height )
-  let activeTier = POOL_QUALITY_TIERS[ selectPoolQualityTier( signals ) ]
   const applySize = () =>
   {
     renderer.setPixelRatio( Math.min( window.devicePixelRatio || 1, activeTier.pixelRatioCap ) )

@@ -11,6 +11,7 @@ export const POOL_QUALITY_TIERS = Object.freeze( {
     ballHeightSegments: 28,
     ballTextureWidth: 1024,
     ballTextureHeight: 512,
+    woodTextureSize: 2048,
   } ),
   standard: Object.freeze( {
     id: 'standard',
@@ -22,6 +23,7 @@ export const POOL_QUALITY_TIERS = Object.freeze( {
     ballHeightSegments: 24,
     ballTextureWidth: 768,
     ballTextureHeight: 384,
+    woodTextureSize: 2048,
   } ),
   low: Object.freeze( {
     id: 'low',
@@ -33,6 +35,8 @@ export const POOL_QUALITY_TIERS = Object.freeze( {
     ballHeightSegments: 20,
     ballTextureWidth: 512,
     ballTextureHeight: 256,
+    // Low tier keeps 1K walnut maps (a quarter of the GPU memory of the 2K scans).
+    woodTextureSize: 1024,
   } ),
 } )
 

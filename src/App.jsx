@@ -11,7 +11,7 @@ import { getStoryPages } from './storySchedule'
 // One V4 asset supplies both the header brand mark and animated 8-ball surface.
 import brandLogo from './assets/8BALL-V4.jpg'
 // The PNG has a baked checkerboard; CSS clips its square to the logo circle at render time.
-import artigustoGelato from './assets/Artigusto-Gelato_Clearned.png'
+import artigustoGelato from './assets/Artigusto-Gelato_Clearned.webp'
 import ersEnergyLogo from './assets/ers-energy-logo.png'
 import haruplateLogo from './assets/haruplate-logo.png'
 import shopeeLogo from './assets/shopee-logo.svg'

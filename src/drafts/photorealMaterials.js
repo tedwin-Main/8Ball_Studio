@@ -18,8 +18,9 @@ export const TABLE_PALETTE = Object.freeze( {
   feltSheen: '#8fb99a',
   feltBounce: '#315b43',
   cushion: '#12442f',
-  rail: '#8d8274',
-  apron: '#766d62',
+  // Rail/apron tints multiply the walnut scan; lighter values let the grain read under the dim studio rig.
+  rail: '#b5a28c',
+  apron: '#9a8b7a',
   pocketInterior: '#23221f',
   pocketBottom: '#070907',
   pocketCollar: '#353a35',
@@ -38,10 +39,10 @@ export const createPoolFeltMaterial = ( felt ) => new THREE.MeshPhysicalMaterial
     clearcoat: 0,
   } )
 
-export const createPhotorealMaterials = ( disposables, textures, anisotropy, requestRender ) =>
+export const createPhotorealMaterials = ( disposables, textures, anisotropy, requestRender, woodTextureSize ) =>
 {
   const felt = createFeltTextures( anisotropy, 72, 144 )
-  const wood = createWoodTextures( anisotropy, requestRender )
+  const wood = createWoodTextures( anisotropy, requestRender, woodTextureSize )
   const leather = createPocketLeatherTextures( anisotropy )
   const resin = createBallSurfaceTextures( anisotropy )
   ;[ felt, wood, leather, resin ].forEach( ( maps ) => Object.values( maps ).forEach( ( texture ) => textures.add( texture ) ) )
