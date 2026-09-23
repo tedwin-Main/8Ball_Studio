@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { CustomEase } from 'gsap/CustomEase'
 import { useStoryPager } from './hooks/useStoryPager'
 import { DraftSwitcher } from './components/DraftSwitcher'
 import { PoolPovDraft } from './drafts/PoolPovDraft'
@@ -10,13 +11,39 @@ import { STORY_TIMING, easeWeightedProgress, toStoryProgress, toTimelineUnits } 
 import { getStoryPages } from './storySchedule'
 // One V4 asset supplies both the header brand mark and animated 8-ball surface.
 import brandLogo from './assets/8BALL-V4.jpg'
-// The PNG has a baked checkerboard; CSS clips its square to the logo circle at render time.
+// Circular mark with real alpha outside the badge.
 import artigustoGelato from './assets/Artigusto-Gelato_Clearned.webp'
 import ersEnergyLogo from './assets/ers-energy-logo.png'
 import haruplateLogo from './assets/haruplate-logo.png'
 import shopeeLogo from './assets/shopee-logo.svg'
 
-gsap.registerPlugin( ScrollTrigger )
+gsap.registerPlugin( ScrollTrigger, CustomEase )
+
+// The one motion signature of the Cyc Wall world: a studio light snapping on fast,
+// then settling with a long tail, like a tungsten head reaching full output.
+CustomEase.create( 'cue', 'M0,0 C0.14,0.66 0.24,1 1,1' )
+
+// Each Page is the same cyc wall relit from a different light position.
+// Studio light spills out of the pocket the 8-ball just dropped into.
+const CUE_ORIGINS = Object.freeze( {
+  studio: '88% 27%',
+  projects: '6% 32%',
+  contact: '50% 104%',
+} )
+const lightsOff = ( origin ) => `circle(0% at ${origin})`
+const lightsUp = ( origin ) => `circle(150% at ${origin})`
+
+// Silhouette letters enter from their page's light: Studio's spill comes from the pocket at
+// top-right, Projects' side key from the left, Contact's footlight from the floor.
+const CHAR_ENTRANCES = Object.freeze( {
+  studio: { xPercent: 70, skewX: -14, autoAlpha: 0 },
+  projects: { xPercent: -80, skewX: 12, autoAlpha: 0 },
+  contact: { yPercent: 55, scaleY: 0.4, transformOrigin: '50% 100%', autoAlpha: 0 },
+} )
+const CHAR_REST = { xPercent: 0, yPercent: 0, skewX: 0, scaleY: 1, autoAlpha: 1, ease: 'cue' }
+// Paper tape labels are slapped on: a little oversize and twisted, then pressed flat.
+const TAPE_SLAP = { autoAlpha: 0, scale: 1.14, rotation: 7 }
+const TAPE_REST = { autoAlpha: 1, scale: 1, rotation: 0, ease: 'back.out(2.2)' }
 
 // Keep the Draft 2 camera cut aligned with the shared intro timeline.
 const DRAFT2_TRANSITION_READY_STORY_PROGRESS = toStoryProgress( STORY_TIMING.intro.draft2.transitionReady )
@@ -35,33 +62,62 @@ const getInitialDraft = () =>
 }
 
 const PROJECT_ITEMS = [
-  // Mark the baked-checkerboard logo so its card can use an isolated circular clip.
+  // Round badge mark: its board gives it a little more room than the wordmarks.
   { src: artigustoGelato, alt: 'Artigusto Gelato', type: 'artigusto' },
   { src: ersEnergyLogo, alt: 'ERS Energy' },
-  { src: haruplateLogo, alt: 'Haruplate' },
+  // Pale mark drawn for dark grounds: its board is cut from gaffer.
+  { src: haruplateLogo, alt: 'Haruplate', type: 'haruplate' },
   { src: shopeeLogo, alt: 'Shopee' },
 ]
+
+const SERVICES = [ 'Social Content Management', 'Video & Photography', 'Graphic Design' ]
+
+// Spike-tape colour per Page: the felt for the Intro, then each Page's gel.
+const PAGE_MARKS = Object.freeze( {
+  intro: 'var(--felt-mark)',
+  studio: 'var(--gel-studio)',
+  projects: 'var(--gel-projects)',
+  contact: 'var(--gel-contact)',
+} )
 
 const CONTACT_ITEMS = [
   {
     icon: 'whatsapp',
     title: 'WhatsApp',
     description: '+60 12-783 7511',
+    action: 'Message',
     href: 'https://wa.me/60127837511',
   },
   {
     icon: 'instagram',
     title: 'Instagram',
     description: '@8ightball.studio',
+    action: 'Follow',
     href: 'https://www.instagram.com/8ightball.studio/',
   },
   {
     icon: 'email',
     title: 'Email',
     description: '8ightball.studio@gmail.com',
+    action: 'Write',
     href: 'mailto:8ightball.studio@gmail.com',
   },
 ]
+
+// One title line split into per-letter spans so each letter can be "set down" on the cyc floor.
+// The parent heading carries the accessible name, so the letters stay out of the reading order.
+function CueLine ( { text, className } )
+{
+  return (
+    <span className={ className }>
+      <span aria-hidden="true">
+        { [ ...text ].map( ( character, index ) => (
+          <span className="cue-char" key={ index }>{ character === ' ' ? ' ' : character }</span>
+        ) ) }
+      </span>
+    </span>
+  )
+}
 
 function ContactIcon ( { type } )
 {
@@ -256,9 +312,6 @@ function App ()
   {
     const root = rootRef.current
     const ballRig = root.querySelector( '.ball-rig' )
-    const cursorDot = root.querySelector( '.cursor-dot' )
-    const cursorRing = root.querySelector( '.cursor-ring' )
-    const pointerGlow = root.querySelector( '.pointer-glow' )
     let pointerFrame = 0
     let pointerX = 0
     let pointerY = 0
@@ -266,24 +319,21 @@ function App ()
     const hasFinePointer = window.matchMedia( '(hover: hover) and (pointer: fine)' ).matches
     const prefersReducedMotion = window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches
 
-    const createQuickSetter = ( target, prop, duration, ease ) =>
-      hasFinePointer ? gsap.quickTo( target, prop, ease ? { duration, ease } : { duration } ) : null
-
-    const moveCursorDotX = createQuickSetter( cursorDot, 'x', 0.05 )
-    const moveCursorDotY = createQuickSetter( cursorDot, 'y', 0.05 )
-    const moveCursorRingX = createQuickSetter( cursorRing, 'x', 0.12 )
-    const moveCursorRingY = createQuickSetter( cursorRing, 'y', 0.12 )
-    const movePointerGlowX = createQuickSetter( pointerGlow, 'x', 0.14, 'power2.out' )
-    const movePointerGlowY = createQuickSetter( pointerGlow, 'y', 0.14, 'power2.out' )
-
-    // Start the glow in the same centered position as the old CSS gradient.
-    if ( hasFinePointer )
+    // The pointer is the studio's key light. A proxy eases toward the pointer and writes
+    // --lx / --ly (percent of the viewport); CSS turns them into the wall hotspot and the
+    // shadow each silhouette letter casts away from the light.
+    const keyLight = { x: 30, y: 26 }
+    const applyKeyLight = () =>
     {
-      gsap.set( pointerGlow, {
-        x: window.innerWidth * 0.5,
-        y: window.innerHeight * 0.5,
-      } )
+      root.style.setProperty( '--lx', keyLight.x.toFixed( 2 ) )
+      root.style.setProperty( '--ly', keyLight.y.toFixed( 2 ) )
     }
+    const moveLightX = hasFinePointer && !prefersReducedMotion
+      ? gsap.quickTo( keyLight, 'x', { duration: 0.9, ease: 'power3.out', onUpdate: applyKeyLight } )
+      : null
+    const moveLightY = hasFinePointer && !prefersReducedMotion
+      ? gsap.quickTo( keyLight, 'y', { duration: 0.9, ease: 'power3.out', onUpdate: applyKeyLight } )
+      : null
 
     const setBallLayerPromotion = ( active ) =>
     {
@@ -302,19 +352,13 @@ function App ()
 
       pointerFrame = window.requestAnimationFrame( () =>
       {
-        moveCursorDotX( pointerX )
-        moveCursorDotY( pointerY )
-        moveCursorRingX( pointerX )
-        moveCursorRingY( pointerY )
-        // Move one isolated layer; this avoids repainting the full stage on hover.
-        movePointerGlowX( pointerX )
-        movePointerGlowY( pointerY )
-
+        moveLightX( ( pointerX / window.innerWidth ) * 100 )
+        moveLightY( ( pointerY / window.innerHeight ) * 100 )
         pointerFrame = 0
       } )
     }
 
-    if ( hasFinePointer )
+    if ( moveLightX )
     {
       window.addEventListener( 'pointermove', movePointer, { passive: true } )
     }
@@ -359,27 +403,17 @@ function App ()
           gsap.set( '.hero-copy', { autoAlpha: showIntro ? 1 : 0 } )
           gsap.set( '.scroll-prompt', { autoAlpha: showIntro ? 1 : 0 } )
           gsap.set( '.scene-interface', { autoAlpha: showEndScreen ? 0 : 1 } )
-          gsap.set( '.title-screen', { autoAlpha: showStudio ? 1 : 0 } )
-          gsap.set( [ '.final-title-line > span', '.final-meta' ], {
-            autoAlpha: showStudio ? 1 : 0,
-            y: 0,
-            yPercent: 0,
-          } )
-          gsap.set( '.projects-screen', {
-            autoAlpha: showProjects ? 1 : 0,
-            yPercent: 0,
-          } )
-          gsap.set( '.projects-title-line > span', {
-            autoAlpha: showProjects ? 1 : 0,
-            y: 0,
-            yPercent: 0,
-          } )
-          gsap.set( '.contact-screen', {
-            autoAlpha: showContact ? 1 : 0,
-            yPercent: 0,
-          } )
-          gsap.set( [ '.contact-title-line > span', '.contact-item' ], {
-            autoAlpha: showContact ? 1 : 0,
+          // Pages switch like a light being switched on: fully lit, nothing travelling.
+          gsap.set( '.title-screen', { autoAlpha: showStudio ? 1 : 0, clipPath: 'none' } )
+          gsap.set( '.projects-screen', { autoAlpha: showProjects ? 1 : 0, clipPath: 'none' } )
+          gsap.set( '.contact-screen', { autoAlpha: showContact ? 1 : 0, clipPath: 'none' } )
+          gsap.set( '.cyc-wall', { filter: 'none' } )
+          gsap.set( '.cue-char', { xPercent: 0, yPercent: 0, skewX: 0, scaleY: 1, autoAlpha: 1 } )
+          gsap.set( [ '.studio-floor .tape', '.final-meta', '.project-card', '.call-sheet', '.contact-item' ], {
+            autoAlpha: 1,
+            scale: 1,
+            rotation: 0,
+            rotationX: 0,
             y: 0,
             yPercent: 0,
           } )
@@ -447,14 +481,37 @@ function App ()
             scale: 0,
             autoAlpha: 1,
           } )
-          gsap.set( '.title-screen', { autoAlpha: 0, scale: 1, yPercent: 0, force3D: true } )
-          gsap.set( '.final-title-line > span', { y: 0, yPercent: 115 } )
-          gsap.set( '.final-meta', { y: 20, autoAlpha: 0 } )
-          gsap.set( '.projects-screen', { autoAlpha: 0, yPercent: 8, force3D: true } )
-          gsap.set( '.projects-title-line > span', { y: 0, yPercent: 115 } )
-          gsap.set( '.contact-screen', { autoAlpha: 0, yPercent: 8, force3D: true } )
-          gsap.set( '.contact-title-line > span', { y: 0, yPercent: 115 } )
-          gsap.set( '.contact-item', { y: 20, autoAlpha: 0 } )
+          gsap.set( [ '.title-screen', '.projects-screen', '.contact-screen' ], { autoAlpha: 0 } )
+
+          // The Studio lighting cue lives in its own paused timeline so both intro drafts can
+          // drive it: Draft 1 scrubs it from the master timeline, Draft 2 from its handoff progress.
+          // 1. Light floods the cyc from the pocket (clip-path circle) while the wall warms up.
+          // 2. The silhouette letters are set down on the floor, right to left, away from the light.
+          // 3. The service and location tapes are slapped onto the floor.
+          const studioCue = gsap.timeline( { paused: true } )
+            .fromTo( '.title-screen', { clipPath: lightsOff( CUE_ORIGINS.studio ) }, {
+              clipPath: lightsUp( CUE_ORIGINS.studio ),
+              ease: 'cue',
+              duration: 0.72,
+            }, 0 )
+            .fromTo( '.title-screen .cyc-wall', { filter: 'brightness(0.4)' }, {
+              filter: 'brightness(1)',
+              ease: 'cue',
+              duration: 0.8,
+            }, 0 )
+            .fromTo( '.final-title .cue-char', CHAR_ENTRANCES.studio, {
+              ...CHAR_REST,
+              duration: 0.34,
+              stagger: { amount: 0.26, from: 'end' },
+            }, 0.12 )
+            .fromTo( [ '.studio-floor .tape', '.final-meta' ], TAPE_SLAP, {
+              ...TAPE_REST,
+              duration: 0.2,
+              stagger: 0.07,
+            }, 0.58 )
+          // Draft 1 cue window: from the draft exit to the end of the old meta reveal.
+          const studioCueEnd = STORY_TIMING.intro.visual.metaStart + STORY_TIMING.intro.visual.metaDuration
+          const studioCueDuration = studioCueEnd - STORY_TIMING.intro.draft1.exitStart
 
           const syncDraft2Handoff = ( progress ) =>
           {
@@ -468,17 +525,14 @@ function App ()
             gsap.set( '.pocket-iris', { autoAlpha: cutPocketDrop ? 0 : 1 } )
 
             const exitProgress = getDraft2ExitProgress( progress )
-            const titleOffset = ( 1 - exitProgress ) * 115
             gsap.set( '.scene-interface', { autoAlpha: 1 - exitProgress } )
-            gsap.set( '.title-screen', { autoAlpha: exitProgress } )
-            gsap.set( '.final-title-line > span', {
-              autoAlpha: exitProgress,
-              yPercent: titleOffset,
-            } )
-            gsap.set( '.final-meta', {
-              autoAlpha: exitProgress,
-              y: ( 1 - exitProgress ) * 20,
-            } )
+            // Only drive the Studio cue while the Studio page still owns the screen;
+            // later pages hide it through the master timeline.
+            if ( progress < toStoryProgress( STORY_TIMING.pages.projectsStart ) )
+            {
+              gsap.set( '.title-screen', { autoAlpha: exitProgress } )
+              studioCue.progress( exitProgress )
+            }
           }
           const timeline = gsap.timeline( {
             scrollTrigger: {
@@ -502,11 +556,13 @@ function App ()
             },
           } )
 
+          const pages = STORY_TIMING.pages
+
           // Three timeline segments match Intro, Studio, Projects, and Contact.
           timeline
             .addLabel( 'intro', 0 )
 
-            // Intro → Studio. Fade the opening composition into the studio title.
+            // Intro → Studio. The break plays, then the lights come up on the cyc.
             .to( '.pool-table', {
               scale: 1,
               rotationX: desktop ? 8 : 4,
@@ -559,69 +615,86 @@ function App ()
               autoAlpha: 0,
               duration: STORY_TIMING.intro.draft1.transitionDuration,
             }, STORY_TIMING.intro.draft1.exitStart )
-            // Crossfade into Studio as soon as the colored balls reach the reference spread.
-            .to( '.title-screen', {
-              autoAlpha: 1,
-              duration: STORY_TIMING.intro.draft1.transitionDuration,
+            // The Studio screen is switched on at once; its clip-path light does the revealing.
+            .to( '.title-screen', { autoAlpha: 1, duration: 0.001 }, STORY_TIMING.intro.draft1.exitStart )
+            .to( studioCue, {
+              progress: 1,
+              ease: 'none',
+              duration: studioCueDuration,
             }, STORY_TIMING.intro.draft1.exitStart )
-            .to( '.final-title-line > span', {
-              yPercent: 0,
-              duration: STORY_TIMING.intro.visual.titleLineDuration,
-              stagger: STORY_TIMING.intro.visual.titleLineStagger,
-            }, STORY_TIMING.intro.visual.titleLineStart )
-            .to( '.final-meta', {
-              y: 0,
-              autoAlpha: 1,
-              duration: STORY_TIMING.intro.visual.metaDuration,
-            }, STORY_TIMING.intro.visual.metaStart )
             .to( {}, { duration: STORY_TIMING.intro.visual.timelineEndEpsilon }, 1 - STORY_TIMING.intro.visual.timelineEndEpsilon )
-            .addLabel( 'studio', STORY_TIMING.pages.studioStable )
+            .addLabel( 'studio', pages.studioStable )
 
-            // Studio → Projects. Reveal the project heading.
-            .to( '.projects-screen', {
-              yPercent: 0,
-              autoAlpha: 1,
-              duration: STORY_TIMING.pages.studioRevealDuration,
-            }, STORY_TIMING.pages.projectsStart )
+            // Studio → Projects. A teal side light sweeps in from the left over the pink wall.
+            .to( '.projects-screen', { autoAlpha: 1, duration: 0.001 }, pages.projectsStart )
+            .fromTo( '.projects-screen', { clipPath: lightsOff( CUE_ORIGINS.projects ) }, {
+              clipPath: lightsUp( CUE_ORIGINS.projects ),
+              ease: 'cue',
+              duration: pages.studioRevealDuration,
+            }, pages.projectsStart )
+            .fromTo( '.projects-screen .cyc-wall', { filter: 'brightness(0.4)' }, {
+              filter: 'brightness(1)',
+              ease: 'cue',
+              duration: pages.studioRevealDuration,
+            }, pages.projectsStart )
+            // The covered Studio screen switches off underneath once the new light owns the frame.
             .to( '.title-screen', {
-              scale: 0.965,
-              yPercent: -2,
               autoAlpha: 0,
-              duration: STORY_TIMING.pages.projectsFadeDuration,
-            }, STORY_TIMING.pages.projectsFadeStart )
-            .to( '.projects-title-line > span', {
-              yPercent: 0,
-              duration: STORY_TIMING.pages.projectsTitleDuration,
-              stagger: STORY_TIMING.pages.projectsTitleStagger,
-            }, STORY_TIMING.pages.projectsTitleStart )
-            .addLabel( 'projects', STORY_TIMING.pages.projectsStable )
-
-            // Projects → Contact. Reveal every contact item.
-            .to( '.contact-screen', {
-              yPercent: 0,
+              duration: pages.projectsFadeDuration,
+            }, pages.projectsFadeStart )
+            .fromTo( '.projects-title .cue-char', CHAR_ENTRANCES.projects, {
+              ...CHAR_REST,
+              duration: pages.projectsTitleDuration * 0.6,
+              stagger: { amount: pages.projectsTitleDuration * 0.4 + pages.projectsTitleStagger, from: 'start' },
+            }, pages.projectsTitleStart )
+            // Client boards are stood up on the floor, one after another, pivoting on their feet.
+            .fromTo( '.project-card', { autoAlpha: 0, rotationX: -70, transformOrigin: '50% 100%' }, {
               autoAlpha: 1,
-              duration: STORY_TIMING.pages.contactRevealDuration,
-            }, STORY_TIMING.pages.contactStart )
+              rotationX: 0,
+              ease: 'cue',
+              duration: pages.projectsTitleDuration,
+              stagger: 0.03,
+            }, pages.projectsTitleStart + pages.projectsTitleStagger )
+            .addLabel( 'projects', pages.projectsStable )
+
+            // Projects → Contact. Amber footlight rises from the floor.
+            .to( '.contact-screen', { autoAlpha: 1, duration: 0.001 }, pages.contactStart )
+            .fromTo( '.contact-screen', { clipPath: lightsOff( CUE_ORIGINS.contact ) }, {
+              clipPath: lightsUp( CUE_ORIGINS.contact ),
+              ease: 'cue',
+              duration: pages.contactRevealDuration,
+            }, pages.contactStart )
+            .fromTo( '.contact-screen .cyc-wall', { filter: 'brightness(0.4)' }, {
+              filter: 'brightness(1)',
+              ease: 'cue',
+              duration: pages.contactRevealDuration,
+            }, pages.contactStart )
             .to( '.projects-screen', {
-              scale: 0.965,
-              yPercent: -2,
               autoAlpha: 0,
-              duration: STORY_TIMING.pages.contactFadeDuration,
-            }, STORY_TIMING.pages.contactFadeStart )
-            .to( '.contact-title-line > span', {
+              duration: pages.contactFadeDuration,
+            }, pages.contactFadeStart )
+            .fromTo( '.contact-title .cue-char', CHAR_ENTRANCES.contact, {
+              ...CHAR_REST,
+              duration: pages.contactTitleDuration * 0.6,
+              stagger: { amount: pages.contactTitleDuration * 0.4 + pages.contactTitleStagger, from: 'center' },
+            }, pages.contactTitleStart )
+            // The call sheet is taped up, then its three rows are filled in.
+            .fromTo( '.call-sheet', { autoAlpha: 0, yPercent: 8, rotation: 3 }, {
+              autoAlpha: 1,
               yPercent: 0,
-              duration: STORY_TIMING.pages.contactTitleDuration,
-              stagger: STORY_TIMING.pages.contactTitleStagger,
-            }, STORY_TIMING.pages.contactTitleStart )
-            .to( '.contact-item', {
+              rotation: 0,
+              ease: 'cue',
+              duration: pages.contactTitleDuration,
+            }, pages.contactTitleStart )
+            .fromTo( '.contact-item', { y: 20, autoAlpha: 0 }, {
               y: 0,
               autoAlpha: 1,
-              duration: STORY_TIMING.pages.contactItemDuration,
-              stagger: STORY_TIMING.pages.contactItemStagger,
-            }, STORY_TIMING.pages.contactItemsStart )
+              duration: pages.contactItemDuration,
+              stagger: pages.contactItemStagger,
+            }, pages.contactItemsStart )
             // This empty tween makes the complete timeline exactly the configured length.
-            .to( {}, { duration: STORY_TIMING.pages.timelineEndEpsilon }, STORY_TIMING.pages.timelineEndStart )
-            .addLabel( 'contact', STORY_TIMING.pages.contactStable )
+            .to( {}, { duration: pages.timelineEndEpsilon }, pages.timelineEndStart )
+            .addLabel( 'contact', pages.contactStable )
         },
       )
 
@@ -631,8 +704,8 @@ function App ()
     return () =>
     {
       if ( pointerFrame ) window.cancelAnimationFrame( pointerFrame )
-      if ( hasFinePointer ) window.removeEventListener( 'pointermove', movePointer )
-      gsap.killTweensOf( [ cursorDot, cursorRing, pointerGlow ] )
+      if ( moveLightX ) window.removeEventListener( 'pointermove', movePointer )
+      gsap.killTweensOf( keyLight )
       ballRig.style.removeProperty( 'will-change' )
       animationContext.revert()
     }
@@ -643,7 +716,7 @@ function App ()
 
   return (
     <main
-      className={ `experience draft-${activeDraft}${indicatorPage === 'projects' ? ' is-projects-active' : ''}` }
+      className={ `experience draft-${activeDraft}` }
       ref={ rootRef }
       data-story-page={ activePage }
       data-story-indicator-page={ indicatorPage }
@@ -662,7 +735,6 @@ function App ()
         data-story-transitioning={ String( isTransitioning ) }
       >
         <div className="stage">
-          <div className="pointer-glow" aria-hidden="true" />
           <div className="camera-grid" aria-hidden="true" />
           <div className="ambient ambient-one" aria-hidden="true" />
           <div className="ambient ambient-two" aria-hidden="true" />
@@ -687,9 +759,10 @@ function App ()
             <a className="wordmark" href="#top" onClick={ ( event ) => { event.preventDefault(); replay() } } aria-label="8 Ball Studio — return to start">
               <img className="brand-logo" src={ brandLogo } alt="8 Ball Studio" />
             </a>
+            {/* Nav tapes are coloured with the gel of the Page they lead to. */}
             <nav className="header-meta" aria-label="Page navigation">
               <a
-                className="header-link"
+                className="header-link tape tape-projects"
                 href="#projects"
                 onClick={ ( event ) =>
                 {
@@ -701,7 +774,7 @@ function App ()
                 Our Projects
               </a>
               <a
-                className="header-link"
+                className="header-link tape tape-contact"
                 href="#contact"
                 onClick={ ( event ) =>
                 {
@@ -711,8 +784,9 @@ function App ()
                 } }
               >
                 Contact Us
+                <svg viewBox="0 0 20 12" aria-hidden="true"><path d="M1 6h17M13 1l5 5-5 5" /></svg>
               </a>
-              <button className="top-link" onClick={ replay } type="button" aria-label="Go back to top of page">
+              <button className="top-link tape" onClick={ replay } type="button" aria-label="Go back to top of page">
                 Top
               </button>
             </nav>
@@ -721,99 +795,106 @@ function App ()
           <div className="scene-interface">
             <div className="hero-copy">
               <h1>Roll with us.</h1>
-              <p className="hero-note">Social Content Management.<br />Video &amp; Photography.<br />Graphic Design.</p>
+              <ul className="hero-services" aria-label="Services">
+                { SERVICES.map( ( service ) => <li key={ service }>{ service }</li> ) }
+              </ul>
             </div>
 
             <div className="scroll-prompt">
-              <span className="scroll-icon"><span /></span>
-              <p>Scroll<br />to break</p>
+              <span className="tape">Scroll to break</span>
+              <svg className="scroll-arrow" viewBox="0 0 16 24" aria-hidden="true">
+                <path d="M8 2v19M2 15l6 6 6-6" />
+              </svg>
             </div>
           </div>
 
-          <section className="title-screen" aria-labelledby="studio-title">
-            <div className="final-orbit orbit-one" aria-hidden="true" />
-            <div className="final-orbit orbit-two" aria-hidden="true" />
+          {/* Studio: the lights come up on a pink-gel cyc. */}
+          <section className="title-screen cyc cyc-studio" aria-labelledby="studio-title">
+            <div className="cyc-wall" aria-hidden="true" />
             <div className="final-content">
-              <h2 id="studio-title" className="final-title" aria-label="8 Ball Studio">
-                <span className="final-title-line"><span>8 Ball</span></span>
-                <span className="final-title-line final-title-indent"><span>Studio</span></span>
+              <h2 id="studio-title" className="final-title cyc-title" aria-label="8 Ball Studio">
+                <CueLine className="final-title-line" text="8 Ball" />
+                <CueLine className="final-title-line" text="Studio" />
               </h2>
-              <div className="final-footer">
-                <p className="final-meta">Greater Kuala Lumpur, Malaysia</p>
-              </div>
             </div>
+            <div className="studio-floor">
+              <ul className="studio-services" aria-label="Services">
+                { SERVICES.map( ( service ) => <li className="tape" key={ service }>{ service }</li> ) }
+              </ul>
+            </div>
+            <p className="final-meta tape">Greater Kuala Lumpur, Malaysia</p>
           </section>
 
-          <section className="projects-screen" aria-labelledby="projects-title">
+          {/* Projects: a teal side light, client boards gliding along the floor. */}
+          <section className="projects-screen cyc cyc-projects" aria-labelledby="projects-title">
+            <div className="cyc-wall" aria-hidden="true" />
             <div className="projects-content">
-              <h2 id="projects-title" className="projects-title">
-                <span className="projects-title-line"><span>Our</span></span>
-                <span className="projects-title-line projects-title-indent"><span>Projects</span></span>
+              <h2 id="projects-title" className="projects-title cyc-title" aria-label="Our Projects">
+                <CueLine className="projects-title-line" text="Our" />
+                <CueLine className="projects-title-line" text="Projects" />
               </h2>
             </div>
-            <div className="projects-marquee" aria-label="Our projects">
-              <div className="projects-track">
-                { [ 0, 1 ].map( ( groupIndex ) => (
-                  <div className="projects-group" aria-hidden={ groupIndex === 1 } key={ groupIndex }>
-                    { PROJECT_ITEMS.map( ( project ) => (
-                      <figure className={ `project-card${project.type ? ` is-${project.type}` : ''}` } key={ project.alt }>
-                        <img src={ project.src } alt={ project.alt } />
-                        {/* Keep each card label simple so the marquee reads as a clean work reel. */ }
-                        <figcaption>
-                          <span>{ project.alt }</span>
-                        </figcaption>
-                      </figure>
-                    ) ) }
+            <ul className="projects-floor" aria-label="Clients">
+              { PROJECT_ITEMS.map( ( project ) => (
+                <li className={ `project-card${project.type ? ` is-${project.type}` : ''}` } key={ project.alt }>
+                  <div className="project-board">
+                    <img src={ project.src } alt={ project.alt } />
                   </div>
-                ) ) }
-              </div>
-            </div>
+                  <span className="tape">{ project.alt }</span>
+                </li>
+              ) ) }
+            </ul>
           </section>
 
-          <section className="contact-screen" aria-labelledby="contact-title">
-            <div className="contact-orbit" aria-hidden="true" />
+          {/* Contact: amber footlight, and a call sheet taped to the wall. */}
+          <section className="contact-screen cyc cyc-contact" aria-labelledby="contact-title">
+            <div className="cyc-wall" aria-hidden="true" />
             <div className="contact-content">
-              <h2 id="contact-title" className="contact-title">
-                <span className="contact-title-line"><span>Contact</span></span>
-                <span className="contact-title-line contact-title-indent"><span>Us</span></span>
+              <h2 id="contact-title" className="contact-title cyc-title" aria-label="Contact Us">
+                <CueLine className="contact-title-line" text="Contact" />
+                <CueLine className="contact-title-line" text="Us" />
               </h2>
-              <div className="contact-list">
-                { CONTACT_ITEMS.map( ( item ) =>
-                {
-                  const Item = item.href ? 'a' : 'div'
-
-                  return (
-                    <Item
-                      className="contact-item"
-                      href={ item.href }
-                      target={ item.href ? '_blank' : undefined }
-                      rel={ item.href ? 'noreferrer' : undefined }
-                      key={ item.title }
-                    >
-                      <span className="contact-icon"><ContactIcon type={ item.icon } /></span>
-                      <span>
-                        <h3>{ item.title }</h3>
-                        <p>{ item.description }</p>
-                      </span>
-                    </Item>
-                  )
-                } ) }
+              <div className="call-sheet">
+                <ul className="contact-list">
+                  { CONTACT_ITEMS.map( ( item ) => (
+                    <li key={ item.title }>
+                      <a
+                        className="contact-item"
+                        href={ item.href }
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label={ `${item.action} 8 Ball Studio on ${item.title}: ${item.description}` }
+                      >
+                        <span className="contact-icon"><ContactIcon type={ item.icon } /></span>
+                        <span className="contact-channel">{ item.title }</span>
+                        <span className="contact-detail">{ item.description }</span>
+                        <span className="contact-action">
+                          <span className="contact-action-label">{ item.action }</span>
+                          <svg viewBox="0 0 20 12" aria-hidden="true"><path d="M1 6h17M13 1l5 5-5 5" /></svg>
+                        </span>
+                      </a>
+                    </li>
+                  ) ) }
+                </ul>
+                <p className="call-sheet-foot">
+                  <span>8 Ball Studio</span>
+                  <span>Greater Kuala Lumpur</span>
+                </p>
               </div>
             </div>
           </section>
-
-          <div className="cursor-dot" aria-hidden="true" />
-          <div className="cursor-ring" aria-hidden="true" />
         </div>
       </section>
 
       <DraftSwitcher activeDraft={ activeDraft } onChange={ switchDraft } />
 
+      {/* Spike marks: one strip of tape per Page, coloured with that Page's gel. */}
       <nav className="page-dots" aria-label="Story page navigation">
         { storyPages.map( ( page ) => (
           <button
             className={ `page-dot${indicatorPage === page.id ? ' is-active' : ''}` }
             type="button"
+            style={ { '--mark': PAGE_MARKS[ page.id ] } }
             aria-label={ `Go to ${page.label} page` }
             aria-current={ indicatorPage === page.id ? 'page' : undefined }
             onClick={ () => goToPage( page.id ) }

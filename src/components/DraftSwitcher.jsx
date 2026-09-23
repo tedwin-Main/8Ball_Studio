@@ -10,7 +10,7 @@ export function DraftSwitcher ( { activeDraft, onChange } )
       <div className="draft-switcher-options">
         { DRAFT_OPTIONS.map( ( option ) => (
           <button
-            className={ `draft-switcher-button${activeDraft === option.id ? ' is-active' : ''}` }
+            className={ `draft-switcher-button tape${activeDraft === option.id ? ' is-active' : ''}` }
             type="button"
             aria-pressed={ activeDraft === option.id }
             onClick={ () => onChange( option.id ) }
