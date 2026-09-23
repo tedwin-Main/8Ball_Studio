@@ -183,6 +183,10 @@ export function createStoryNavigation ( {
   transitionBufferMs = DEFAULT_TRANSITION_BUFFER_MS,
   gestureThresholdPx = 14,
   gestureResetMs = 120,
+  // Free scroll: wheel and touch move the page continuously (Lenis-smoothed) instead of
+  // being qualified into one-Page jumps. Stable Page and indicator then follow the scroll
+  // position; page marks, nav links, and keys still glide to a Page on request.
+  freeScroll = false,
   onPageChange,
   onIndicatorPageChange,
   onTransitionChange,
@@ -436,6 +440,9 @@ export function createStoryNavigation ( {
     const isTouch = eventType.includes( 'touch' )
 
     if ( !( isWheel || isTouch ) || !isStoryActive() ) return true
+
+    // Free scroll hands input straight to the scroller unless a requested Page glide is running.
+    if ( freeScroll && !transitioning ) return true
 
     // Let the scroll adapter observe touchend while a transition lock is active.
     if ( transitioning )

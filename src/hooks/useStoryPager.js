@@ -83,6 +83,8 @@ export function useStoryPager ( {
       transitionFor: getTransition,
       gestureThresholdPx: STORY_TIMING.navigation.gestureThresholdPx,
       gestureResetMs: STORY_TIMING.navigation.gestureResetMs,
+      // The whole Story scrolls freely; no forced stop at each Page.
+      freeScroll: STORY_TIMING.navigation.freeScroll,
       onPageChange: ( pageId ) =>
       {
         targetPageRef.current = pageId

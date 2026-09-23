@@ -89,6 +89,8 @@ export const STORY_TIMING_DEFAULTS = freeze( {
     gestureThresholdPx: 14,
     // Reset a wheel burst after input has gone idle.
     gestureResetMs: 120,
+    // Continuous scrolling through the whole Story (true), or one Page per gesture (false).
+    freeScroll: true,
   } ),
   intro: freeze( {
     // Legacy cue values remain available for compatibility; the live scene now rolls on the first swipe.
@@ -298,8 +300,8 @@ function validateSchedule( schedule )
     throw new RangeError( 'pages.timelineEndEpsilon must fit inside totalTimelineUnits.' )
   }
 
-  // Validate navigation settings are non-negative numbers.
-  validateNumericEntries( schedule.navigation, 'navigation' )
+  // Validate navigation settings are non-negative numbers (freeScroll is the one boolean switch).
+  validateNumericEntries( schedule.navigation, 'navigation', [ 'freeScroll' ] )
 }
 
 // Resolve once at module load or when an override is supplied; never rebuild this in render loops.
@@ -311,7 +313,11 @@ export function resolveStoryTiming( overrides = {} )
 
   // Validate all configuration numbers are valid and non-negative.
   validateNumericEntries( input.scroll, 'scroll' )
-  validateNumericEntries( input.navigation, 'navigation' )
+  validateNumericEntries( input.navigation, 'navigation', [ 'freeScroll' ] )
+  if ( typeof input.navigation.freeScroll !== 'boolean' )
+  {
+    throw new TypeError( 'navigation.freeScroll must be a boolean.' )
+  }
   validateNumericEntries( input.intro, 'intro', [ 'visual' ] )
   validateNumericEntries( input.intro.visual, 'intro.visual' )
   validateNumericEntries( input.pages, 'pages' )

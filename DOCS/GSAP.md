@@ -30,7 +30,11 @@ Configured in `new Lenis({ ... })`.
 | `autoRaf` | `false` | Disables Lenis's internal animation frame because GSAP owns the frame loop. |
 | `autoResize` | `false` | Story navigation debounces resize and the browser adapter calls `lenis.resize()` before restoring normalized progress. |
 
-### Story gesture qualification
+### Free scroll (default)
+
+`STORY_TIMING.navigation.freeScroll` is `true`: wheel and touch pass straight through to Lenis, so the whole Story scrolls continuously and the GSAP timeline scrubs with it. Stable Page and the page indicator follow the scroll position. Page marks, header links, and arrow/Page keys still glide to a Page target, and input is locked only during that glide. Set it to `false` to restore the one-Page-per-gesture behaviour below.
+
+### Story gesture qualification (when `freeScroll` is `false`)
 
 `src/storyNavigation.js` accumulates wheel deltas until the shared `gestureThresholdPx` (`14`) is reached, then advances one Page and locks further input until settlement. Wheel direction changes reset the accumulation after `gestureResetMs` (`120` ms) of idle time. Touch uses the same threshold from finger-coordinate deltas, while keyboard input maps directly to Page IDs.
 

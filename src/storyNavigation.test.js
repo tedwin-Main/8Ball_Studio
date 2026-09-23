@@ -171,6 +171,7 @@ const createFixture = ( options = {} ) =>
     gestureThresholdPx: 14,
     gestureResetMs: 120,
     prefersReducedMotion: options.prefersReducedMotion || ( () => false ),
+    freeScroll: options.freeScroll || false,
     onPageChange: ( page ) => changedPages.push( page ),
     onIndicatorPageChange: ( page ) => indicatorPages.push( page ),
     onTransitionChange: ( isTransitioning ) => transitionStates.push( isTransitioning ),
@@ -288,6 +289,35 @@ test( 'wheel qualification advances once and direction changes reset accumulated
   const reversed = wheelEvent( -20 )
   assert.equal( fixture.adapter.virtualScroll( { deltaY: -20, event: reversed.event } ), false )
   assert.equal( fixture.navigation.getState().targetPage, 'intro' )
+} )
+
+test( 'free scroll passes wheel input through and Stable page follows the scroll position', () =>
+{
+  const fixture = createFixture( { freeScroll: true } )
+  const wheel = wheelEvent( 40 )
+
+  // Input is not qualified into a Page jump: the scroller owns it and nothing is prevented.
+  assert.equal( fixture.adapter.virtualScroll( { deltaY: 40, event: wheel.event } ), true )
+  assert.equal( wheel.wasPrevented(), false )
+  assert.equal( fixture.adapter.scrollCalls.length, 0 )
+
+  // Scrolling freely past a Page boundary makes that Page stable without any autoplay.
+  fixture.adapter.position = 700
+  fixture.adapter.emitScroll()
+  assert.equal( fixture.navigation.getState().activePage, 'projects' )
+  assert.deepEqual( fixture.transitionStates, [] )
+} )
+
+test( 'free scroll still glides to a requested Page and locks input during that glide', () =>
+{
+  const fixture = createFixture( { freeScroll: true } )
+  fixture.navigation.goToPage( 'contact' )
+  const wheel = wheelEvent( 40 )
+
+  assert.equal( fixture.adapter.virtualScroll( { deltaY: 40, event: wheel.event } ), false )
+  fixture.adapter.complete()
+  assert.equal( fixture.navigation.getState().activePage, 'contact' )
+  assert.equal( fixture.adapter.virtualScroll( { deltaY: 40, event: wheelEvent( 40 ).event } ), true )
 } )
 
 test( 'touch reversal starts a fresh intent and advances at most one Page', () =>
