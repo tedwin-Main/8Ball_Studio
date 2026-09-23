@@ -461,6 +461,9 @@ export default function PhotorealPoolDraft ( {
     const controller = {
       setProgress: ( nextProgress ) =>
       {
+        // Story progress clamps at 1 after the Intro, so later Pages would otherwise re-render the
+        // same finished frame under opaque pages on every scroll update.
+        if ( nextProgress === currentProgress ) return
         currentProgress = nextProgress
         requestRender()
       },

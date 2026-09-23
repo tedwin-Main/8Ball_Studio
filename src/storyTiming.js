@@ -72,8 +72,13 @@ export const STORY_TIMING_DEFAULTS = freeze( {
   scroll: freeze( {
     // Blend the 8-ball's approach between linear and the shared weighted curve (0 = linear, 1 = full curve).
     introWeight: 0.72,
-    wheelMultiplier: 0.4,
-    lerp: 0.085,
+    // Heavier than the rockstargames.com/VI reference (lerp .07, wheelMultiplier 1.2):
+    // each frame closes only 5% of the remaining distance, so the page keeps gliding after input,
+    // and one wheel tick travels 0.6x, so the short four-Page Story is not crossed in a few flicks.
+    wheelMultiplier: 0.6,
+    lerp: 0.05,
+    // Touch smoothing applies only in paged mode (freeScroll: false); free scroll uses native
+    // touch momentum like the reference site (Lenis default syncTouch: false).
     syncTouchLerp: 0.06,
   } ),
   // Programmatic autoplay and gesture qualification live here so every input source

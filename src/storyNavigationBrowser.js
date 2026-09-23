@@ -51,7 +51,9 @@ export function createStoryScrollAdapter ( {
     // Keep the adapter's production path identical to the existing weighted scroll behavior.
     lenis = new Lenis( {
       wheelMultiplier: STORY_TIMING.scroll.wheelMultiplier,
-      syncTouch: true,
+      // Free scroll leaves touch to the phone's native momentum (as the reference site does);
+      // paged mode needs Lenis-owned touch so its gesture lock can hold the page still.
+      syncTouch: !STORY_TIMING.navigation.freeScroll,
       syncTouchLerp: STORY_TIMING.scroll.syncTouchLerp,
       infinite: false,
       gestureOrientation: 'vertical',

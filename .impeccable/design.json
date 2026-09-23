@@ -183,21 +183,6 @@
           "#c0c6c3",
           "#eaf0ed"
         ]
-      },
-      "felt-mark": {
-        "role": "neutral",
-        "displayName": "Felt Mark",
-        "canonical": "oklch(56.6% 0.114 156.6)",
-        "tonalRamp": [
-          "#001400",
-          "#00310c",
-          "#005025",
-          "#027042",
-          "#369161",
-          "#5bb481",
-          "#82dba6",
-          "#b6ffd3"
-        ]
       }
     },
     "typographyMeta": {
@@ -296,7 +281,7 @@
       },
       {
         "name": "durations",
-        "value": "tape 200ms; contact arrows 240-280ms; spike 320ms; board lift and highlighter 360ms",
+        "value": "tape 200ms; contact arrows 240-280ms; board lift and highlighter 360ms",
         "purpose": "Hover/focus timings."
       },
       {
@@ -368,14 +353,6 @@
       "description": "Sheet-paper board leaning on its foot with a gel-tinted floor contact shadow; lifts into the key light on hover.",
       "html": "<div class=\"ds-floor\"><figure class=\"ds-card\"><div class=\"ds-board\"><span class=\"ds-logo\">ers*</span></div></figure><figure class=\"ds-card ds-dark\"><div class=\"ds-board\"><span class=\"ds-logo\">HaruPlate</span></div></figure></div>",
       "css": ":host{--gaffer:#17171a;--gaffer-soft:#46454b;--cyc:#eceae4;--sheet:#f7f6f2;--tape:#f4f2eb;--gel-studio:#ef3f86;--gel-studio-deep:#7a0d3c;--gel-projects:#16a597;--gel-projects-deep:#054a42;--gel-contact:#f59e1b;--gel-contact-deep:#8a4800;--ease-out:cubic-bezier(0.16,1,0.3,1);--font:\"Archivo\",\"Helvetica Neue\",Arial,sans-serif} .ds-floor{display:flex;gap:32px;padding:32px;background:var(--gel-projects);perspective:900px} .ds-card{margin:0;perspective:700px;perspective-origin:50% 100%} .ds-board{position:relative;display:grid;width:180px;aspect-ratio:1;place-items:center;background:var(--sheet);box-shadow:inset 0 -10px 18px -12px rgb(0 0 0/.18),0 1px 1px rgb(0 0 0/.14);transform:rotateX(9deg);transform-origin:50% 100%;transition:translate 360ms var(--ease-out),filter 360ms var(--ease-out)} .ds-board::after{content:\"\";position:absolute;z-index:-1;left:-4%;right:-4%;bottom:-9px;height:20px;border-radius:50%;background:radial-gradient(closest-side,color-mix(in oklab,var(--gel-projects-deep) 70%,transparent),transparent);filter:blur(3px)} .ds-dark .ds-board{background:var(--gaffer)} .ds-logo{font-family:var(--font);font-weight:700;font-size:28px;color:var(--gaffer-soft)} .ds-dark .ds-logo{color:var(--cyc)} .ds-card:hover .ds-board{translate:0 -8px} .ds-floor:hover .ds-card:not(:hover) .ds-board{filter:brightness(.84) saturate(.9)}"
-    },
-    {
-      "name": "Spike Marks",
-      "kind": "nav",
-      "refersTo": "spike-mark",
-      "description": "Page indicator: a strip of gel spike tape per Page, growing from the right edge.",
-      "html": "<nav class=\"ds-spikes\"><button class=\"ds-spike\" style=\"--mark:#2e8a5a\" aria-label=\"Intro\"></button><button class=\"ds-spike is-active\" style=\"--mark:#ef3f86\" aria-label=\"Studio\"></button><button class=\"ds-spike\" style=\"--mark:#16a597\" aria-label=\"Projects\"></button><button class=\"ds-spike\" style=\"--mark:#f59e1b\" aria-label=\"Contact\"></button></nav>",
-      "css": ":host{--gaffer:#17171a;--gaffer-soft:#46454b;--cyc:#eceae4;--sheet:#f7f6f2;--tape:#f4f2eb;--gel-studio:#ef3f86;--gel-studio-deep:#7a0d3c;--gel-projects:#16a597;--gel-projects-deep:#054a42;--gel-contact:#f59e1b;--gel-contact-deep:#8a4800;--ease-out:cubic-bezier(0.16,1,0.3,1);--font:\"Archivo\",\"Helvetica Neue\",Arial,sans-serif} .ds-spikes{display:flex;flex-direction:column;align-items:flex-end;gap:4px;padding:16px;background:var(--gel-studio)} .ds-spike{display:grid;width:44px;height:30px;padding:0;place-items:center end;border:0;background:transparent;cursor:pointer} .ds-spike::before{content:\"\";width:34px;height:7px;background:var(--mark);box-shadow:0 0 0 1.5px var(--gaffer);rotate:-3deg;scale:.47 1;transform-origin:right center;transition:scale 320ms var(--ease-out)} .ds-spike:hover::before,.ds-spike:focus-visible::before{scale:.76 1} .ds-spike.is-active::before{scale:1 1} .ds-spike:focus-visible{outline:2px solid var(--gaffer);outline-offset:4px}"
     },
     {
       "name": "Cyc Wall with Silhouette Title",

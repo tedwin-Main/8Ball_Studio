@@ -72,14 +72,6 @@ const PROJECT_ITEMS = [
 
 const SERVICES = [ 'Social Content Management', 'Video & Photography', 'Graphic Design' ]
 
-// Spike-tape colour per Page: the felt for the Intro, then each Page's gel.
-const PAGE_MARKS = Object.freeze( {
-  intro: 'var(--felt-mark)',
-  studio: 'var(--gel-studio)',
-  projects: 'var(--gel-projects)',
-  contact: 'var(--gel-contact)',
-} )
-
 const CONTACT_ITEMS = [
   {
     icon: 'whatsapp',
@@ -637,11 +629,12 @@ function App ()
               ease: 'cue',
               duration: pages.studioRevealDuration,
             }, pages.projectsStart )
-            // The covered Studio screen switches off underneath once the new light owns the frame.
+            // The covered Studio screen switches off in one step once the teal flood owns the frame;
+            // fading it underneath only paid for two full-screen layers per scroll frame.
             .to( '.title-screen', {
               autoAlpha: 0,
-              duration: pages.projectsFadeDuration,
-            }, pages.projectsFadeStart )
+              duration: 0.001,
+            }, pages.projectsStart + pages.studioRevealDuration )
             .fromTo( '.projects-title .cue-char', CHAR_ENTRANCES.projects, {
               ...CHAR_REST,
               duration: pages.projectsTitleDuration * 0.6,
@@ -669,10 +662,11 @@ function App ()
               ease: 'cue',
               duration: pages.contactRevealDuration,
             }, pages.contactStart )
+            // Same for Projects once the amber footlight covers it.
             .to( '.projects-screen', {
               autoAlpha: 0,
-              duration: pages.contactFadeDuration,
-            }, pages.contactFadeStart )
+              duration: 0.001,
+            }, pages.contactStart + pages.contactRevealDuration )
             .fromTo( '.contact-title .cue-char', CHAR_ENTRANCES.contact, {
               ...CHAR_REST,
               duration: pages.contactTitleDuration * 0.6,
@@ -888,22 +882,6 @@ function App ()
 
       <DraftSwitcher activeDraft={ activeDraft } onChange={ switchDraft } />
 
-      {/* Spike marks: one strip of tape per Page, coloured with that Page's gel. */}
-      <nav className="page-dots" aria-label="Story page navigation">
-        { storyPages.map( ( page ) => (
-          <button
-            className={ `page-dot${indicatorPage === page.id ? ' is-active' : ''}` }
-            type="button"
-            style={ { '--mark': PAGE_MARKS[ page.id ] } }
-            aria-label={ `Go to ${page.label} page` }
-            aria-current={ indicatorPage === page.id ? 'page' : undefined }
-            onClick={ () => goToPage( page.id ) }
-            key={ page.id }
-          >
-            <span>{ page.label }</span>
-          </button>
-        ) ) }
-      </nav>
     </main>
   )
 }

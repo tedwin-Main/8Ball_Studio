@@ -18,7 +18,6 @@
   --gaffer: #17171a;            /* gaffer-tape black: silhouettes and body ink */
   --gaffer-soft: #46454b;       /* secondary ink on paper (7.9:1 on --sheet) */
   --tape: #f4f2eb;              /* paper tape */
-  --felt-mark: #2e8a5a;         /* Intro spike mark: the table felt */
   --gel-studio: #ef3f86;        /* Bright Pink gel */
   --gel-studio-deep: #7a0d3c;
   --gel-projects: #16a597;      /* Teal gel */
@@ -654,6 +653,10 @@ button.tape:focus-visible {
 
 .cue-char {
   display: inline-block;
+  /* Each letter gets its own GPU layer: its heavy three-layer cast shadow is rasterized once,
+     then the clip-path light flood and the letter entrances only move it. Without this the
+     shadow repainted every scroll frame and dropped frames through each lighting cue. */
+  will-change: transform;
   text-shadow:
     calc(var(--cast-x) * 0.3) calc(var(--cast-y) * 0.3) 1px color-mix(in oklab, var(--gel-deep) 62%, transparent),
     calc(var(--cast-x) * 0.75) calc(var(--cast-y) * 0.75) 6px color-mix(in oklab, var(--gel-deep) 34%, transparent),
@@ -676,9 +679,9 @@ button.tape:focus-visible {
   left: 1%;
   height: 22px;
   border-radius: 50%;
-  background: radial-gradient(closest-side, color-mix(in oklab, var(--gel-deep) 60%, transparent), transparent);
+  /* Softness comes from the gradient alone; a blur filter here repainted on every flood frame. */
+  background: radial-gradient(closest-side, color-mix(in oklab, var(--gel-deep) 55%, transparent) 20%, transparent);
   content: '';
-  filter: blur(4px);
   transform: translateY(60%);
 }
 
@@ -686,7 +689,7 @@ button.tape:focus-visible {
   position: absolute;
   z-index: 1;
   top: 71%;
-  right: clamp(76px, 8vw, 128px);
+  right: clamp(20px, 5vw, 80px);
   left: clamp(20px, 5vw, 80px);
   display: flex;
   align-items: flex-start;
@@ -732,7 +735,7 @@ button.tape:focus-visible {
 .projects-floor {
   position: absolute;
   z-index: 1;
-  right: clamp(76px, 8vw, 128px);
+  right: clamp(20px, 5vw, 80px);
   bottom: 13vh;
   left: clamp(20px, 5vw, 80px);
   display: grid;
@@ -800,9 +803,8 @@ button.tape:focus-visible {
   left: -4%;
   height: 20px;
   border-radius: 50%;
-  background: radial-gradient(closest-side, color-mix(in oklab, var(--gel-deep) 70%, transparent), transparent);
+  background: radial-gradient(closest-side, color-mix(in oklab, var(--gel-deep) 64%, transparent) 25%, transparent);
   content: '';
-  filter: blur(3px);
 }
 
 .project-board img {
@@ -845,7 +847,7 @@ button.tape:focus-visible {
   grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr);
   padding:
     clamp(96px, 15vh, 150px)
-    clamp(76px, 8vw, 128px)
+    clamp(20px, 5vw, 80px)
     clamp(84px, 13vh, 130px)
     clamp(20px, 5vw, 80px);
 }
@@ -984,78 +986,6 @@ button.tape:focus-visible {
   translate: 5px 0;
 }
 
-/* ---------- Spike marks: the Page indicator ---------- */
-.page-dots {
-  position: fixed;
-  z-index: 40;
-  top: 50%;
-  right: max(14px, env(safe-area-inset-right));
-  display: flex;
-  align-items: flex-end;
-  flex-direction: column;
-  gap: 4px;
-  transform: translateY(-50%);
-}
-
-.page-dot {
-  position: relative;
-  display: grid;
-  width: 44px;
-  height: 30px;
-  padding: 0;
-  place-items: center end;
-  background: transparent;
-  cursor: pointer;
-}
-
-.page-dot::before {
-  width: 34px;
-  height: 7px;
-  background: var(--mark);
-  box-shadow: 0 0 0 1.5px var(--ink);
-  content: '';
-  rotate: -3deg;
-  /* Strips grow leftward from the edge with a scale, never a layout-changing width. */
-  scale: 0.47 1;
-  transform-origin: right center;
-  transition: scale 320ms var(--ease-out);
-}
-
-.page-dot.is-active::before {
-  scale: 1 1;
-}
-
-.page-dot:hover::before,
-.page-dot:focus-visible::before {
-  scale: 0.76 1;
-}
-
-.page-dot span {
-  position: absolute;
-  right: 48px;
-  padding: 7px 9px;
-  background: var(--tape);
-  box-shadow: 0 6px 12px -6px rgb(0 0 0 / 0.5);
-  color: var(--gaffer);
-  font-size: 10px;
-  font-stretch: 118%;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  opacity: 0;
-  pointer-events: none;
-  rotate: -1deg;
-  text-transform: uppercase;
-  transition: opacity 200ms, translate 200ms var(--ease-out);
-  translate: 6px 0;
-  white-space: nowrap;
-}
-
-.page-dot:hover span,
-.page-dot:focus-visible span {
-  opacity: 1;
-  translate: 0 0;
-}
-
 @media (max-width: 768px), (max-height: 540px) {
   .pool-table {
     top: 53%;
@@ -1128,7 +1058,7 @@ button.tape:focus-visible {
 
   .studio-floor {
     top: 60%;
-    right: 64px;
+    right: 18px;
     left: 18px;
     align-items: flex-start;
     flex-direction: column;
@@ -1150,7 +1080,7 @@ button.tape:focus-visible {
   }
 
   .projects-floor {
-    right: 64px;
+    right: 18px;
     bottom: max(15vh, 128px);
     left: 18px;
     gap: 22px 16px;
@@ -1192,7 +1122,7 @@ button.tape:focus-visible {
     align-items: start;
     gap: 5vh;
     grid-template-columns: 1fr;
-    padding: max(84px, 12vh) 64px 150px 18px;
+    padding: max(84px, 12vh) 18px 150px;
   }
 
   .contact-title {
@@ -1231,19 +1161,6 @@ button.tape:focus-visible {
   }
 
   .contact-action-label {
-    display: none;
-  }
-
-  .page-dots {
-    right: max(2px, env(safe-area-inset-right));
-    gap: 0;
-  }
-
-  .page-dot {
-    height: 40px;
-  }
-
-  .page-dot span {
     display: none;
   }
 }
@@ -1307,7 +1224,7 @@ button.tape:focus-visible {
   .contact-content {
     align-items: center;
     grid-template-columns: 1fr 1.2fr;
-    padding: 64px 64px 36px 18px;
+    padding: 64px 18px 36px;
   }
 }
 
@@ -1394,7 +1311,9 @@ button.tape:focus-visible {
 }
 
 .draft-layer-2d.is-active {
-  opacity: var(--draft-exit-opacity);
+  /* The layer stays fully opaque: the Studio light flood wipes over it instead. Fading a group
+     that contains the WebGL canvas toward 0 stalled the main thread for ~750ms mid-transition. */
+  opacity: 1;
   transition-delay: 0s;
 }
 
@@ -1501,7 +1420,7 @@ button.tape:focus-visible {
   display: block;
 }
 
-/* This control is separate from page dots so draft testing never changes story navigation. */
+/* The draft switcher is a testing control; it never changes story navigation. */
 .draft-switcher {
   position: fixed;
   z-index: 45;

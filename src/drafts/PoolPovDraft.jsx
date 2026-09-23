@@ -562,6 +562,8 @@ export function PoolPovDraft ( { active, onController } )
     const controller = {
       setProgress ( nextProgress )
       {
+        // Skip identical playheads (progress holds at 1 on every later Page) so scrolling there costs no WebGL frames.
+        if ( clamp( nextProgress ) === progress ) return
         updateScene( nextProgress )
       },
       setActive ( nextActive )

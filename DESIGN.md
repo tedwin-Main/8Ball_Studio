@@ -14,7 +14,6 @@ colors:
   sheet: "#f7f6f2"
   tape: "#f4f2eb"
   hall: "#0a0e0c"
-  felt-mark: "#2e8a5a"
 typography:
   display:
     fontFamily: "Archivo, Helvetica Neue, Arial, sans-serif"
@@ -110,10 +109,6 @@ components:
   project-board-dark:
     backgroundColor: "{colors.gaffer}"
     rounded: "{rounded.none}"
-  spike-mark:
-    rounded: "{rounded.none}"
-    width: "34px"
-    height: "7px"
 ---
 
 # Design System: 8 Ball Studio
@@ -122,7 +117,7 @@ components:
 
 **Creative North Star: "The Cyc Wall"**
 
-The site is a photo-studio floor. The Intro is a dark pool hall where the break plays; when the ball drops, the lights come up on an infinity cove. Every Page after that is the same painted cyc wall relit by a new saturated gel: pink for Studio, teal for Projects, amber for Contact. Each wall carries a physically motivated hotspot, a shaded cove bend near 66% height, and edge falloff. Nothing sits on the wall that a studio crew would not put there: black silhouette cut-out letters, strips of paper tape, a taped call sheet, sample boards leaning on the floor, spike-tape marks.
+The site is a photo-studio floor. The Intro is a dark pool hall where the break plays; when the ball drops, the lights come up on an infinity cove. Every Page after that is the same painted cyc wall relit by a new saturated gel: pink for Studio, teal for Projects, amber for Contact. Each wall carries a physically motivated hotspot, a shaded cove bend near 66% height, and edge falloff. Nothing sits on the wall that a studio crew would not put there: black silhouette cut-out letters, strips of paper tape, a taped call sheet, sample boards leaning on the floor.
 
 Density is low and theatrical. One Page fills one viewport, holds one enormous gaffer-black title, and gives the visitor one next move. Depth comes from light, not from UI chrome. The wall hotspot and every letter's cast shadow follow the pointer as the key light. Motion carries the brand: each Page arrives as a lighting cue, a clip-path circle of gel flooding from that light's position on one custom "cue" ease.
 
@@ -140,13 +135,13 @@ The build rejects the category default (a near-black page with one neon accent a
 Three saturated gels on a warm off-white paint and paper world, inked in near-black gaffer. Each Page owns exactly one gel.
 
 ### Primary
-- **Bright Pink Gel** (gel-studio): the Studio wall, the Studio spike mark. Its deep partner, **Pink Shadow** (gel-studio-deep), is only for shading the pink wall: cove bend, edge falloff, cast and contact shadows.
+- **Bright Pink Gel** (gel-studio): the Studio wall. Its deep partner, **Pink Shadow** (gel-studio-deep), is only for shading the pink wall: cove bend, edge falloff, cast and contact shadows.
 
 ### Secondary
-- **Teal Gel** (gel-projects): the Projects wall, the Projects spike mark, and the "Our Projects" nav tape. Its deep partner is **Teal Shadow** (gel-projects-deep).
+- **Teal Gel** (gel-projects): the Projects wall, and the "Our Projects" nav tape. Its deep partner is **Teal Shadow** (gel-projects-deep).
 
 ### Tertiary
-- **Amber Gel** (gel-contact): the Contact wall, the Contact spike mark, the "Contact Us" nav tape, and the highlighter swipe on call-sheet channel names (72% mix). Its deep partner is **Amber Shadow** (gel-contact-deep).
+- **Amber Gel** (gel-contact): the Contact wall, the "Contact Us" nav tape, and the highlighter swipe on call-sheet channel names (72% mix). Its deep partner is **Amber Shadow** (gel-contact-deep).
 
 ### Neutral
 - **Gaffer Black** (gaffer): silhouette titles, body ink, contact icon rings, the call-sheet rule, and the re-cut "current page" tape.
@@ -155,10 +150,9 @@ Three saturated gels on a warm off-white paint and paper world, inked in near-bl
 - **Call-Sheet Paper** (sheet): the call sheet and client boards.
 - **Paper Tape** (tape): the default tape fill.
 - **Dark Hall** (hall): the page ground before the lights come up. It appears only behind the Intro.
-- **Felt Mark** (felt-mark): the Intro's spike mark only. It is taken from the kept pool-table felt.
 
 ### Named Rules
-**The One Gel Rule.** A Page is lit by one gel. The wall, its shading, and its shadows all come from that gel and its deep partner, mixed in oklab. A second gel appears on the Page only as a nav tape or spike mark that points to the Page it lights.
+**The One Gel Rule.** A Page is lit by one gel. The wall, its shading, and its shadows all come from that gel and its deep partner, mixed in oklab. A second gel appears on the Page only as a nav tape that points to the Page it lights.
 
 **The Shadow Is the Gel Rule.** Shadows on a lit wall are never neutral grey. Cast, contact, and call-sheet shadows use the current gel-deep through `color-mix`. That is what light does on coloured paint.
 
@@ -177,7 +171,7 @@ Three saturated gels on a warm off-white paint and paper world, inked in near-bl
 - **Intro Display** (900, width 64%, clamp(64px, 9vw, 148px), line-height 0.84, uppercase, cyc ink): the Intro overlay line over the dark hall. It carries a soft dark text-shadow for legibility over the photographic plate.
 - **Title** (850, width 68%, clamp(22px, 2.1vw, 34px), line-height 1, uppercase): call-sheet channel names.
 - **Body** (500, width 100%, clamp(13px, 1vw, 15px), tabular numerals): contact details and the Intro service line (clamp(14px, 1.1vw, 17px)).
-- **Label** (650, width 118%, 11px, letter-spacing 0.05em, uppercase, line-height 1): every tape. Related small caps (call-sheet foot 600, row actions 750, spike tooltips 700) share width 118% and 0.06em tracking. Floor tapes scale up to clamp(11px, 0.95vw, 14px). The Contact tape is 12.5px.
+- **Label** (650, width 118%, 11px, letter-spacing 0.05em, uppercase, line-height 1): every tape. Related small caps (call-sheet foot 600, row actions 750) share width 118% and 0.06em tracking. Floor tapes scale up to clamp(11px, 0.95vw, 14px). The Contact tape is 12.5px.
 
 ### Named Rules
 **The Two Widths Rule.** Width carries the hierarchy. Titles are condensed (62–68%) and labels are expanded (118%). Body sits at 100%. No other widths are used.
@@ -186,11 +180,11 @@ Three saturated gels on a warm off-white paint and paper world, inked in near-bl
 
 ## Layout
 
-One sticky full-viewport stage (100svh) holds every Page. Scroll distance drives a single master timeline, and each Page is an absolutely positioned layer. Content hangs off a left gutter (clamp(20px, 5vw, 80px)) and keeps clear of a right rail (clamp(76px, 8vw, 128px)) reserved for the spike marks. The header runs across the top: the logo at left and the tape nav at right, with 20px vertical and clamp(18px, 3vw, 40px) horizontal padding.
+One sticky full-viewport stage (100svh) holds every Page. Scroll distance drives a single master timeline, and each Page is an absolutely positioned layer. Content hangs off symmetric gutters (clamp(20px, 5vw, 80px) on desktop, 18px on phones); there is no page indicator, the header tapes and keyboard carry navigation. The header runs across the top: the logo at left and the tape nav at right, with 20px vertical and clamp(18px, 3vw, 40px) horizontal padding.
 
 Placement follows the cove. The Studio title's baseline sits at about 66% height (bottom: 34%), and the service tapes sit on the floor at 71%. The Projects title sits top-left, with four client boards on a floor grid (4 columns, gap clamp(16px, 2.4vw, 40px), bottom 13vh). Contact is a two-column grid (1fr / 0.95fr): the title at top-left and the call sheet at bottom-right.
 
-Compact breakpoint (max-width 768px or max-height 540px): the gutter becomes 18px and the right rail 64px. Studio tapes stack vertically. Project boards go to 2 columns at 4:3. Contact goes to a single column. Spike tooltips hide. Short landscape (max-height 540px, landscape) restores rows and uses a 1fr / 1.2fr contact grid. Safe-area insets are respected on every edge element.
+Compact breakpoint (max-width 768px or max-height 540px): both gutters become 18px. Studio tapes stack vertically. Project boards go to 2 columns at 4:3. Contact goes to a single column. Spike tooltips hide. Short landscape (max-height 540px, landscape) restores rows and uses a 1fr / 1.2fr contact grid. Safe-area insets are respected on every edge element.
 
 ## Elevation & Depth
 
@@ -209,7 +203,7 @@ Depth is light-motivated, never decorative. The wall itself is a three-layer gra
 
 ## Shapes
 
-Everything a crew would cut is rectangular with square corners (0px): tape, boards, the call sheet, and spike marks. Rectangles rest at small tilts (tape -1.2°, 0.9°, -0.4° by position; the call sheet 0.6°; spike marks -3°; tooltips -1°). Tape ends are slightly darkened to read as torn overlaps. Circles appear only where the world is round: the 8-ball logo, the contact icon rings (1.5px gaffer stroke), and contact-shadow ellipses. Icons are 1.6–1.7px round-capped line SVGs. Arrows are drawn strokes and never glyphs.
+Everything a crew would cut is rectangular with square corners (0px): tape, boards, and the call sheet. Rectangles rest at small tilts (tape -1.2°, 0.9°, -0.4° by position; the call sheet 0.6°). Tape ends are slightly darkened to read as torn overlaps. Circles appear only where the world is round: the 8-ball logo, the contact icon rings (1.5px gaffer stroke), and contact-shadow ellipses. Icons are 1.6–1.7px round-capped line SVGs. Arrows are drawn strokes and never glyphs.
 
 ## Components
 
@@ -232,10 +226,6 @@ The single label material, used for every label and control.
 - **Entrance:** stood up from rotationX -70° on its foot, on the cue ease.
 - **Caption:** a paper tape beneath each board.
 
-### Spike Marks (Page indicator)
-- **Style:** a 34×7px strip in each Page's gel (felt for the Intro), with a 1.5px ink outline and a -3° tilt, anchored at the right edge.
-- **State:** inactive strips are scaled to 0.47 from the right edge. Hover and focus scale them to 0.76, and the active strip to 1 (320ms). A tape tooltip slides in on hover (hidden on compact). The hit area is 44×30px (44×40px on compact).
-
 ### Navigation
 The header is the 42px circular 8-ball logo (34px on compact) at left, which returns to the Intro. The tape nav sits at right: Our Projects, Contact Us with an arrow, and Top. Chrome ink (--ink) is cyc over the Intro and switches to gaffer once a cyc is lit. The focus outline is 2px in --ink with a 4px offset.
 
@@ -247,7 +237,7 @@ The header is the 42px circular 8-ball logo (34px on compact) at left, which ret
 - **Reduced motion:** nothing travels. Pages switch on fully lit, and the key light stays at rest (30%, 26%).
 
 ### Fixed Constraint: Intro Pool-Break Scenes
-The three Intro Drafts (3D POV, 3D Break, Original) are preserved legacy material. Their felt green, walnut, photographic plate, vignettes, and table styling sit outside this token system and are not to be restyled or tokenized. The system meets them in three places: the dark hall ground, the felt spike mark, and the Studio cue flooding out of the pocket the 8-ball drops into.
+The three Intro Drafts (3D POV, 3D Break, Original) are preserved legacy material. Their felt green, walnut, photographic plate, vignettes, and table styling sit outside this token system and are not to be restyled or tokenized. The system meets them in two places: the dark hall ground and the Studio cue flooding out of the pocket the 8-ball drops into.
 
 ## Do's and Don'ts
 
