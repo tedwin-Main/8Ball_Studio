@@ -1,0 +1,501 @@
+/* ==========================================================================
+   Look: Downlight. The table seen from the lamp.
+   The camera hangs where the shade is and looks straight down: every Page is the bed under a
+   rectangular downlight, framed by walnut rails (the real CC0 wood scan), six pockets, and ivory
+   diamond sights. Beyond the rails the hall is black. Light falls straight down, so shadows sit
+   directly under things, soft on every side, never thrown to one side.
+   Controls are balls: each nav link is led by the ball it would be on the table (the 2 for
+   Projects, the 8 for Contact, the cue ball for the top), and the services are the rack's first three.
+   ========================================================================== */
+.experience[data-look='downlight'] {
+  --hall: #030403;
+  --cloth: #1e6a46;
+  --cloth-deep: #0c3322;
+  --ivory: #f3eee2;
+  --ivory-soft: rgb(243 238 226 / 0.68);
+  --chalk-blue: #2f6cb3;
+  --walnut: url('../assets/materials/walnut-color.webp');
+  --gaffer: #0c1a13;
+  --gaffer-soft: #3b4a42;
+  --cyc: var(--ivory);
+  --sheet: var(--ivory);
+  --look-ink: var(--ivory);
+  --gel: var(--cloth);
+  --gel-deep: #000;
+  background: var(--hall);
+}
+
+.experience[data-look='downlight'] ::selection {
+  background: var(--chalk-blue);
+  color: var(--ivory);
+}
+
+/* The table's box on every Page, and the rail width. */
+.experience[data-look='downlight'] .cyc {
+  --tbl-top: clamp(84px, 11vh, 112px);
+  --tbl-side: clamp(14px, 3vw, 48px);
+  /* Leaves the hall floor under the table for the Draft and Look controls, clear of the pockets. */
+  --tbl-bottom: clamp(64px, 9vh, 84px);
+  --rail: clamp(22px, 2.6vw, 42px);
+  --inset-x: calc(var(--tbl-side) + var(--rail) + clamp(20px, 4vw, 70px));
+  /* Where the shade hangs over this table: the hot core goes where the Page has only its large title
+     or open cloth, never under small text (ivory needs the cloth dark enough for 4.5:1 there). */
+  --pool-x: 50%;
+  --pool-y: 46%;
+  /* Size of the hot core, as a share of the bed: tall portrait beds get a flatter pool. */
+  --core-w: 40%;
+  --core-h: 46%;
+  color: var(--ivory);
+}
+
+.experience[data-look='downlight'] .projects-screen {
+  --pool-y: 40%;
+}
+
+/* Contact's rows fill the lower right, so its lamp hangs up and to the left, over the title. */
+.experience[data-look='downlight'] .contact-screen {
+  --pool-x: 36%;
+  --pool-y: 38%;
+}
+
+/* The hall around the table: black, with a little of the downlight's spill on the floor. */
+.experience[data-look='downlight'] .cyc-wall {
+  background:
+    radial-gradient(ellipse 70% 80% at 50% 55%, rgb(255 244 220 / 0.05), transparent 70%),
+    var(--hall);
+}
+
+/* ---------- The table ---------- */
+.experience[data-look='downlight'] .dl-table {
+  position: absolute;
+  top: var(--tbl-top);
+  right: var(--tbl-side);
+  bottom: var(--tbl-bottom);
+  left: var(--tbl-side);
+  border-radius: calc(var(--rail) * 0.45);
+  background:
+    /* Diamond sights along the long rails. */
+    radial-gradient(circle, #efe6cf 0 2.2px, transparent 2.8px) left 6.25% top calc(var(--rail) / 2 - 3px) / 12.5% 6px repeat-x,
+    radial-gradient(circle, #efe6cf 0 2.2px, transparent 2.8px) left 6.25% bottom calc(var(--rail) / 2 - 3px) / 12.5% 6px repeat-x,
+    /* The downlight on the rails: bright where they pass under the shade, dark at the ends. */
+    radial-gradient(ellipse 60% 80% at 50% 50%, rgb(255 238 204 / 0.18), rgb(0 0 0 / 0.55) 100%),
+    var(--walnut) 0 0 / 560px auto;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 240 210 / 0.08),
+    0 0 90px 10px rgb(0 0 0 / 0.9);
+}
+
+/* The bed: cushion rubber inside the rail, then the cloth under a canopy downlight that covers the
+   whole playing surface and stops hard just short of the cushions, as a table lamp does.
+   The lit bed keeps the cloth's blue-green, and the lamp is brightness, not a paler wash: ivory type needs the cloth at or under
+   relative luminance 0.15 to hold 4.5:1 (the core sits near 0.127, leaving room for the nap's bright
+   fibres), so the pool reads through saturation and its dark edge.
+   The pointer sways a faint warm hotspot, the way a lamp sways over play. */
+.experience[data-look='downlight'] .dl-cloth {
+  position: absolute;
+  inset: var(--rail);
+  background:
+    radial-gradient(ellipse 26% 30% at calc(var(--pool-x) + (var(--lx, 50) - 50) * 0.16%) calc(var(--pool-y) + (var(--ly, 50) - 50) * 0.12%), rgb(214 236 180 / 0.08), transparent 70%),
+    /* The pool's edge: a short, hard falloff into shadow at the cushions on every side. */
+    linear-gradient(90deg, #06170e 0%, rgb(6 23 14 / 0.5) 3%, transparent 8%, transparent 92%, rgb(6 23 14 / 0.5) 97%, #06170e 100%),
+    linear-gradient(180deg, #06170e 0%, rgb(6 23 14 / 0.5) 4%, transparent 10%, transparent 90%, rgb(6 23 14 / 0.5) 96%, #06170e 100%),
+    /* The hot core directly under the shade: much brighter than the bed, with only a slight warm lift
+       (hue about 140 against the cloth's 150), so the lamp reads as light rather than a new colour. */
+    radial-gradient(ellipse var(--core-w) var(--core-h) at var(--pool-x) var(--pool-y), #43a062 0%, rgb(52 136 80 / 0.85) 30%, rgb(42 120 74 / 0) 100%),
+    /* The lit bed: the cloth's own blue-green (hue about 150, the Intro felt's family), held almost to
+       the edge and dark enough for ivory text. */
+    radial-gradient(ellipse 78% 84% at var(--pool-x) var(--pool-y), #1f7248 0%, #1d6c45 45%, #196240 80%, #155a3a 100%);
+  box-shadow:
+    inset 0 0 0 clamp(5px, 0.6vw, 9px) #154a32,
+    inset 0 0 26px rgb(0 0 0 / 0.55);
+}
+
+/* Worsted nap: a neutral grey tile baked from the Intro's own felt material (fibre plus faint dye
+   mottle; see felt-nap.webp.json), overlaid 1:1 so the table matches the cloth it sits inside. */
+.experience[data-look='downlight'] .dl-cloth::after {
+  position: absolute;
+  inset: 0;
+  background: url('../assets/looks/downlight/felt-nap.webp') 0 0 / 512px 512px;
+  content: '';
+  mix-blend-mode: overlay;
+  opacity: 0.55;
+}
+
+/* Six pockets: leather-lined holes where the rails meet. */
+.experience[data-look='downlight'] .dl-pocket {
+  position: absolute;
+  width: calc(var(--rail) * 1.35);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, #000 0 56%, #140e0a 62%, #34251a 70%, #0b0806 74%);
+  translate: -50% -50%;
+}
+
+.experience[data-look='downlight'] .dl-pocket-tl { top: calc(var(--rail) * 0.72); left: calc(var(--rail) * 0.72); }
+.experience[data-look='downlight'] .dl-pocket-tm { top: calc(var(--rail) * 0.5); left: 50%; }
+.experience[data-look='downlight'] .dl-pocket-tr { top: calc(var(--rail) * 0.72); left: calc(100% - var(--rail) * 0.72); }
+.experience[data-look='downlight'] .dl-pocket-bl { top: calc(100% - var(--rail) * 0.72); left: calc(var(--rail) * 0.72); }
+.experience[data-look='downlight'] .dl-pocket-bm { top: calc(100% - var(--rail) * 0.5); left: 50%; }
+.experience[data-look='downlight'] .dl-pocket-br { top: calc(100% - var(--rail) * 0.72); left: calc(100% - var(--rail) * 0.72); }
+
+/* ---------- Type: a clean grotesque in ivory, laid on the cloth ---------- */
+.experience[data-look='downlight'] .cyc-title,
+.experience[data-look='downlight'] .hero-copy h1 {
+  font-family: 'Schibsted Grotesk', 'Archivo', sans-serif;
+  font-stretch: 100%;
+  font-weight: 860;
+  letter-spacing: -0.025em;
+  line-height: 0.9;
+}
+
+.experience[data-look='downlight'] .cyc-title {
+  color: var(--ivory);
+  font-size: clamp(56px, 8.4vw, 150px);
+}
+
+/* Overhead light: a soft shadow straight under each letter, not cast to a side. */
+.experience[data-look='downlight'] .cue-char {
+  text-shadow: 0 0 14px rgb(0 0 0 / 0.45);
+}
+
+.experience[data-look='downlight'] .final-content::after {
+  display: none;
+}
+
+.experience[data-look='downlight'] .final-content {
+  top: calc(var(--tbl-top) + var(--rail) + clamp(24px, 6vh, 64px));
+  bottom: auto;
+  left: var(--inset-x);
+}
+
+/* ---------- Services: the rack's first three balls ---------- */
+.experience[data-look='downlight'] .studio-floor {
+  top: auto;
+  right: var(--inset-x);
+  bottom: calc(var(--tbl-bottom) + var(--rail) + clamp(24px, 7vh, 72px));
+  left: auto;
+}
+
+.experience[data-look='downlight'] .studio-services {
+  flex-direction: column;
+  gap: clamp(12px, 1.8vh, 18px);
+}
+
+.experience[data-look='downlight'] .studio-services .tape {
+  --tilt: 0deg;
+  min-height: 0;
+  gap: 14px;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--ivory);
+  font-family: 'Schibsted Grotesk', 'Archivo', sans-serif;
+  font-stretch: 100%;
+  font-size: clamp(14px, 1.2vw, 18px);
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+/* A numbered ball: a top-down plate rendered from the Intro's own resin ball material (see the
+   .json beside each plate), its shadow directly beneath because the lamp is straight overhead. */
+.experience[data-look='downlight'] .studio-services .tape::before {
+  width: clamp(32px, 2.8vw, 42px);
+  aspect-ratio: 1;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ball-plate, url('../assets/looks/downlight/ball-1.webp')) center / contain no-repeat;
+  box-shadow: 0 0 12px 3px rgb(0 0 0 / 0.5);
+  content: '';
+}
+
+.experience[data-look='downlight'] .studio-services .tape:nth-child(2) { --ball-plate: url('../assets/looks/downlight/ball-2.webp'); }
+.experience[data-look='downlight'] .studio-services .tape:nth-child(3) { --ball-plate: url('../assets/looks/downlight/ball-3.webp'); }
+
+.experience[data-look='downlight'] .final-meta {
+  top: auto;
+  bottom: calc(var(--tbl-bottom) + var(--rail) + clamp(20px, 4vh, 44px));
+  left: var(--inset-x);
+  min-height: 0;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--ivory-soft);
+  font-family: 'Schibsted Grotesk', 'Archivo', sans-serif;
+  font-stretch: 100%;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+/* ---------- Controls: dark chips on the hall floor, each nav link led by its ball ---------- */
+.experience[data-look='downlight'] .tape {
+  --tilt: 0deg;
+  border-radius: 2px;
+  background: var(--tape-fill, rgb(10 14 12 / 0.85));
+  box-shadow: inset 0 0 0 1px rgb(243 238 226 / 0.16);
+  color: var(--tape-ink, var(--ivory));
+  font-family: 'Schibsted Grotesk', 'Archivo', sans-serif;
+  font-stretch: 100%;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+}
+
+/* The selected draft is outlined, not filled: the ivory fill belongs to Contact Us alone. */
+.experience[data-look='downlight'] .draft-switcher-button.is-active {
+  --tape-fill: transparent;
+  --tape-ink: var(--ivory);
+  box-shadow: inset 0 0 0 1.5px var(--ivory);
+}
+
+.experience[data-look='downlight'] .header-meta .tape {
+  gap: 10px;
+  padding: 0 4px;
+  background: none;
+  box-shadow: none;
+  color: var(--ivory-soft);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.experience[data-look='downlight'] .header-meta .tape::before {
+  width: 22px;
+  aspect-ratio: 1;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ball-plate, url('../assets/looks/downlight/ball-2.webp')) center / contain no-repeat;
+  box-shadow: 0 0 8px 2px rgb(0 0 0 / 0.6);
+  content: '';
+  transition: rotate 300ms var(--ease-out), translate 300ms var(--ease-out);
+}
+
+/* Contact is the 8, the shot that wins the frame, and the page's one next step: an ivory chip, lit
+   like the cards laid on the cloth, with the 8-ball on it where its black resin reads. */
+.experience[data-look='downlight'] .header-meta .tape-contact {
+  --ball-plate: url('../assets/looks/downlight/ball-8.webp');
+  min-height: 38px;
+  padding: 0 14px 0 8px;
+  border-radius: 2px;
+  background: var(--ivory);
+  box-shadow: 0 0 18px 2px rgb(0 0 0 / 0.55);
+  color: #0c1a13;
+  font-weight: 800;
+}
+
+.experience[data-look='downlight'] .header-meta .tape-contact:is(:hover, :focus-visible) {
+  color: #0c1a13;
+  box-shadow: 0 0 24px 4px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(243 238 226 / 0.6);
+}
+
+.experience[data-look='downlight'] .header-meta .tape-contact::before {
+  box-shadow: 0 0 5px 1px rgb(0 0 0 / 0.35);
+}
+
+/* Top is the cue ball. */
+.experience[data-look='downlight'] .header-meta .top-link {
+  --ball-plate: url('../assets/looks/downlight/ball-cue.webp');
+}
+
+.experience[data-look='downlight'] .header-meta .tape:is(:hover, :focus-visible) {
+  color: var(--ivory);
+  translate: 0 0;
+}
+
+/* The ball rolls a little toward the pointer. */
+.experience[data-look='downlight'] .header-meta .tape:is(:hover, :focus-visible)::before {
+  rotate: 90deg;
+  translate: 3px 0;
+}
+
+.experience[data-look='downlight'][data-story-indicator-page='projects'] .header-meta .tape-projects,
+.experience[data-look='downlight'][data-story-indicator-page='contact'] .header-meta .tape-contact {
+  color: var(--ivory);
+  text-decoration: underline 1.5px;
+  text-underline-offset: 6px;
+}
+
+/* On Contact the chip keeps its dark ink (ivory text would vanish on the ivory chip); the underline
+   alone marks it as the current Page. */
+.experience[data-look='downlight'][data-story-indicator-page='contact'] .header-meta .tape-contact {
+  color: #0c1a13;
+}
+
+.experience[data-look='downlight'] .tape-contact svg {
+  width: 16px;
+}
+
+.experience[data-look='downlight'] .hero-services {
+  color: var(--ivory);
+}
+
+/* Intro overlay: Schibsted runs wider than the base face, so the title steps down and the services
+   stack, keeping both clear of the rack in the Intro scene. */
+.experience[data-look='downlight'] .hero-copy h1 {
+  font-size: clamp(52px, 6.4vw, 108px);
+}
+
+.experience[data-look='downlight'] .hero-services {
+  flex-direction: column;
+  gap: 4px;
+}
+
+.experience[data-look='downlight'] .hero-services li + li::before {
+  content: none;
+}
+
+/* ---------- Projects: client cards laid flat on the cloth, lit from straight above ---------- */
+.experience[data-look='downlight'] .projects-content {
+  top: calc(var(--tbl-top) + var(--rail) + clamp(20px, 5vh, 56px));
+  left: var(--inset-x);
+}
+
+.experience[data-look='downlight'] .projects-title {
+  font-size: clamp(52px, 7vw, 128px);
+}
+
+.experience[data-look='downlight'] .projects-floor {
+  right: var(--inset-x);
+  bottom: calc(var(--tbl-bottom) + var(--rail) + clamp(24px, 7vh, 72px));
+  left: var(--inset-x);
+  perspective: none;
+}
+
+.experience[data-look='downlight'] .project-card {
+  perspective: none;
+}
+
+.experience[data-look='downlight'] .project-board {
+  width: min(100%, 240px);
+  border-radius: 3px;
+  background: var(--ivory);
+  box-shadow: 0 0 24px 4px rgb(0 0 0 / 0.5);
+  transform: none;
+}
+
+.experience[data-look='downlight'] .project-board::after {
+  display: none;
+}
+
+.experience[data-look='downlight'] .project-card.is-haruplate .project-board {
+  background: #101512;
+}
+
+.experience[data-look='downlight'] .project-card .tape {
+  min-height: 0;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--ivory);
+  font-size: 12px;
+}
+
+/* ---------- Contact: the channels written straight onto the cloth ---------- */
+.experience[data-look='downlight'] .contact-content {
+  inset: calc(var(--tbl-top) + var(--rail)) calc(var(--tbl-side) + var(--rail)) calc(var(--tbl-bottom) + var(--rail));
+  padding: clamp(20px, 5vh, 56px) clamp(20px, 4vw, 70px);
+}
+
+.experience[data-look='downlight'] .contact-title {
+  font-size: clamp(52px, 7vw, 128px);
+}
+
+.experience[data-look='downlight'] .call-sheet {
+  --gaffer: var(--ivory);
+  /* Phone, handle, email, and the foot are the conversion data: full ivory, never faded, on the lit cloth. */
+  --gaffer-soft: var(--ivory);
+  padding-inline: 0;
+  background: none;
+  box-shadow: none;
+  rotate: 0deg;
+}
+
+.experience[data-look='downlight'] .contact-list li + li {
+  border-top: 1px solid rgb(243 238 226 / 0.18);
+}
+
+.experience[data-look='downlight'] .contact-icon {
+  border-color: rgb(243 238 226 / 0.6);
+}
+
+/* Focus rings are ivory on the cloth; the base sheet's gaffer ink would vanish into the green. */
+.experience[data-look='downlight'] .contact-item:focus-visible {
+  outline-color: var(--ivory);
+}
+
+/* A chalk-blue rub across the channel name, the only colour off the table's own. */
+.experience[data-look='downlight'] .contact-channel {
+  background-image: linear-gradient(rgb(47 108 179 / 0.6), rgb(47 108 179 / 0.6));
+  font-family: 'Schibsted Grotesk', 'Archivo', sans-serif;
+  font-stretch: 100%;
+  font-weight: 820;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+
+.experience[data-look='downlight'] .call-sheet-foot,
+.experience[data-look='downlight'] .contact-action {
+  font-family: 'Schibsted Grotesk', 'Archivo', sans-serif;
+  font-stretch: 100%;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+}
+
+.experience[data-look='downlight'] .call-sheet-foot {
+  border-top-color: rgb(243 238 226 / 0.45);
+}
+
+@media (max-width: 768px), (max-height: 540px) {
+  .experience[data-look='downlight'] .cyc {
+    --tbl-top: 76px;
+    --tbl-side: 10px;
+    --tbl-bottom: 132px;
+    --rail: 18px;
+    --inset-x: 44px;
+  }
+
+  /* Portrait tables stack their content, so each lamp moves to that Page's open cloth: between the
+     title and the services on Studio, above the cards on Projects, below the rows on Contact. */
+  .experience[data-look='downlight'] .cyc {
+    --pool-x: 50%;
+    --pool-y: 36%;
+    --core-w: 60%;
+    --core-h: 22%;
+  }
+
+  .experience[data-look='downlight'] .projects-screen {
+    --pool-y: 30%;
+  }
+
+  .experience[data-look='downlight'] .contact-screen {
+    --pool-x: 50%;
+    --pool-y: 90%;
+  }
+
+  .experience[data-look='downlight'] .cyc-title {
+    font-size: clamp(48px, 15vw, 96px);
+  }
+
+  .experience[data-look='downlight'] :is(.projects-title, .contact-title) {
+    font-size: clamp(42px, 12vw, 80px);
+  }
+
+  .experience[data-look='downlight'] .studio-floor {
+    right: auto;
+    left: var(--inset-x);
+    bottom: calc(var(--tbl-bottom) + var(--rail) + 56px);
+  }
+
+  .experience[data-look='downlight'] .final-meta {
+    bottom: calc(var(--tbl-bottom) + var(--rail) + 22px);
+  }
+
+  .experience[data-look='downlight'] .header-meta .tape {
+    font-size: 11px;
+  }
+
+  .experience[data-look='downlight'] .header-meta .tape::before {
+    width: 18px;
+  }
+}

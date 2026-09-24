@@ -1,0 +1,296 @@
+/* ==========================================================================
+   Look: House Print. The pool hall's own printed goods.
+   Table-hire chits, chalk-box wrappers, the house card on the wall: all run off one cheap press in
+   three permitted inks (chalk blue, ball red, baize green) on grey recycled board. Each Page is one
+   sheet lying in the lamp's pool on a dark table; the room around it stays black.
+   Grammar from the kiosk: goods sit in a ruled grid, one geometric office mark per product, no
+   photographs, inks slightly off-register, and the active cell takes the third ink.
+   ========================================================================== */
+.experience[data-look='chit'] {
+  --room: #070706;
+  --board: #d9d3c5;
+  --board-lit: #ebe6da;
+  --ink-blue: #1f3a6c;
+  --ink-red: #c13a2a;
+  --ink-green: #56703b;
+  --gaffer: var(--ink-blue);
+  --gaffer-soft: #3f4a5e;
+  --cyc: var(--board);
+  --sheet: var(--board-lit);
+  --look-ink: var(--ink-red);
+  --gel: var(--board);
+  --gel-deep: #2a2620;
+  background: var(--room);
+}
+
+.experience[data-look='chit'] ::selection {
+  background: var(--ink-red);
+  color: var(--board-lit);
+}
+
+.experience[data-look='chit'] .cyc {
+  color: var(--ink-blue);
+}
+
+/* The sheet on the table. The lamp's pool (pointer-led) lights the board unevenly; outside the
+   board's edge the table and room fall away to black. */
+.experience[data-look='chit'] .cyc-wall {
+  background:
+    radial-gradient(ellipse 60% 55% at calc(var(--lx, 45) * 1%) calc(var(--ly, 40) * 1%), rgb(255 250 236 / 0.34), transparent 70%),
+    /* The lamp's pool ends before the sheet does: the far corners fall into the table's shadow. */
+    radial-gradient(ellipse 78% 82% at 45% 42%, transparent 50%, rgb(26 20 12 / 0.62) 100%),
+    /* A fibre fleck in the board, printed as tiny scattered specks. */
+    radial-gradient(circle at 30% 40%, rgb(60 50 40 / 0.18) 0 0.8px, transparent 1.2px) 0 0 / 23px 29px,
+    radial-gradient(circle at 70% 20%, rgb(60 50 40 / 0.14) 0 0.7px, transparent 1.1px) 0 0 / 37px 31px,
+    var(--board);
+  /* The sheet stops short of the frame; the dark table shows around it. */
+  inset: clamp(72px, 10vh, 96px) clamp(8px, 1.4vw, 22px) clamp(8px, 1.4vw, 22px);
+  box-shadow: 0 30px 60px -20px #000;
+}
+
+.experience[data-look='chit'] .cyc {
+  background: radial-gradient(ellipse 80% 70% at 45% 45%, #1c1a15, var(--room) 70%);
+}
+
+/* The printer's ruled frame, two pulls: blue rule, and a red one landed a hair off. */
+.experience[data-look='chit'] .cyc-wall::before,
+.experience[data-look='chit'] .cyc-wall::after {
+  position: absolute;
+  inset: clamp(10px, 1.4vw, 20px);
+  border: 2px solid var(--ink-blue);
+  content: '';
+  pointer-events: none;
+}
+
+.experience[data-look='chit'] .cyc-wall::after {
+  border-color: rgb(193 58 42 / 0.55);
+  border-width: 1px;
+  translate: 3px 2px;
+}
+
+/* ---------- Type: one geometric grotesque, printed ---------- */
+.experience[data-look='chit'] .cyc-title,
+.experience[data-look='chit'] .hero-copy h1 {
+  font-family: 'Jost', 'Archivo', sans-serif;
+  font-stretch: 100%;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 0.9;
+}
+
+.experience[data-look='chit'] .cyc-title {
+  color: var(--ink-blue);
+  font-size: clamp(64px, 11.5vw, 196px);
+}
+
+/* The second line takes the second ink. */
+.experience[data-look='chit'] .cyc-title > span + span {
+  color: var(--ink-red);
+}
+
+/* Misregistration: each letter carries a faint ghost of the other plate, a pixel or two off. */
+.experience[data-look='chit'] .cue-char {
+  text-shadow: 2px 1px 0 rgb(193 58 42 / 0.28);
+}
+
+.experience[data-look='chit'] .cyc-title > span + span .cue-char {
+  text-shadow: -2px 1px 0 rgb(31 58 108 / 0.3);
+}
+
+.experience[data-look='chit'] .final-content::after {
+  display: none;
+}
+
+/* ---------- Printed cells: ruled boxes in the blue plate ---------- */
+.experience[data-look='chit'] .tape {
+  --tilt: 0deg;
+  gap: 9px;
+  background: var(--tape-fill, var(--board-lit));
+  box-shadow:
+    inset 0 0 0 2px var(--tape-rule, var(--ink-blue)),
+    0 6px 14px -8px rgb(0 0 0 / 0.55);
+  color: var(--tape-ink, var(--ink-blue));
+  font-family: 'Jost', 'Archivo', sans-serif;
+  font-stretch: 100%;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+/* Contact is printed solid in the red plate. */
+.experience[data-look='chit'] .tape-contact {
+  --tape-fill: var(--ink-red);
+  --tape-rule: var(--ink-red);
+  --tape-ink: var(--board-lit);
+}
+
+.experience[data-look='chit'] .tape-projects {
+  --tape-fill: var(--board-lit);
+  --tape-ink: var(--ink-blue);
+}
+
+/* The active cell takes the third ink. */
+.experience[data-look='chit'][data-story-indicator-page='projects'] .tape-projects,
+.experience[data-look='chit'][data-story-indicator-page='contact'] .tape-contact,
+.experience[data-look='chit'] .draft-switcher-button.is-active {
+  --tape-fill: var(--ink-green);
+  --tape-rule: var(--ink-green);
+  --tape-ink: var(--board-lit);
+}
+
+.experience[data-look='chit'] .final-meta {
+  --tape-fill: var(--ink-blue);
+  --tape-ink: var(--board-lit);
+}
+
+.experience[data-look='chit'] .hero-services {
+  color: var(--board);
+}
+
+/* One office mark per service: a ball, a rack, a cue, each in its own ink. */
+.experience[data-look='chit'] .studio-services .tape::before {
+  width: 0.95em;
+  height: 0.95em;
+  flex: none;
+  background: var(--mark-ink, var(--ink-red));
+  content: '';
+}
+
+.experience[data-look='chit'] .studio-services .tape:nth-child(1)::before {
+  border-radius: 50%;
+}
+
+.experience[data-look='chit'] .studio-services .tape:nth-child(2)::before {
+  --mark-ink: var(--ink-green);
+  clip-path: polygon(50% 4%, 100% 96%, 0 96%);
+}
+
+.experience[data-look='chit'] .studio-services .tape:nth-child(3)::before {
+  --mark-ink: var(--ink-blue);
+  height: 0.3em;
+  width: 1.6em;
+}
+
+.experience[data-look='chit'] .studio-floor .tape {
+  min-height: clamp(40px, 3.4vw, 50px);
+}
+
+/* ---------- Projects: the kiosk grid, one client per ruled cell ---------- */
+.experience[data-look='chit'] .projects-floor {
+  gap: 0;
+  perspective: none;
+  box-shadow: inset 0 0 0 2px var(--ink-blue);
+}
+
+.experience[data-look='chit'] .project-card {
+  gap: 0;
+  perspective: none;
+  align-items: stretch;
+}
+
+.experience[data-look='chit'] .project-card + .project-card {
+  box-shadow: inset 2px 0 0 var(--ink-blue);
+}
+
+.experience[data-look='chit'] .project-board {
+  width: 100%;
+  aspect-ratio: 5 / 4;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.experience[data-look='chit'] .project-board::after {
+  display: none;
+}
+
+/* HaruPlate's pale mark needs a printed ground: a solid blue cell. */
+.experience[data-look='chit'] .project-card.is-haruplate .project-board {
+  background: var(--ink-blue);
+}
+
+.experience[data-look='chit'] .project-card .tape {
+  width: 100%;
+  justify-content: center;
+  background: var(--board-lit);
+  box-shadow: inset 0 2px 0 var(--ink-blue);
+}
+
+.experience[data-look='chit'] .project-card:hover .project-board {
+  translate: 0 0;
+}
+
+.experience[data-look='chit'] .project-card:hover .tape {
+  --tape-ink: var(--board-lit);
+  background: var(--ink-green);
+}
+
+.experience[data-look='chit'] .projects-floor:hover .project-card:not(:hover) .project-board {
+  filter: none;
+  opacity: 0.55;
+}
+
+/* ---------- Contact: the table-hire chit, torn from the pad ---------- */
+.experience[data-look='chit'] .call-sheet {
+  --gaffer: var(--ink-blue);
+  --gaffer-soft: #3f4a5e;
+  padding-top: clamp(30px, 3vw, 42px);
+  background:
+    /* The perforation along the top where the chit was torn off. */
+    radial-gradient(circle at 50% 0, var(--board) 0 4px, transparent 4.5px) 0 0 / 14px 10px repeat-x,
+    var(--board-lit);
+  box-shadow:
+    inset 0 0 0 2px var(--ink-blue),
+    0 30px 44px -26px rgb(0 0 0 / 0.7);
+  rotate: -0.6deg;
+}
+
+.experience[data-look='chit'] .call-sheet-foot {
+  border-top-color: var(--ink-red);
+  font-family: 'Jost', 'Archivo', sans-serif;
+  font-stretch: 100%;
+}
+
+.experience[data-look='chit'] .contact-list li + li {
+  border-top: 1px solid rgb(31 58 108 / 0.3);
+}
+
+.experience[data-look='chit'] .contact-icon {
+  border-color: var(--ink-red);
+  color: var(--ink-red);
+}
+
+.experience[data-look='chit'] .contact-channel {
+  background-image: linear-gradient(rgb(86 112 59 / 0.45), rgb(86 112 59 / 0.45));
+  font-family: 'Jost', 'Archivo', sans-serif;
+  font-stretch: 100%;
+  font-weight: 700;
+}
+
+.experience[data-look='chit'] .contact-action {
+  color: var(--ink-red);
+  font-family: 'Jost', 'Archivo', sans-serif;
+  font-stretch: 100%;
+}
+
+@media (max-width: 768px), (max-height: 540px) {
+  .experience[data-look='chit'] .cyc-wall {
+    inset: max(64px, 9vh) 6px 6px;
+  }
+
+  .experience[data-look='chit'] .cyc-title {
+    font-size: clamp(56px, 19vw, 130px);
+  }
+
+  .experience[data-look='chit'] .projects-title,
+  .experience[data-look='chit'] .contact-title {
+    font-size: clamp(48px, 15vw, 110px);
+  }
+
+  .experience[data-look='chit'] .project-card:nth-child(3) {
+    box-shadow: inset 0 2px 0 var(--ink-blue);
+  }
+
+  .experience[data-look='chit'] .project-card:nth-child(4) {
+    box-shadow: inset 2px 2px 0 var(--ink-blue);
+  }
+}

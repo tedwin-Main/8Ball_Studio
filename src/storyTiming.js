@@ -51,11 +51,8 @@ function validateNumericEntries( entries, prefix, skipKeys = [] )
   }
 }
 
-// These counts mirror the fixed title spans and contact cards rendered by App.jsx.
-const PROJECTS_TITLE_LINE_COUNT = 2
-const CONTACT_TITLE_LINE_COUNT = 2
+// Mirrors the two Studio title spans rendered by App.jsx.
 const FINAL_TITLE_LINE_COUNT = 2
-const CONTACT_ITEM_COUNT = 3
 
 function freeze( value )
 {
@@ -63,23 +60,32 @@ function freeze( value )
 }
 
 // Edit these semantic values while Vite is running; all dependent progress is derived below.
+// The scrubbed timeline covers only the pinned stage: the Intro break (unit 0 to 1, where Studio is
+// lit) plus a short Studio hold. After it the stage releases and Studio, Projects, and Contact scroll
+// as normal sections, so totalTimelineUnits is derived (1 + pages.studioReleaseHold), not configured.
 export const STORY_TIMING_DEFAULTS = freeze( {
-  // Timeline units map to normalized story progress through totalTimelineUnits.
-  totalTimelineUnits: 3,
   // Shared progress tolerance keeps cue gates and page indicators from disagreeing at boundaries.
   progressEpsilon: 0.0005,
   // Scroll input controls are deliberately separate from animation phase lengths.
   scroll: freeze( {
     // Blend the 8-ball's approach between linear and the shared weighted curve (0 = linear, 1 = full curve).
     introWeight: 0.72,
-    // Heavier than the rockstargames.com/VI reference (lerp .07, wheelMultiplier 1.2):
-    // each frame closes only 5% of the remaining distance, so the page keeps gliding after input,
-    // and one wheel tick travels 0.6x, so the short four-Page Story is not crossed in a few flicks.
-    wheelMultiplier: 0.6,
-    lerp: 0.05,
-    // Touch smoothing applies only in paged mode (freeScroll: false); free scroll uses native
-    // touch momentum like the reference site (Lenis default syncTouch: false).
-    syncTouchLerp: 0.06,
+    // Screens of scroll per timeline unit on the pinned stage. More scroll per cue means each wheel
+    // notch moves the Intro break less; the flow sections after it always scroll 1:1.
+    viewportsPerUnit: 3,
+    // Lenis values match rockstargames.com/VI exactly (its live ReactLenis options, read 2026-09-24).
+    // lerp: each 60fps frame closes 7% of the remaining distance, so the page glides after input.
+    // No duration/easing on purpose: in Lenis those override lerp and turn every flick into a fixed-length glide.
+    lerp: 0.07,
+    // One wheel tick travels 1.2x its raw delta.
+    wheelMultiplier: 1.2,
+    // Touch values only apply in paged mode (freeScroll: false), where Lenis owns touch.
+    // Free scroll leaves touch to native momentum, as the reference site does (syncTouch: false).
+    touchMultiplier: 1,
+    syncTouchLerp: 0.075,
+    touchInertiaExponent: 1.7,
+    // GSAP scrub catch-up in seconds: the Intro → Studio cue trails the smoothed scroll for extra weight.
+    scrubSeconds: 1.2,
   } ),
   // Programmatic autoplay and gesture qualification live here so every input source
   // uses the same stable-page contract. Durations are seconds; threshold/reset are px/ms.
@@ -88,7 +94,7 @@ export const STORY_TIMING_DEFAULTS = freeze( {
     introToStudioSeconds: 3.0,
     // Reverse Intro playback keeps its dedicated weighted settle duration.
     studioToIntroSeconds: 1.6,
-    // Later page edges use one consistent autoplay duration.
+    // Glides between Studio, Projects, and Contact (nav links, keys) use one duration.
     defaultEdgeSeconds: 1.2,
     // Small touch/wheel noise must not start a page transition.
     gestureThresholdPx: 14,
@@ -154,29 +160,15 @@ export const STORY_TIMING_DEFAULTS = freeze( {
     } ),
   } ),
   pages: freeze( {
-    // Studio occupies timeline unit 1; these are the readable holds before later pages.
-    studioHold: 0.16,
-    studioRevealDuration: 0.52,
-    // Delay before the Studio title starts fading as Projects appears.
-    projectsFadeDelay: 0.04,
-    projectsFadeDuration: 0.46,
-    projectsTitleDelay: 0.41,
-    projectsTitleDuration: 0.22,
-    projectsTitleStagger: 0.04,
-    projectsHold: 0.14,
-    // Contact reveal is measured from the Projects stable mark.
-    contactRevealDuration: 0.56,
-    // The readable Contact hold is independent from the overall story length.
-    contactHoldDuration: 0.3,
-    contactFadeDelay: 0.04,
-    contactFadeDuration: 0.5,
-    contactTitleDelay: 0.38,
-    contactTitleDuration: 0.24,
-    contactTitleStagger: 0.04,
-    contactItemsDelay: 0.53,
-    contactItemDuration: 0.2,
-    contactItemStagger: 0.05,
-    // Keeps the GSAP timeline exactly as long as the configured story.
+    // Pinned hold after the Studio cue settles, before the stage releases into normal scroll, so
+    // Studio reads as a finished frame. 0.17 units is about half a screen at viewportsPerUnit 3.
+    studioReleaseHold: 0.17,
+    // Studio camera move, linear in scroll from the cue to the release, so no wheel notch lands on a
+    // frozen frame. Foreground rise in vh per timeline unit; zero offset at Studio's stable mark.
+    driftVhPerUnit: 10,
+    // Cyc wall push-in: scale gained per timeline unit (the wall starts at 1, so it always fills the frame).
+    wallPushPerUnit: 0.06,
+    // Keeps the GSAP timeline exactly as long as the pinned stage.
     timelineEndEpsilon: 0.01,
   } ),
 } )
@@ -224,65 +216,22 @@ function validateSchedule( schedule )
     throw new RangeError( 'totalTimelineUnits must be greater than zero.' )
   }
 
-  const starts = [
-    schedule.pages.studioStart,
-    schedule.pages.draft2StudioStart,
-    schedule.pages.projectsStart,
-    schedule.pages.contactStart,
-  ]
-
-  // Ensure each page start milestone happens after the previous one.
-  for ( let i = 1; i < starts.length; i++ )
+  if ( schedule.pages.draft2StudioStart <= schedule.pages.studioStart || schedule.pages.draft2StudioStart >= schedule.pages.studioStable )
   {
-    if ( starts[ i ] <= starts[ i - 1 ] )
-    {
-      throw new RangeError( 'page starts must be strictly increasing.' )
-    }
+    throw new RangeError( 'Draft 2 Studio threshold must stay between its handoff and the Studio stable mark.' )
   }
 
-  if ( schedule.pages.cinematicStudioStart >= schedule.pages.projectsStart )
+  if ( schedule.pages.cinematicStudioStart >= schedule.pages.studioStable )
   {
-    throw new RangeError( 'both intro handoffs must finish before Projects.' )
-  }
-
-  if ( schedule.pages.draft2StudioStart <= schedule.pages.studioStart || schedule.pages.draft2StudioStart >= schedule.pages.projectsStart )
-  {
-    throw new RangeError( 'Draft 2 Studio threshold must stay between its handoff and Projects.' )
-  }
-
-  if ( schedule.pages.projectsFadeEnd > schedule.pages.projectsStable || schedule.pages.projectsTitleEnd > schedule.pages.projectsStable )
-  {
-    throw new RangeError( 'Projects content must finish before its stable mark.' )
-  }
-
-  if ( schedule.pages.contactFadeEnd > schedule.pages.contactStable )
-  {
-    throw new RangeError( 'Contact fade must finish before its stable mark.' )
-  }
-
-  if ( schedule.pages.contactTitleEnd > schedule.pages.contactStable || schedule.pages.contactItemsEnd > schedule.pages.contactStable )
-  {
-    throw new RangeError( 'Contact content must finish before its stable mark.' )
+    throw new RangeError( 'both intro handoffs must finish before Studio is stable.' )
   }
 
   const milestones = [
     schedule.pages.studioStart,
     schedule.pages.draft2StudioStart,
     schedule.pages.cinematicStudioStart,
-    schedule.pages.projectsStart,
-    schedule.pages.contactStart,
-    schedule.pages.projectsFadeStart,
-    schedule.pages.projectsFadeEnd,
-    schedule.pages.projectsTitleStart,
-    schedule.pages.projectsTitleEnd,
-    schedule.pages.contactRevealEnd,
-    schedule.pages.contactStable,
-    schedule.pages.contactFadeStart,
-    schedule.pages.contactFadeEnd,
-    schedule.pages.contactTitleStart,
-    schedule.pages.contactTitleEnd,
-    schedule.pages.contactItemsStart,
-    schedule.pages.contactItemsEnd,
+    schedule.pages.studioStable,
+    schedule.pages.releaseEnd,
     schedule.pages.timelineEndStart,
   ]
 
@@ -313,11 +262,12 @@ function validateSchedule( schedule )
 export function resolveStoryTiming( overrides = {} )
 {
   const input = merge( overrides )
-  finiteNonNegative( input.totalTimelineUnits, 'totalTimelineUnits' )
   assertProgress( input.progressEpsilon, 'progressEpsilon' )
 
   // Validate all configuration numbers are valid and non-negative.
   validateNumericEntries( input.scroll, 'scroll' )
+  // Zero would collapse the Story to one screen with no scroll range.
+  assertPositive( input.scroll.viewportsPerUnit, 'scroll.viewportsPerUnit' )
   validateNumericEntries( input.navigation, 'navigation', [ 'freeScroll' ] )
   if ( typeof input.navigation.freeScroll !== 'boolean' )
   {
@@ -424,44 +374,24 @@ export function resolveStoryTiming( overrides = {} )
   {
     assertWindow( windowStart, windowDuration, windowName )
   }
-  const projectsStart = 1 + finiteNonNegative( input.pages.studioHold, 'pages.studioHold' )
-  // Each later page owns one full timeline unit; holds are measured from that page's stable mark.
-  const contactStart = 2 + finiteNonNegative( input.pages.projectsHold, 'pages.projectsHold' )
-  const contactRevealEnd = contactStart + input.pages.contactRevealDuration
-  const contactStable = contactRevealEnd + input.pages.contactHoldDuration
-  const projectsTitleStart = projectsStart + input.pages.projectsTitleDelay
-  const projectsTitleEnd = projectsTitleStart + input.pages.projectsTitleDuration + ( input.pages.projectsTitleStagger * ( PROJECTS_TITLE_LINE_COUNT - 1 ) )
-  const contactTitleStart = contactStart + input.pages.contactTitleDelay
-  const contactTitleEnd = contactTitleStart + input.pages.contactTitleDuration + ( input.pages.contactTitleStagger * ( CONTACT_TITLE_LINE_COUNT - 1 ) )
-  const contactItemsStart = contactStart + input.pages.contactItemsDelay
-  const contactItemsEnd = contactItemsStart + input.pages.contactItemDuration + ( input.pages.contactItemStagger * ( CONTACT_ITEM_COUNT - 1 ) )
+  // Studio is lit at unit 1; the pinned stage holds it a little longer, then releases.
+  const studioStable = 1
+  const releaseEnd = studioStable + input.pages.studioReleaseHold
+  const totalTimelineUnits = releaseEnd
   // Resolve this timeline-unit threshold here so App.jsx never rebuilds a Draft 2 boundary.
-  const draft2StudioStart = draft2TransitionReady + input.progressEpsilon * input.totalTimelineUnits
+  const draft2StudioStart = draft2TransitionReady + input.progressEpsilon * totalTimelineUnits
   const pageSchedule = {
     studioStart: draft2TransitionReady,
     draft2StudioStart,
     cinematicStudioStart: draft1TransitionReady,
-    studioStable: 1,
-    projectsStart,
-    projectsStable: 2,
-    projectsFadeStart: projectsStart + input.pages.projectsFadeDelay,
-    projectsFadeEnd: projectsStart + input.pages.projectsFadeDelay + input.pages.projectsFadeDuration,
-    projectsTitleStart,
-    projectsTitleEnd,
-    contactStart,
-    contactRevealEnd,
-    contactStable,
-    contactFadeStart: contactStart + input.pages.contactFadeDelay,
-    contactFadeEnd: contactStart + input.pages.contactFadeDelay + input.pages.contactFadeDuration,
-    contactTitleStart,
-    contactTitleEnd,
-    contactItemsStart,
-    contactItemsEnd,
-    timelineEndStart: input.totalTimelineUnits - input.pages.timelineEndEpsilon,
+    studioStable,
+    releaseEnd,
+    timelineEndStart: totalTimelineUnits - input.pages.timelineEndEpsilon,
   }
 
   const schedule = freeze( {
     ...input,
+    totalTimelineUnits,
     navigation: freeze( { ...input.navigation } ),
     cue: freeze( {
       ready: cueReady,
@@ -484,7 +414,7 @@ export function resolveStoryTiming( overrides = {} )
         transitionReady: draft1TransitionReady,
         exitStart: draft1TransitionReady,
         transitionDuration: draft1TransitionDuration,
-        transitionDurationProgress: draft1TransitionDuration / input.totalTimelineUnits,
+        transitionDurationProgress: draft1TransitionDuration / totalTimelineUnits,
         exitEnd: draft1ExitEnd,
         studioHandoff: draft1ExitEnd,
       } ),
@@ -494,7 +424,7 @@ export function resolveStoryTiming( overrides = {} )
         transitionReady: draft2TransitionReady,
         exitStart: draft2TransitionReady,
         transitionDuration: draft2TransitionDuration,
-        transitionDurationProgress: draft2TransitionDuration / input.totalTimelineUnits,
+        transitionDurationProgress: draft2TransitionDuration / totalTimelineUnits,
         exitEnd: draft2ExitEnd,
         studioHandoff: draft2ExitEnd,
         pocketCut: draft2PocketCut,
@@ -515,7 +445,7 @@ export function easeCinematicBreakTransition( progress )
   return progress * progress * ( 3 - 2 * progress )
 }
 
-// Normalized smooth-step easing curve for page transitions.
+// Normalized smooth-step easing curve for requested Page glides.
 export function easeStoryTransition( progress )
 {
   return progress * progress * ( 3 - 2 * progress )
@@ -534,7 +464,7 @@ export function easeWeightedProgress( progress, weight = STORY_TIMING.scroll.int
   return normalizedProgress + weightedOffset
 }
 
-// Convert timeline units to normalized 0.0 - 1.0 story progress.
+// Convert timeline units to normalized 0.0 - 1.0 progress through the pinned stage.
 export function toStoryProgress( timelineUnit )
 {
   const validUnit = finiteNonNegative( timelineUnit, 'timelineUnit' )
@@ -542,7 +472,7 @@ export function toStoryProgress( timelineUnit )
   return assertProgress( normalized, 'storyProgress' )
 }
 
-// Convert normalized 0.0 - 1.0 story progress to timeline units.
+// Convert normalized 0.0 - 1.0 pinned-stage progress to timeline units.
 export function toTimelineUnits( storyProgress )
 {
   const validProgress = assertProgress( storyProgress, 'storyProgress' )

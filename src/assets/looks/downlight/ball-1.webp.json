@@ -1,0 +1,4 @@
+{
+  "prompt": "Rendered from project code, no generative model. Top-down plate of the 1-ball: createPhenolicBallMaterial with createNumberedBallTexture(1, BALL_COLORS[0]) from src/drafts/PhotorealPoolDraft.jsx's palette and the project's resin surface maps (src/drafts/photorealMaterials.js, src/drafts/poolSurfaceTextures.js), lit by createStudioEnvironment plus one warm directional downlight above and slightly up-left; ACES filmic tone mapping at exposure 0.92 as in the Intro; orthographic camera, 256x256, transparent background; baked in the Vite dev server with Playwright headless Chromium (scratchpad bake.mjs), then cwebp q90 alpha_q100.",
+  "createdAt": "2026-09-24T02:55:15.745Z"
+}

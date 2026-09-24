@@ -467,8 +467,9 @@ button.tape:focus-visible {
 }
 
 /* ---------- Header ---------- */
+/* Fixed to the viewport (not the pinned stage) so it stays over Projects and Contact as they scroll. */
 .site-header {
-  position: absolute;
+  position: fixed;
   z-index: 25;
   top: 0;
   left: 0;
@@ -600,6 +601,14 @@ button.tape:focus-visible {
   z-index: 17;
 }
 
+/* Projects and Contact live after the pinned stage as normal sections: one screen each, always lit,
+   moved only by the scroll itself. Their content keeps its absolute layout inside that screen. */
+.cyc-flow {
+  position: relative;
+  height: 100svh;
+  visibility: visible;
+}
+
 .cyc-wall {
   position: absolute;
   inset: 0;
@@ -628,6 +637,16 @@ button.tape:focus-visible {
       color-mix(in oklab, var(--gel), var(--gel-deep) 50%) 125%
     ),
     var(--gel);
+}
+
+/* The Studio camera move (App.jsx) transforms these on every pinned scroll frame. Own layers keep it
+   compositor-only instead of repainting the gradient wall and cast shadows each step. The sections
+   after the stage never animate, so they get no extra layers. */
+.title-screen .cyc-wall,
+.final-content,
+.studio-floor,
+.final-meta {
+  will-change: transform;
 }
 
 .cyc-title {

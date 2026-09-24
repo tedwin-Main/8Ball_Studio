@@ -1,0 +1,4 @@
+{
+  "prompt": "Rendered from project code, no generative model. Macro plate (studio, portrait) of the 8-ball (createNumberedBallTexture(8) on createPhenolicBallMaterial) resting on the Intro's cloth (createFeltTextures + createPoolFeltMaterial), a cue ball behind it out of focus, and a walnut rail beyond. One warm spot downlight overhead with soft PCF shadows, the project's createStudioEnvironment at 0.35 for resin reflections, fog into near-black, ACES filmic tone mapping at exposure 0.92 as in the Intro. Shallow focus composited from a depth pass (two blur levels blended by distance from the focal plane). Rendered in the Vite dev server with Playwright headless Chromium (scratchpad macro.mjs), encoded as WebP q86.",
+  "createdAt": "2026-09-24T11:55:22.386Z"
+}

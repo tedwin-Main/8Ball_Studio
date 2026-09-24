@@ -1,0 +1,269 @@
+/* ==========================================================================
+   Look: 16mm. The studio's own hand-processed film of the hall.
+   Every section is one frame on the strip: silver emulsion between two sprocket margins, a black
+   frame line where one frame meets the next, so scrolling past the stage pulls the strip through.
+   The picture is the hall itself in silver: the lamp's pool on the table, falling to black.
+   Processing leaves its marks (grain, a scratch or two, a sepia stain in a corner) as wear.
+   Leak orange is the one warm colour. It is reserved for the active frame: Studio burns in on a light
+   leak, the current Page's edge code prints in it, and the current nav plate takes it.
+   Edge codes (Martian Mono) live on the strip's edge; the frame carries only the title and the work.
+   ========================================================================== */
+.experience[data-look='film'] {
+  --leader: #0c0c0b;
+  --emulsion: #5b5c57;
+  --silver: #d9d8d1;
+  --silver-hot: #f1f0ea;
+  --stain: 132 92 44;
+  --leak: #ff7a1c;
+  --gaffer: var(--leader);
+  --gaffer-soft: #3d3e3a;
+  --cyc: var(--silver);
+  --sheet: var(--silver-hot);
+  --look-ink: var(--leak);
+  --gel: var(--emulsion);
+  --gel-deep: #111110;
+  --frame-margin: clamp(26px, 3.2vw, 46px);
+  background: var(--leader);
+}
+
+.experience[data-look='film'] ::selection {
+  background: var(--leak);
+  color: var(--leader);
+}
+
+/* The strip: sprocket holes down both margins, printed on the leader. */
+.experience[data-look='film'] .cyc {
+  --edge-code: '8 BALL STUDIO  ·  KL  ·  16  ·  01A';
+  color: var(--silver-hot);
+  background:
+    repeating-linear-gradient(180deg, transparent 0 20px, #cfcdc5 20px 36px, transparent 36px 56px) left calc(var(--frame-margin) / 2 - 7px) top 0 / 14px 100% no-repeat,
+    repeating-linear-gradient(180deg, transparent 0 20px, #cfcdc5 20px 36px, transparent 36px 56px) right calc(var(--frame-margin) / 2 - 7px) top 0 / 14px 100% no-repeat,
+    var(--leader);
+}
+
+.experience[data-look='film'] .projects-screen {
+  --edge-code: '8 BALL STUDIO  ·  KL  ·  16  ·  02A';
+}
+
+.experience[data-look='film'] .contact-screen {
+  --edge-code: '8 BALL STUDIO  ·  KL  ·  16  ·  03A';
+}
+
+/* The edge code, printed along the right margin between the perforations and the picture. */
+.experience[data-look='film'] .cyc::after {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  right: calc(var(--frame-margin) - 13px);
+  color: rgb(217 216 209 / 0.5);
+  content: var(--edge-code);
+  font: 500 9px/1 'Martian Mono', monospace;
+  font-stretch: 87.5%;
+  letter-spacing: 0.14em;
+  pointer-events: none;
+  translate: 50% -50%;
+  writing-mode: vertical-rl;
+}
+
+/* The active frame's code prints in leak orange: the strip itself says where you are. */
+.experience[data-look='film'][data-story-indicator-page='studio'] .title-screen::after,
+.experience[data-look='film'][data-story-indicator-page='projects'] .projects-screen::after,
+.experience[data-look='film'][data-story-indicator-page='contact'] .contact-screen::after {
+  color: var(--leak);
+}
+
+/* The picture: the hall in silver, inside the margins, with a frame line top and bottom.
+   Layers, top to bottom: two scratches, a processing stain, the lamp's hotspot (pointer), the
+   lamp's pool on the table, the table top, the shade's glow, the 16mm edge falloff. */
+.experience[data-look='film'] .cyc-wall {
+  inset: 5px var(--frame-margin);
+  background:
+    linear-gradient(90deg, transparent calc(23% - 1px), rgb(255 255 255 / 0.42) 23%, transparent calc(23% + 1px)),
+    linear-gradient(90deg, transparent calc(71.5% - 0.5px), rgb(255 255 255 / 0.28) 71.5%, transparent calc(71.5% + 1px)),
+    radial-gradient(ellipse 26% 20% at 94% 7%, rgb(var(--stain) / 0.5), transparent 70%),
+    radial-gradient(ellipse 36% 32% at calc(var(--lx, 50) * 1%) calc(var(--ly, 42) * 1%), rgb(240 238 230 / 0.22), transparent 70%),
+    radial-gradient(ellipse 58% 24% at 50% 76%, #d2d0c8 0%, #8f908a 38%, transparent 76%),
+    linear-gradient(180deg, transparent 57%, #2e2f2c 60%, #1f201e 100%),
+    radial-gradient(ellipse 40% 34% at 50% 0%, #b9b8b1, transparent 72%),
+    radial-gradient(ellipse 80% 86% at 50% 48%, #5b5c57, #181817 100%);
+}
+
+/* Grain: one fixed noise tile, rasterized with the wall's layer, never animated. */
+.experience[data-look='film'] .cyc-wall::before {
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  content: '';
+  mix-blend-mode: overlay;
+}
+
+/* ---------- Type: the title exposed in silver ---------- */
+.experience[data-look='film'] .cyc-title,
+.experience[data-look='film'] .hero-copy h1 {
+  font-family: 'Antonio', 'Archivo', sans-serif;
+  font-stretch: 100%;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 0.86;
+}
+
+.experience[data-look='film'] .cyc-title {
+  color: var(--silver-hot);
+  font-size: clamp(76px, 15vw, 250px);
+}
+
+.experience[data-look='film'] :is(.projects-title, .contact-title) {
+  font-size: clamp(64px, 11vw, 190px);
+}
+
+/* Halation: the bright letters bleed a hair into the emulsion around them. No cast shadow. */
+.experience[data-look='film'] .cue-char {
+  text-shadow: 0 0 2px rgb(241 240 234 / 0.45);
+}
+
+.experience[data-look='film'] .final-content::after {
+  display: none;
+}
+
+.experience[data-look='film'] .final-content,
+.experience[data-look='film'] .projects-content {
+  left: calc(var(--frame-margin) + clamp(16px, 3vw, 48px));
+}
+
+.experience[data-look='film'] .studio-floor {
+  left: calc(var(--frame-margin) + clamp(16px, 3vw, 48px));
+  right: calc(var(--frame-margin) + clamp(16px, 3vw, 48px));
+}
+
+/* ---------- Plates: black leader cut to size, edge-code caps ---------- */
+.experience[data-look='film'] .tape {
+  --tilt: 0deg;
+  background: var(--tape-fill, var(--leader));
+  box-shadow:
+    inset 0 0 0 1px var(--tape-rule, rgb(217 216 209 / 0.3)),
+    0 10px 20px -12px #000;
+  color: var(--tape-ink, var(--silver));
+  font-family: 'Martian Mono', monospace;
+  font-stretch: 87.5%;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+}
+
+/* Contact is a silver plate: the brightest thing on the strip that is not the picture. */
+.experience[data-look='film'] .tape-contact {
+  --tape-fill: var(--silver-hot);
+  --tape-rule: var(--silver-hot);
+  --tape-ink: var(--leader);
+}
+
+.experience[data-look='film'] .tape-projects {
+  --tape-fill: var(--leader);
+  --tape-ink: var(--silver);
+}
+
+/* The current Page's plate takes the leak. */
+.experience[data-look='film'][data-story-indicator-page='projects'] .tape-projects,
+.experience[data-look='film'][data-story-indicator-page='contact'] .tape-contact,
+.experience[data-look='film'] .draft-switcher-button.is-active {
+  --tape-fill: var(--leak);
+  --tape-rule: var(--leak);
+  --tape-ink: var(--leader);
+}
+
+/* Location is not a label on the picture but a code printed on the frame's foot. */
+.experience[data-look='film'] .final-meta {
+  left: calc(var(--frame-margin) + clamp(16px, 3vw, 48px));
+  min-height: 0;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  color: rgb(217 216 209 / 0.72);
+}
+
+.experience[data-look='film'] .hero-services {
+  color: var(--silver);
+}
+
+/* ---------- Projects: contact prints, each in its black film rebate ---------- */
+.experience[data-look='film'] .projects-floor {
+  right: calc(var(--frame-margin) + clamp(16px, 3vw, 48px));
+  left: calc(var(--frame-margin) + clamp(16px, 3vw, 48px));
+}
+
+.experience[data-look='film'] .project-board {
+  background: var(--silver-hot);
+  box-shadow:
+    0 0 0 7px #0f0f0e,
+    0 24px 30px -16px #000;
+  transform: none;
+}
+
+.experience[data-look='film'] .project-board::after {
+  display: none;
+}
+
+.experience[data-look='film'] .project-card.is-haruplate .project-board {
+  background: #1c1c1a;
+}
+
+/* ---------- Contact: the lab slip in the film can ---------- */
+.experience[data-look='film'] .contact-content {
+  padding-right: calc(var(--frame-margin) + clamp(16px, 3vw, 48px));
+  padding-left: calc(var(--frame-margin) + clamp(16px, 3vw, 48px));
+}
+
+.experience[data-look='film'] .call-sheet {
+  --gaffer: #151514;
+  --gaffer-soft: #474843;
+  background: var(--silver-hot);
+  box-shadow: 0 40px 60px -30px #000;
+  rotate: 0deg;
+}
+
+.experience[data-look='film'] .contact-channel {
+  background-image: linear-gradient(rgb(255 122 28 / 0.5), rgb(255 122 28 / 0.5));
+  font-family: 'Antonio', 'Archivo', sans-serif;
+  font-stretch: 100%;
+  font-weight: 700;
+}
+
+.experience[data-look='film'] .call-sheet-foot,
+.experience[data-look='film'] .contact-action {
+  font-family: 'Martian Mono', monospace;
+  font-stretch: 87.5%;
+  font-size: 10px;
+}
+
+@media (max-width: 768px), (max-height: 540px) {
+  .experience[data-look='film'] {
+    --frame-margin: 20px;
+  }
+
+  .experience[data-look='film'] .cyc::after {
+    right: 10px;
+    font-size: 7px;
+  }
+
+  .experience[data-look='film'] .cyc-title {
+    font-size: clamp(64px, 23vw, 150px);
+  }
+
+  .experience[data-look='film'] :is(.projects-title, .contact-title) {
+    font-size: clamp(54px, 17vw, 120px);
+  }
+
+  .experience[data-look='film'] :is(.final-content, .projects-content, .final-meta) {
+    left: calc(var(--frame-margin) + 14px);
+  }
+
+  .experience[data-look='film'] :is(.studio-floor, .projects-floor) {
+    right: calc(var(--frame-margin) + 14px);
+    left: calc(var(--frame-margin) + 14px);
+  }
+
+  .experience[data-look='film'] .contact-content {
+    padding-right: calc(var(--frame-margin) + 14px);
+    padding-left: calc(var(--frame-margin) + 14px);
+  }
+}

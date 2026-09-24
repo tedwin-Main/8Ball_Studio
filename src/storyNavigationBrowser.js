@@ -55,6 +55,9 @@ export function createStoryScrollAdapter ( {
       // paged mode needs Lenis-owned touch so its gesture lock can hold the page still.
       syncTouch: !STORY_TIMING.navigation.freeScroll,
       syncTouchLerp: STORY_TIMING.scroll.syncTouchLerp,
+      // Lenis-owned touch only (paged mode): swipe distance and how strongly a flick carries on.
+      touchMultiplier: STORY_TIMING.scroll.touchMultiplier,
+      touchInertiaExponent: STORY_TIMING.scroll.touchInertiaExponent,
       infinite: false,
       gestureOrientation: 'vertical',
       lerp: STORY_TIMING.scroll.lerp,

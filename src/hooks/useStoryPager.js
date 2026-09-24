@@ -4,16 +4,18 @@ import { createStoryScrollAdapter } from '../storyNavigationBrowser'
 import { STORY_TIMING, easeCinematicBreakTransition, easeStoryTransition } from '../storyTiming'
 
 // Keep DOM measurement in the React adapter; Story navigation itself stays framework-agnostic.
-const getStoryMetrics = ( storyRef ) =>
+// Navigation spans the whole document: the pinned Intro → Studio stage and the normal-scroll
+// sections after it, so Page progress is a share of the page's full scroll range.
+const getStoryMetrics = () => ( {
+  top: 0,
+  range: Math.max( 0, document.documentElement.scrollHeight - window.innerHeight ),
+} )
+
+// Scroll distance of the pinned stage alone (the Story section minus the sticky screen).
+const getPinnedRange = ( storyRef ) =>
 {
   const story = storyRef.current
-  if ( !story ) return null
-
-  const bounds = story.getBoundingClientRect()
-  return {
-    top: window.scrollY + bounds.top,
-    range: Math.max( 0, story.offsetHeight - window.innerHeight ),
-  }
+  return story ? Math.max( 0, story.offsetHeight - window.innerHeight ) : 0
 }
 
 const getTransition = ( { fromPage, toPage } ) =>
@@ -72,7 +74,7 @@ export function useStoryPager ( {
       pages: pagesRef.current,
       initialPage: activePage,
       adapter,
-      getMetrics: () => getStoryMetrics( storyRef ),
+      getMetrics: getStoryMetrics,
       eventTarget: window,
       clock: {
         now: () => Date.now(),
@@ -107,10 +109,23 @@ export function useStoryPager ( {
     const story = storyRef.current
     const benchmarkRequested = new URLSearchParams( window.location.search ).get( 'benchmark' )
     // Expose controlled progress only for benchmark URLs; production has no scroll global.
+    // Benchmarks drive the pinned Intro → Studio stage, so seekProgress/getProgress speak that
+    // stage's 0-1 progress (the timeline's own units) and convert to the document position here.
+    // The normal-scroll sections are reached by id through goToPage.
+    const pinnedShare = () =>
+    {
+      const range = getStoryMetrics().range
+      return range > 0 ? getPinnedRange( storyRef ) / range : 0
+    }
     const benchmarkHandle = benchmarkRequested
       ? Object.freeze( {
-        seekProgress: ( progress ) => navigation.seekProgress( progress ),
-        getProgress: () => navigation.getProgress(),
+        seekProgress: ( progress ) => navigation.seekProgress( progress * pinnedShare() ),
+        getProgress: () =>
+        {
+          const share = pinnedShare()
+          return share > 0 ? Math.min( 1, navigation.getProgress() / share ) : 0
+        },
+        goToPage: ( pageId ) => navigation.goToPage( pageId, { immediate: true } ),
         getState: () => navigation.getState(),
       } )
       : null
@@ -134,7 +149,7 @@ export function useStoryPager ( {
   const seekProgress = useCallback( ( progress ) =>
     controllerRef.current?.seekProgress( progress ) ?? null,
   [] )
-  // Read the adapter's normalized playhead so draft switches can preserve it.
+  // Read the adapter's normalized position in the whole document so draft switches can preserve it.
   const getProgress = useCallback( () =>
     controllerRef.current?.getProgress() ?? 0,
   [] )

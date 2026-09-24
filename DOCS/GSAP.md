@@ -18,12 +18,18 @@ The deep Story navigation module is `src/storyNavigation.js`. `src/storyNavigati
 
 ## Lenis options
 
-Configured in `new Lenis({ ... })`.
+Configured in `new Lenis({ ... })` (`src/storyNavigationBrowser.js`), with values from `STORY_TIMING.scroll`.
+The feel values match rockstargames.com/VI exactly: its live ReactLenis options, read 2026-09-24.
 
 | Attribute | Current value | Purpose |
 | --- | ---: | --- |
-| `wheelMultiplier` | `0.4` | Scales wheel input before Story gesture qualification and smoothing apply. |
-| `lerp` | `0.085` | Linear interpolation factor per frame. Provides weighted but responsive glide. |
+| `lerp` | `0.07` | Each 60fps frame closes 7% of the remaining distance, so the page keeps gliding after input. |
+| `wheelMultiplier` | `1.2` | Scales wheel input: one tick travels 1.2x its raw delta. |
+| `syncTouch` | `!freeScroll` | Free scroll leaves touch to native momentum (as the reference site does); paged mode needs Lenis-owned touch for its gesture lock. |
+| `touchMultiplier` | `1` | Swipe distance scale (Lenis-owned touch only). |
+| `syncTouchLerp` | `0.075` | Touch glide after release (Lenis-owned touch only). |
+| `touchInertiaExponent` | `1.7` | How strongly a touch flick carries on (Lenis-owned touch only). |
+| `duration` / `easing` | unset | Deliberately unused: in Lenis they override `lerp` and turn every flick into a fixed-length glide. |
 | `infinite` | `false` | Prevents the page from looping after the scroll limit. |
 | `gestureOrientation` | `'vertical'` | Limits gesture processing to vertical scrolling. |
 | `virtualScroll` | Story navigation handler | Lets the Story module qualify wheel and touch intent, lock transitions, and advance at most one Page. |
@@ -49,21 +55,27 @@ Used in the story timeline and reduced-motion trigger.
 | `trigger` | `storyRef.current` | Element whose scroll range controls the animation. |
 | `start` | `'top top'` | Starts when the story top reaches the viewport top. |
 | `end` | `'bottom bottom'` | Ends when the story bottom reaches the viewport bottom. |
-| `scrub` | `true` | Maps scroll position directly to the GSAP playhead; Lenis remains the only scroll smoothing layer. |
+| `scrub` | `1.2` (`STORY_TIMING.scroll.scrubSeconds`) | The playhead takes 1.2 s to catch up with the Lenis-smoothed scroll, which gives the animations extra weight. |
 | `invalidateOnRefresh` | `true` | Recalculates function-based values after resize or refresh. Important for mobile dimensions. |
-| `onUpdate` | callback | Updates Draft visual state on every scrub update. Stable Page state comes from Story navigation. |
+| timeline `onUpdate` | callback | Drives the 3D draft, the Draft 2 handoff, and ball-layer promotion from the *timeline's* lagged progress, so they stay in step with the DOM tweens. Stable Page state still comes from raw scroll via Story navigation. |
 | `onRefresh` | callback | Reapplies visual state after ScrollTrigger recalculates its range. Navigation separately retains normalized progress on resize. |
 
 ### `scrub` behavior
 
 ```js
-scrub: true
+scrub: STORY_TIMING.scroll.scrubSeconds // 1.2
 ```
 
-- `true`: animation follows the normalized scroll playhead directly.
-- `false` or omitted: animation plays independently of scroll.
+- A number: the playhead eases toward the scroll position over that many seconds (the extra weight).
+- `true`: the animation follows the scroll playhead directly.
+- `false` or omitted: the animation plays independently of scroll.
 
-This project uses `scrub: true` so the visual timeline does not add a second catch-up delay on top of Lenis and Story transition easing.
+This project uses a numeric scrub (1.2 s) on top of the Lenis glide. Two rules keep that lag coherent:
+
+1. **One clock for visuals.** Everything visual reads the scrubbed timeline's progress: DOM tweens, the 3D intro draft, and the Draft 2 handoff. Raw scroll progress is only remembered, for Draft/Look switch restores.
+2. **Jumps don't replay.** After a Draft/Look switch seeks the Story, `finishScrubCatchUp()` completes the scrub tween at once.
+
+A known side effect: the page indicator and the nav "current" state follow raw scroll, so they can lead the visuals by up to 1.2 s.
 
 ## GSAP timeline attributes
 

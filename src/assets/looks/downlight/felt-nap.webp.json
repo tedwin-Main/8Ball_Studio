@@ -1,0 +1,4 @@
+{
+  "prompt": "Rendered from project code, no generative model. Baize nap tile for the Downlight look. Base: the Intro's cloth, createFeltTextures(16, 4, 4) + createPoolFeltMaterial (src/drafts/poolSurfaceTextures.js, src/drafts/photorealMaterials.js), rendered top-down 512x512 twice under a grazing directional light, once with the fibre normal map only and once with the colour map's dye mottle only. Added: seeded white noise softened by a wrap-around 3x3 blur, so the nap reads as fuzzy speckle like the Intro's felt rather than a regular weave. Each field standardized to zero mean; composited as neutral grey 128 + fuzz x12 + weave x4 + mottle x5 so it overlays any lit green; integer texture repeats and wrap-around blur keep it tileable. Baked in the Vite dev server with Playwright headless Chromium (scratchpad bake.mjs), then cwebp q88.",
+  "createdAt": "2026-09-24T03:02:50.810Z"
+}

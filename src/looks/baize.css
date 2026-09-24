@@ -1,0 +1,309 @@
+/* ==========================================================================
+   Look: Baize. Table-level POV.
+   The camera sits on the near rail, eye level with the balls. Each Page is the cloth under one
+   lamp: the far rail with its ivory sights, the dark hall beyond it, and the studio's name printed
+   into the baize the way a tournament cloth carries its maker's mark.
+   All light is the lamp's: its pool on the cloth, the resin highlight on the cue ball, and the
+   shadows cast away from it. The pointer moves the lamp's hotspot (--lx / --ly).
+   Labels are stitched pocket leather. The one chromatic ink besides the cloth is chalk blue,
+   kept for the primary action and the chalk marks it leaves.
+   State is drawn, never hued: a filled ivory spot marks where you are, an open ring the rest.
+   ========================================================================== */
+.experience[data-look='baize'] {
+  --room: #050806;
+  --cloth: #1d5c3c;
+  --cloth-far: #123d27;
+  --cloth-deep: #061a10;
+  --walnut: #2b170b;
+  --ivory: #eee6d2;
+  --ivory-soft: #b9b19e;
+  --leather: #16100b;
+  --chalk: #2c6ab0;
+  --chalk-dust: #6e9ed4;
+  /* Shared tokens re-pointed so base rules (recut tapes, the call sheet, captions) stay correct. */
+  --gaffer: var(--leather);
+  --gaffer-soft: #4a4034;
+  --cyc: var(--ivory);
+  --sheet: var(--ivory);
+  --look-ink: var(--ivory);
+  --gel: var(--cloth);
+  --gel-deep: var(--cloth-deep);
+  background: var(--room);
+}
+
+.experience[data-look='baize'] ::selection {
+  background: var(--chalk);
+  color: var(--ivory);
+}
+
+/* Where the far rail sits and where the lamp hangs, per Page. Studio is shot low, so the rail and the
+   dark hall above it are in frame; Projects and Contact look down the cloth with the rail at the top. */
+.experience[data-look='baize'] .cyc {
+  --rail-top: 4%;
+  --rail-h: 5.5%;
+  --lamp-x: 50%;
+  color: var(--ivory);
+}
+
+.experience[data-look='baize'] .title-screen {
+  --rail-top: 22%;
+  --rail-h: 4.5%;
+  --lamp-x: 44%;
+}
+
+.experience[data-look='baize'] .projects-screen {
+  --lamp-x: 34%;
+}
+
+/* The table. Layers, top to bottom: the lamp's hotspot (pointer), the lamp's pool, edge falloff,
+   the diamond sights, the walnut rail, the cushion's shadow line, the cloth, the dark hall. */
+.experience[data-look='baize'] .cyc-wall {
+  --cloth-top: calc(var(--rail-top) + var(--rail-h));
+  background:
+    /* The hall beyond the far rail stays dark; only the air right under the shade catches its light. */
+    radial-gradient(ellipse 22% 90% at var(--lamp-x) 0%, rgb(255 238 196 / 0.07), transparent 75%) 0 0 / 100% var(--rail-top) no-repeat,
+    linear-gradient(var(--room), var(--room)) 0 0 / 100% var(--rail-top) no-repeat,
+    /* Hotspot: foreshortened, because the camera is almost level with the cloth. */
+    radial-gradient(ellipse 30% 17% at calc(var(--lx, 50) * 1%) max(calc(var(--ly, 60) * 1%), calc(var(--cloth-top) + 8%)), rgb(255 243 212 / 0.2), transparent 72%),
+    radial-gradient(ellipse 62% 48% at var(--lamp-x) 58%, rgb(255 238 196 / 0.16), transparent 70%),
+    radial-gradient(ellipse 88% 78% at var(--lamp-x) 62%, transparent 48%, rgb(2 8 5 / 0.8) 100%),
+    /* Ivory sights inlaid along the far rail, eight across. */
+    radial-gradient(circle, #e8dcc0 0 2.2px, transparent 2.8px) 6.25% calc(var(--rail-top) + var(--rail-h) * 0.42) / 12.5% 10px repeat-x,
+    linear-gradient(180deg, #120904, var(--walnut) 38%, #3b2112 58%, #170b04) 0 var(--rail-top) / 100% var(--rail-h) no-repeat,
+    /* The cushion throws a dark band onto the cloth right under the rail. */
+    linear-gradient(180deg, rgb(2 10 6 / 0.85), transparent) 0 var(--cloth-top) / 100% 3.5% no-repeat,
+    /* Cloth: darkest far away, lit mid-table, falling off toward the near rail. */
+    linear-gradient(180deg, var(--cloth-far), var(--cloth) 45%, #174e33 78%, var(--cloth-deep)) 0 var(--cloth-top) / 100% 100% no-repeat,
+    var(--room);
+}
+
+/* The worsted nap: a fixed grain tile laid over the cloth, rasterized once with the wall's layer. */
+.experience[data-look='baize'] .cyc-wall::before {
+  position: absolute;
+  inset: calc(var(--rail-top) + var(--rail-h)) 0 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1 0.35' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.9 0 0 0 0 1 0 0 0 0 0.92 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  content: '';
+  mix-blend-mode: soft-light;
+  opacity: 0.9;
+}
+
+/* Studio only: the lamp itself, a green glass shade hanging over the table in the dark hall. */
+.experience[data-look='baize'] .title-screen .cyc-wall::after {
+  position: absolute;
+  top: calc(var(--rail-top) - 13%);
+  left: var(--lamp-x);
+  width: clamp(150px, 19vw, 300px);
+  height: 7%;
+  /* The glass is lit from inside, so its lower edge is the brightest line in the room. */
+  background:
+    linear-gradient(180deg, transparent calc(100% - 3px), #fff1cf calc(100% - 3px)),
+    linear-gradient(180deg, #0a2416, #1b4a31 70%, #2c6647);
+  clip-path: polygon(22% 0, 78% 0, 100% 100%, 0 100%);
+  content: '';
+  translate: -50% 0;
+}
+
+/* The cue ball on Studio: resin highlight toward the lamp, shadow cast away from it. */
+.experience[data-look='baize'] .studio-floor::before {
+  position: absolute;
+  top: -14vh;
+  right: 12%;
+  width: clamp(44px, 5.2vw, 84px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at calc(34% + (var(--lx, 50) - 50) * 0.18%) calc(28% + (var(--ly, 40) - 40) * 0.1%), #fff 0 5%, #f3eee2 20%, #d6cfbd 58%, #8d8674 100%);
+  box-shadow:
+    calc((50 - var(--lx, 50)) * 0.28px) 10px 14px -4px rgb(2 12 6 / 0.75),
+    0 3px 2px -1px rgb(0 0 0 / 0.55);
+  content: '';
+}
+
+/* ---------- Type: the studio's name printed into the cloth, seen from table height ---------- */
+.experience[data-look='baize'] .cyc-title,
+.experience[data-look='baize'] .hero-copy h1 {
+  font-family: 'Anybody', 'Archivo', sans-serif;
+  font-stretch: 128%;
+  font-weight: 800;
+  letter-spacing: 0.015em;
+}
+
+.experience[data-look='baize'] .cyc-title {
+  color: rgb(238 230 210 / 0.93);
+  font-size: clamp(56px, 10.2vw, 176px);
+  line-height: 0.88;
+  /* Laid flat on the table: tipped away from the camera about its baseline. */
+  transform: perspective(1100px) rotateX(34deg);
+  transform-origin: 50% 100%;
+}
+
+/* Print has no cast shadow. */
+.experience[data-look='baize'] .cue-char {
+  text-shadow: none;
+}
+
+.experience[data-look='baize'] .final-content::after {
+  display: none;
+}
+
+/* ---------- Pocket leather tabs ---------- */
+.experience[data-look='baize'] .tape {
+  --tilt: 0deg;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.06), transparent 40%),
+    var(--tape-fill, var(--leather));
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.6),
+    0 1px 0 rgb(255 255 255 / 0.05),
+    0 10px 18px -10px #000;
+  color: var(--tape-ink, var(--ivory));
+  font-family: 'Anybody', 'Archivo', sans-serif;
+  font-stretch: 112%;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+}
+
+/* The stitch line, sewn a few pixels inside the edge. */
+.experience[data-look='baize'] .tape::after {
+  position: absolute;
+  inset: 3px;
+  border: 1px dashed rgb(238 230 210 / 0.26);
+  content: '';
+  pointer-events: none;
+}
+
+/* Chalk blue is the primary action: a cube face with its dusty top edge. */
+.experience[data-look='baize'] .tape-contact {
+  --tape-fill: var(--chalk);
+  --tape-ink: #f6f2e8;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.16), transparent 30%),
+    radial-gradient(ellipse 60% 40% at 30% 0%, rgb(110 158 212 / 0.5), transparent),
+    var(--chalk);
+}
+
+.experience[data-look='baize'] .tape-contact::after {
+  border-color: rgb(246 242 232 / 0.32);
+}
+
+.experience[data-look='baize'] .tape-projects {
+  --tape-fill: var(--leather);
+  --tape-ink: var(--ivory);
+}
+
+/* Where you are is drawn, not coloured: a ball spot in front of each nav tab and draft, filled
+   when it is the current one. */
+.experience[data-look='baize'] :is(.tape-projects, .tape-contact, .draft-switcher-button)::before {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  margin-right: 9px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  content: '';
+}
+
+.experience[data-look='baize'][data-story-indicator-page='projects'] .tape-projects::before,
+.experience[data-look='baize'][data-story-indicator-page='contact'] .tape-contact::before,
+.experience[data-look='baize'] .draft-switcher-button.is-active::before {
+  background: currentColor;
+}
+
+/* The base sheet recuts the current tab in gaffer; here the spot carries it, so the tab keeps its material. */
+.experience[data-look='baize'][data-story-indicator-page='projects'] .tape-projects,
+.experience[data-look='baize'] .draft-switcher-button.is-active {
+  --tape-fill: var(--leather);
+  --tape-ink: var(--ivory);
+}
+
+.experience[data-look='baize'][data-story-indicator-page='contact'] .tape-contact {
+  --tape-fill: var(--chalk);
+  --tape-ink: #f6f2e8;
+}
+
+.experience[data-look='baize'] .final-meta {
+  --tape-fill: var(--leather);
+  --tape-ink: var(--ivory-soft);
+}
+
+.experience[data-look='baize'] .hero-services {
+  color: var(--ivory);
+}
+
+/* ---------- Projects: ivory table cards stood on the cloth ---------- */
+.experience[data-look='baize'] .projects-content {
+  top: clamp(96px, 15vh, 150px);
+}
+
+.experience[data-look='baize'] .project-board {
+  background:
+    linear-gradient(180deg, #f6f0e0, var(--ivory) 50%, #d9d0bb);
+  box-shadow:
+    inset 0 -10px 18px -12px rgb(40 30 10 / 0.3),
+    0 1px 1px rgb(0 0 0 / 0.3);
+}
+
+/* Each card's shadow lies on the cloth, thrown away from the lamp. */
+.experience[data-look='baize'] .project-board::after {
+  right: -8%;
+  bottom: -14px;
+  left: -8%;
+  height: 26px;
+  background: radial-gradient(closest-side, rgb(2 12 6 / 0.8) 30%, transparent);
+  translate: calc((50 - var(--lx, 50)) * 0.22px) 0;
+}
+
+.experience[data-look='baize'] .project-card.is-haruplate .project-board {
+  background: linear-gradient(180deg, #1f1812, var(--leather) 60%, #0c0806);
+}
+
+/* ---------- Contact: the house scorecard ---------- */
+.experience[data-look='baize'] .call-sheet {
+  --gaffer: #1c150e;
+  --gaffer-soft: #4d4336;
+  background: linear-gradient(180deg, #f6f0e0, var(--ivory) 60%, #e0d7c2);
+  box-shadow:
+    0 2px 2px rgb(0 0 0 / 0.35),
+    0 40px 50px -26px rgb(1 8 4 / 0.95);
+  rotate: -0.5deg;
+}
+
+.experience[data-look='baize'] .call-sheet-foot,
+.experience[data-look='baize'] .contact-action {
+  font-family: 'Anybody', 'Archivo', sans-serif;
+  font-stretch: 112%;
+}
+
+/* A chalk mark rubbed across the channel name on hover. */
+.experience[data-look='baize'] .contact-channel {
+  background-image: linear-gradient(rgb(44 106 176 / 0.34), rgb(44 106 176 / 0.34));
+  font-family: 'Anybody', 'Archivo', sans-serif;
+  font-stretch: 96%;
+  font-weight: 800;
+}
+
+.experience[data-look='baize'] .contact-list li + li {
+  border-top-color: rgb(28 21 14 / 0.18);
+}
+
+@media (max-width: 768px), (max-height: 540px) {
+  .experience[data-look='baize'] .title-screen {
+    --rail-top: 18%;
+    --rail-h: 3.5%;
+  }
+
+  .experience[data-look='baize'] .cyc-title {
+    font-size: clamp(46px, 16vw, 120px);
+  }
+
+  .experience[data-look='baize'] .projects-title,
+  .experience[data-look='baize'] .contact-title {
+    font-size: clamp(40px, 12.5vw, 96px);
+  }
+
+  .experience[data-look='baize'] .studio-floor::before {
+    top: auto;
+    right: 6%;
+    bottom: -6vh;
+  }
+}

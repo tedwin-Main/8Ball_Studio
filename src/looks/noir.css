@@ -1,0 +1,293 @@
+/* ==========================================================================
+   Look: One-Sheet. A postwar crime-film poster, pasted up in the hall.
+   Two inks on cream stock: ink black and one sour amber. All modelling is shadow shape, never tone.
+   The figure is small (one cue ball on the floor under the lamp) and the shadow it throws is four
+   times its size, going the wrong way up the wall. The pointer is the lamp: move it and the shadow
+   swings. The name is set in condensed caps like a charge read out; the services are the ruled
+   billing block locked to the foot. Beyond the lamp's pool the stock falls away into ink.
+   Controls are billing lines: the action takes the amber, spent ones recede into black.
+   ========================================================================== */
+.experience[data-look='noir'] {
+  --noir-ink: #0e0d0b;
+  --stock: #efe5cc;
+  --stock-shade: #b9ad8f;
+  --amber: #d7a13a;
+  --shadow-ink: rgb(14 13 11 / 0.9);
+  --gaffer: var(--noir-ink);
+  --gaffer-soft: #4a4336;
+  --cyc: var(--stock);
+  --sheet: var(--stock);
+  --look-ink: var(--amber);
+  --gel: var(--stock);
+  --gel-deep: var(--noir-ink);
+  background: var(--noir-ink);
+}
+
+.experience[data-look='noir'] ::selection {
+  background: var(--amber);
+  color: var(--noir-ink);
+}
+
+.experience[data-look='noir'] .cyc {
+  --pool-x: 46%;
+  --pool-y: 50%;
+  color: var(--noir-ink);
+}
+
+.experience[data-look='noir'] .projects-screen {
+  --pool-x: 50%;
+  --pool-y: 46%;
+}
+
+.experience[data-look='noir'] .contact-screen {
+  --pool-x: 54%;
+  --pool-y: 52%;
+}
+
+/* The lamp's pool on the stock: cream where it lands, ink where it doesn't. Two inks only, so the
+   falloff is a hard-edged band rather than a soft grey ramp. */
+.experience[data-look='noir'] .cyc-wall {
+  background:
+    radial-gradient(
+      ellipse 92% 100% at calc(var(--pool-x) + (var(--lx, 50) - 50) * 0.12%) calc(var(--pool-y) + (var(--ly, 40) - 40) * 0.08%),
+      var(--stock) 0 58%,
+      var(--stock-shade) 66%,
+      var(--noir-ink) 78%
+    );
+}
+
+/* Studio: the thrown shadow. It starts at the ball's foot, right of the name, and runs up the wall
+   away from the lamp; as the pointer lamp moves, it swings about the ball. --ball-x is the ball's
+   centre, shared by the ball, the shadow, and the cue so they stay joined at every width. */
+.experience[data-look='noir'] .title-screen {
+  --ball-x: 70%;
+  --ball-foot: 17%;
+}
+
+.experience[data-look='noir'] .title-screen .cyc-wall::after {
+  position: absolute;
+  bottom: var(--ball-foot);
+  left: var(--ball-x);
+  width: 26vw;
+  height: 96vh;
+  border-radius: 50% 50% 46% 46% / 62% 62% 38% 38%;
+  background: var(--shadow-ink);
+  content: '';
+  rotate: calc(34deg + (var(--lx, 50) - 50) * -0.35deg);
+  transform-origin: 50% 100%;
+  translate: -50% 0;
+}
+
+/* The cue it was struck with: a long thin shadow running off the right of the frame. */
+.experience[data-look='noir'] .title-screen .cyc-wall::before {
+  position: absolute;
+  bottom: calc(var(--ball-foot) + 1vw);
+  left: var(--ball-x);
+  width: 60vw;
+  height: 1.1vw;
+  background: var(--shadow-ink);
+  content: '';
+  rotate: calc(9deg + (var(--lx, 50) - 50) * -0.12deg);
+  transform-origin: 0 50%;
+}
+
+/* The figure: one cue ball on the floor, lit from the lamp above (stock on top, ink below the
+   terminator), small against its shadow. */
+.experience[data-look='noir'] .title-screen::before {
+  position: absolute;
+  z-index: 1;
+  bottom: var(--ball-foot);
+  left: var(--ball-x);
+  width: clamp(40px, 4.8vw, 76px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 44% 34%, var(--stock) 0 60%, var(--noir-ink) 62%);
+  box-shadow: 0 0 0 1.5px var(--noir-ink);
+  content: '';
+  translate: -50% 0;
+}
+
+/* ---------- Type: condensed caps, read out like a charge ---------- */
+.experience[data-look='noir'] .cyc-title,
+.experience[data-look='noir'] .hero-copy h1 {
+  font-family: 'League Gothic', 'Archivo', sans-serif;
+  font-stretch: 100%;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 0.82;
+}
+
+.experience[data-look='noir'] .cyc-title {
+  color: var(--noir-ink);
+  font-size: clamp(96px, 18vw, 320px);
+}
+
+.experience[data-look='noir'] :is(.projects-title, .contact-title) {
+  font-size: clamp(80px, 13vw, 230px);
+}
+
+.experience[data-look='noir'] .final-content {
+  top: clamp(84px, 11vh, 120px);
+  bottom: auto;
+}
+
+/* Two inks: no cast shadow on the letters; the thrown shadow does the modelling. */
+.experience[data-look='noir'] .cue-char {
+  text-shadow: none;
+}
+
+.experience[data-look='noir'] .final-content::after {
+  display: none;
+}
+
+/* ---------- The billing block: ruled tight, locked to the foot ---------- */
+.experience[data-look='noir'] .studio-floor {
+  top: auto;
+  bottom: clamp(84px, 12vh, 118px);
+  padding: 10px 0;
+  border-top: 2px solid var(--noir-ink);
+  border-bottom: 1px solid var(--noir-ink);
+}
+
+.experience[data-look='noir'] .studio-services {
+  gap: 8px clamp(18px, 2.4vw, 40px);
+}
+
+.experience[data-look='noir'] .tape {
+  --tilt: 0deg;
+  background: var(--tape-fill, transparent);
+  box-shadow: none;
+  color: var(--tape-ink, var(--noir-ink));
+  font-family: 'League Gothic', 'Archivo', sans-serif;
+  font-stretch: 100%;
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+}
+
+.experience[data-look='noir'] .studio-floor .tape {
+  min-height: 0;
+  padding: 0;
+  font-size: clamp(16px, 1.6vw, 24px);
+}
+
+.experience[data-look='noir'] .final-meta {
+  --tape-fill: transparent;
+  --tape-ink: var(--noir-ink);
+  min-height: 0;
+  padding: 0;
+  font-size: 13px;
+}
+
+/* Header controls are billing lines on the dark: stock ink, the action in amber. */
+.experience[data-look='noir'] .header-meta .tape {
+  --tape-fill: var(--noir-ink);
+  --tape-ink: var(--stock);
+}
+
+.experience[data-look='noir'] .header-meta .tape-contact {
+  --tape-fill: var(--amber);
+  --tape-ink: var(--noir-ink);
+}
+
+/* The current line is ruled under, the way a billing credit is underlined. */
+.experience[data-look='noir'][data-story-indicator-page='projects'] .tape-projects,
+.experience[data-look='noir'][data-story-indicator-page='contact'] .tape-contact,
+.experience[data-look='noir'] .draft-switcher-button.is-active {
+  text-decoration: underline 2px;
+  text-underline-offset: 5px;
+}
+
+.experience[data-look='noir'] :is(.draft-switcher-button, .look-switcher, .scroll-prompt .tape) {
+  --tape-fill: var(--noir-ink);
+  --tape-ink: var(--stock);
+}
+
+.experience[data-look='noir'] .hero-services {
+  color: var(--stock);
+}
+
+/* ---------- Projects: stills pinned in the lamp's pool ---------- */
+.experience[data-look='noir'] .project-board {
+  background: var(--stock);
+  box-shadow:
+    0 0 0 3px var(--noir-ink),
+    14px 18px 0 -2px var(--shadow-ink);
+  transform: none;
+}
+
+.experience[data-look='noir'] .project-board::after {
+  display: none;
+}
+
+.experience[data-look='noir'] .project-card .tape {
+  --tape-fill: transparent;
+  --tape-ink: var(--noir-ink);
+  padding: 0;
+  font-size: 16px;
+}
+
+.experience[data-look='noir'] .project-card.is-haruplate .project-board {
+  background: var(--noir-ink);
+}
+
+/* ---------- Contact: the credits block ---------- */
+.experience[data-look='noir'] .call-sheet {
+  --gaffer: var(--noir-ink);
+  --gaffer-soft: #4a4336;
+  border-top: 3px solid var(--noir-ink);
+  border-bottom: 1px solid var(--noir-ink);
+  background: transparent;
+  box-shadow: none;
+  rotate: 0deg;
+}
+
+.experience[data-look='noir'] .contact-channel {
+  background-image: linear-gradient(rgb(215 161 58 / 0.7), rgb(215 161 58 / 0.7));
+  font-family: 'League Gothic', 'Archivo', sans-serif;
+  font-size: clamp(28px, 2.8vw, 44px);
+  font-stretch: 100%;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.experience[data-look='noir'] .call-sheet-foot,
+.experience[data-look='noir'] .contact-action {
+  font-family: 'League Gothic', 'Archivo', sans-serif;
+  font-size: 15px;
+  font-stretch: 100%;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+}
+
+.experience[data-look='noir'] .contact-list li + li {
+  border-top-color: rgb(14 13 11 / 0.35);
+}
+
+@media (max-width: 768px), (max-height: 540px) {
+  .experience[data-look='noir'] .cyc-title {
+    font-size: clamp(80px, 30vw, 170px);
+  }
+
+  .experience[data-look='noir'] :is(.projects-title, .contact-title) {
+    font-size: clamp(66px, 22vw, 130px);
+  }
+
+  .experience[data-look='noir'] .title-screen {
+    --ball-x: 64%;
+    --ball-foot: 36%;
+  }
+
+  .experience[data-look='noir'] .title-screen .cyc-wall::after {
+    width: 40vw;
+    height: 62vh;
+  }
+
+  .experience[data-look='noir'] .studio-floor {
+    bottom: max(150px, 20vh);
+  }
+
+  .experience[data-look='noir'] .final-meta {
+    bottom: max(118px, 15vh);
+  }
+}

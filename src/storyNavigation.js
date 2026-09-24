@@ -355,7 +355,10 @@ export function createStoryNavigation ( {
     const targetY = getTargetY( destination )
     if ( targetY === null ) return false
 
-    if ( destination.id === fromPage?.id && options.immediate !== true )
+    // Already on this Page *and* at its target: nothing to do. Being on a Page partway down (a
+    // normal-scroll section scrolled into) still glides back to its target.
+    const atTarget = Math.abs( adapter.getScrollPosition() - targetY ) <= 2
+    if ( destination.id === fromPage?.id && atTarget && options.immediate !== true )
     {
       activePage = destination.id
       targetPage = destination.id

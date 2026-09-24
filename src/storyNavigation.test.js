@@ -320,6 +320,23 @@ test( 'free scroll still glides to a requested Page and locks input during that 
   assert.equal( fixture.adapter.virtualScroll( { deltaY: 40, event: wheelEvent( 40 ).event } ), true )
 } )
 
+test( 'requesting the current Page from partway down glides back to its target', () =>
+{
+  // Normal-scroll sections: scrolled 50px past Projects' top is still the Projects Page.
+  const fixture = createFixture( { freeScroll: true, position: 700 } )
+  assert.equal( fixture.navigation.getState().activePage, 'projects' )
+
+  assert.equal( fixture.navigation.goToPage( 'projects' ), true )
+  assert.equal( fixture.adapter.scrollCalls.length, 1 )
+  assert.equal( fixture.adapter.scrollCalls[ 0 ].targetY, 650 )
+  fixture.adapter.complete()
+
+  // At the target already: a repeat request is a no-op.
+  fixture.adapter.position = 650
+  assert.equal( fixture.navigation.goToPage( 'projects' ), true )
+  assert.equal( fixture.adapter.scrollCalls.length, 1 )
+} )
+
 test( 'touch reversal starts a fresh intent and advances at most one Page', () =>
 {
   const fixture = createFixture( { position: 300 } )

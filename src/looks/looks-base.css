@@ -1,0 +1,182 @@
+/* Faces for the dark-room looks (self-hosted, SIL OFL; see public/fonts/LICENSE.md).
+   Only the default look's face (Schibsted Grotesk) and Archivo are preloaded; the rest load on demand. */
+@font-face {
+  font-family: 'Saira';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 50% 125%;
+  font-display: swap;
+  src: url('/fonts/saira-latin-var.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Jost';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/jost-latin-var.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Big Shoulders Display';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/big-shoulders-display-latin-var.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Anybody';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 50% 150%;
+  font-display: swap;
+  src: url('/fonts/anybody-latin-var.woff2') format('woff2');
+}
+
+/* Faces for the re-rolled looks (16mm, One-Sheet, Table Board, Wild Posting). Same rules: self-hosted,
+   SIL OFL, loaded only when their look renders text. */
+@font-face {
+  font-family: 'Antonio';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: swap;
+  src: url('/fonts/antonio-latin-var.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Martian Mono';
+  font-style: normal;
+  font-weight: 100 800;
+  font-stretch: 75% 112.5%;
+  font-display: swap;
+  src: url('/fonts/martian-mono-latin-var.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'League Gothic';
+  font-style: normal;
+  font-weight: 400;
+  font-stretch: 75% 100%;
+  font-display: swap;
+  src: url('/fonts/league-gothic-latin-var.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Oswald';
+  font-style: normal;
+  font-weight: 200 700;
+  font-display: swap;
+  src: url('/fonts/oswald-latin-var.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Anton';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/anton-latin.woff2') format('woff2');
+}
+
+/* Faces for re-roll 2 (Marker Board, Downlight). */
+@font-face {
+  font-family: 'Sofia Sans Extra Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  font-display: swap;
+  src: url('/fonts/sofia-sans-extra-condensed-latin-var.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Marcellus SC';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/marcellus-sc-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Schibsted Grotesk';
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url('/fonts/schibsted-grotesk-latin-var.woff2') format('woff2');
+}
+
+/* Look scenery (src/looks/LookScenery.jsx): set pieces between the wall and the Page content. */
+.look-scenery {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* ---------- Look switcher: bottom-right, cut from the active look's label material ---------- */
+.look-switcher {
+  position: fixed;
+  z-index: 45;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  gap: 10px;
+  padding-right: 32px;
+  cursor: pointer;
+}
+
+.look-switcher-label {
+  opacity: 0.72;
+}
+
+.look-switcher-select {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  appearance: none;
+}
+
+.look-switcher-select:focus {
+  outline: none;
+}
+
+.look-switcher:focus-within {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+}
+
+/* The OS-drawn option list stays legible on every look. */
+.look-switcher-select option {
+  background: #f4f2eb;
+  color: #17171a;
+  text-transform: none;
+}
+
+.look-switcher-caret {
+  position: absolute;
+  right: 13px;
+  width: 10px;
+  height: 7px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+  pointer-events: none;
+}
+
+@media (max-width: 768px), (max-height: 540px) {
+  .look-switcher {
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(17px, env(safe-area-inset-bottom));
+    min-height: 36px;
+    font-size: 9.5px;
+  }
+}
+
+/* Focus rings follow --ink. The base sheet flips it to --gaffer once a cyc is lit, which suits a pale
+   wall; on a dark look that would draw a dark ring on a dark room, so each look names its own ink. */
+.experience[data-look]:not([data-look='cyc']):not([data-story-indicator-page='intro']) {
+  --ink: var(--look-ink, var(--cyc));
+}
