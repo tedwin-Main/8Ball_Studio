@@ -32,19 +32,26 @@ export function getStudioStartUnits( draftId = 'cinematic' )
   return STORY_TIMING.pages.cinematicStudioStart
 }
 
+// Screens of horizontal run assumed for Projects before the real track is measured (App.jsx
+// measures the layout on mount, on every ScrollTrigger refresh, and on resize).
+const DEFAULT_RUN_SCREENS = 1
+
 // Where the Story's parts sit in the document, in one length unit (px in the browser).
-// The pinned stage scrolls through the Intro → Studio cue over pinnedRange; after that Studio,
-// Projects, and Contact are normal sections. The default assumes one-screen sections, measured in
-// screens: the stage is pinnedRange + 1 screens tall, and each section follows it.
+// The pinned stage scrolls through the Intro → Studio cue over pinnedRange. Projects is pulled up by
+// pages.handoffScreens so it rises over the held Studio, which puts its top exactly where the stage
+// releases; it is one screen plus its horizontal run tall. Contact follows it and ends the page.
+// The default is measured in screens.
 export function getDefaultStoryLayout()
 {
   const pinnedRange = STORY_TIMING.totalTimelineUnits * STORY_TIMING.scroll.viewportsPerUnit
+  const projectsTop = pinnedRange + 1 - STORY_TIMING.pages.handoffScreens
+  const contactTop = projectsTop + 1 + DEFAULT_RUN_SCREENS
   return Object.freeze( {
     viewport: 1,
     pinnedRange,
-    projectsTop: pinnedRange + 1,
-    contactTop: pinnedRange + 2,
-    documentRange: pinnedRange + 2,
+    projectsTop,
+    contactTop,
+    documentRange: contactTop,
   } )
 }
 

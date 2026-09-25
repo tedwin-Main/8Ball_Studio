@@ -16,6 +16,18 @@ _Avoid_: section, screen
 A selectable visual treatment of the Intro page, such as Cinematic, WebGL, or Original.
 _Avoid_: version, mode
 
+**Look**:
+A whole-site visual theme over the one shared markup and motion: Acid Night (the default), Cyc Wall, or Downlight. Chosen in the Look dropdown or with `?look=`.
+_Avoid_: skin, theme (a look's per-Page palettes are its section themes)
+
+**Handoff**:
+The scroll-driven move from one Page to the next after the Intro: Projects rising over the held Studio, and Contact uncovered from beneath Projects.
+_Avoid_: transition (reserved for Story navigation glides)
+
+**Run**:
+The stretch where Projects stays pinned while its boards slide sideways across the screen.
+_Avoid_: carousel, marquee
+
 **Stable page**:
 The Page that owns the visitor indicator after a navigation transition has settled.
 _Avoid_: current screen, destination state

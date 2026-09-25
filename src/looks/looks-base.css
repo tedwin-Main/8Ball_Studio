@@ -1,100 +1,38 @@
-/* Faces for the dark-room looks (self-hosted, SIL OFL; see public/fonts/LICENSE.md).
-   Only the default look's face (Schibsted Grotesk) and Archivo are preloaded; the rest load on demand. */
+/* Faces for the looks (self-hosted, SIL OFL; see public/fonts/LICENSE.md). Archivo (Cyc Wall) lives in
+   styles.css. Only the default look's face (Space Grotesk, Acid Night) is preloaded; the rest load on demand. */
 @font-face {
-  font-family: 'Saira';
+  font-family: 'Space Grotesk';
   font-style: normal;
-  font-weight: 100 900;
-  font-stretch: 50% 125%;
+  font-weight: 300 700;
   font-display: swap;
-  src: url('/fonts/saira-latin-var.woff2') format('woff2');
+  src: url('/fonts/space-grotesk-latin-var.woff2') format('woff2');
 }
 
 @font-face {
-  font-family: 'Jost';
+  font-family: 'DM Mono';
   font-style: normal;
-  font-weight: 100 900;
+  font-weight: 300;
   font-display: swap;
-  src: url('/fonts/jost-latin-var.woff2') format('woff2');
+  src: url('/fonts/dm-mono-300-latin.woff2') format('woff2');
 }
 
 @font-face {
-  font-family: 'Big Shoulders Display';
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url('/fonts/big-shoulders-display-latin-var.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Anybody';
-  font-style: normal;
-  font-weight: 100 900;
-  font-stretch: 50% 150%;
-  font-display: swap;
-  src: url('/fonts/anybody-latin-var.woff2') format('woff2');
-}
-
-/* Faces for the re-rolled looks (16mm, One-Sheet, Table Board, Wild Posting). Same rules: self-hosted,
-   SIL OFL, loaded only when their look renders text. */
-@font-face {
-  font-family: 'Antonio';
-  font-style: normal;
-  font-weight: 100 700;
-  font-display: swap;
-  src: url('/fonts/antonio-latin-var.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Martian Mono';
-  font-style: normal;
-  font-weight: 100 800;
-  font-stretch: 75% 112.5%;
-  font-display: swap;
-  src: url('/fonts/martian-mono-latin-var.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'League Gothic';
-  font-style: normal;
-  font-weight: 400;
-  font-stretch: 75% 100%;
-  font-display: swap;
-  src: url('/fonts/league-gothic-latin-var.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Oswald';
-  font-style: normal;
-  font-weight: 200 700;
-  font-display: swap;
-  src: url('/fonts/oswald-latin-var.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Anton';
+  font-family: 'DM Mono';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('/fonts/anton-latin.woff2') format('woff2');
-}
-
-/* Faces for re-roll 2 (Marker Board, Downlight). */
-@font-face {
-  font-family: 'Sofia Sans Extra Condensed';
-  font-style: normal;
-  font-weight: 1 1000;
-  font-display: swap;
-  src: url('/fonts/sofia-sans-extra-condensed-latin-var.woff2') format('woff2');
+  src: url('/fonts/dm-mono-400-latin.woff2') format('woff2');
 }
 
 @font-face {
-  font-family: 'Marcellus SC';
+  font-family: 'DM Mono';
   font-style: normal;
-  font-weight: 400;
+  font-weight: 500;
   font-display: swap;
-  src: url('/fonts/marcellus-sc-latin.woff2') format('woff2');
+  src: url('/fonts/dm-mono-500-latin.woff2') format('woff2');
 }
 
+/* Downlight. */
 @font-face {
   font-family: 'Schibsted Grotesk';
   font-style: normal;

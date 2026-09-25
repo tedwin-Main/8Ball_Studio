@@ -1,12 +1,17 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { CustomEase } from 'gsap/CustomEase'
 import { useStoryPager } from './hooks/useStoryPager'
 import { DraftSwitcher } from './components/DraftSwitcher'
 import { LookSwitcher } from './components/LookSwitcher'
+import { CursorBall } from './components/CursorBall'
+import { Preloader } from './components/Preloader'
 import { LookScenery } from './looks/LookScenery'
-import { DEFAULT_LOOK_ID, getLookConfig, getRevealVars, normalizeLookId } from './looks/lookRegistry'
+import { DEFAULT_LOOK_ID, getLookConfig, getRevealVars, getThemeColor, normalizeLookId } from './looks/lookRegistry'
+import { createFlowMotion, createNavSections } from './motion/flowMotion'
+import { createVelocitySkew } from './motion/velocitySkew'
+import { REBUILD_KEYS, getTuning, subscribeTuning } from './motion/runtimeTuning'
 import { PoolPovDraft } from './drafts/PoolPovDraft'
 import PhotorealPoolDraft from './drafts/PhotorealPoolDraft'
 import { DRAFT_IDS, normalizeDraftId, getDraftConfig } from './drafts/draftRegistry'
@@ -21,6 +26,10 @@ import haruplateLogo from './assets/haruplate-logo.png'
 import shopeeLogo from './assets/shopee-logo.svg'
 
 gsap.registerPlugin( ScrollTrigger, CustomEase )
+
+// The scroll-feel panel is a dev tool: it exists only on ?tune URLs and ships as its own chunk.
+const TunePanel = lazy( () => import( './components/TunePanel' ) )
+const TUNE_REQUESTED = typeof window !== 'undefined' && new URLSearchParams( window.location.search ).has( 'tune' )
 
 // The one motion signature of the Cyc Wall world: a studio light snapping on fast,
 // then settling with a long tail, like a tungsten head reaching full output.
@@ -72,6 +81,27 @@ const PROJECT_ITEMS = [
   // Pale mark drawn for dark grounds: its board is cut from gaffer.
   { src: haruplateLogo, alt: 'Haruplate', type: 'haruplate' },
   { src: shopeeLogo, alt: 'Shopee' },
+]
+
+// Two boards close the Projects run. Both are next steps, never invented work: one opens Contact,
+// one opens the studio's real Instagram, where its published content lives.
+const NEXT_BOARDS = [
+  {
+    id: 'contact',
+    title: 'Your brand, next',
+    caption: 'Start a project',
+    href: '#contact',
+    cursor: 'Contact',
+  },
+  {
+    id: 'instagram',
+    title: 'More on Instagram',
+    detail: '@8ightball.studio',
+    caption: 'Instagram',
+    href: 'https://www.instagram.com/8ightball.studio/',
+    cursor: 'Instagram',
+    external: true,
+  },
 ]
 
 const SERVICES = [ 'Social Content Management', 'Video & Photography', 'Graphic Design' ]
@@ -209,6 +239,11 @@ function App ()
   const [ indicatorPage, setIndicatorPage ] = useState( 'intro' )
   // Measured positions of the pinned stage and the sections after it; null until first layout.
   const [ storyLayout, setStoryLayout ] = useState( null )
+  // The part of the Story under the header (stage, projects, contact): drives the header ink and
+  // the browser chrome colour (src/motion/flowMotion.js tracks it).
+  const [ navSection, setNavSection ] = useState( 'stage' )
+  // Bumped when ?tune changes a scrub, which is fixed per trigger: the Story's timelines rebuild.
+  const [ tuneVersion, setTuneVersion ] = useState( 0 )
   const storyPages = useMemo(
     () => ( storyLayout ? getStoryPages( activeDraft, storyLayout ) : getStoryPages( activeDraft ) ),
     [ activeDraft, storyLayout ],
@@ -230,11 +265,15 @@ function App ()
     if ( !story || !projects || !contact ) return
 
     const viewport = window.innerHeight
+    const pinnedRange = Math.max( 0, story.offsetHeight - viewport )
+    // Projects is pulled up over the stage's last screen, so its top sits exactly where the stage
+    // releases; clamp away the sub-pixel rounding that could put it a pixel early.
+    const projectsTop = Math.max( pinnedRange, Math.round( getDocumentTop( projects ) ) )
     const next = {
       viewport,
-      pinnedRange: Math.max( 0, story.offsetHeight - viewport ),
-      projectsTop: Math.round( getDocumentTop( projects ) ),
-      contactTop: Math.round( getDocumentTop( contact ) ),
+      pinnedRange,
+      projectsTop,
+      contactTop: Math.max( projectsTop, Math.round( getDocumentTop( contact ) ) ),
       documentRange: getDocumentRange(),
     }
     setStoryLayout( ( previous ) =>
@@ -252,7 +291,18 @@ function App ()
     )
   }, [] )
 
-  const { goToPage, seekProgress, getProgress, isTransitioning } = useStoryPager( {
+  const {
+    goToPage,
+    seekProgress,
+    getProgress,
+    isTransitioning,
+    subscribeScroll,
+    getVelocity,
+    stopScroll,
+    startScroll,
+    setScrollFeel,
+    scrollToY,
+  } = useStoryPager( {
     storyRef,
     pages: storyPages,
     activePage,
@@ -363,7 +413,40 @@ function App ()
       window.cancelAnimationFrame( refreshFrame )
       if ( restoreFrame ) window.cancelAnimationFrame( restoreFrame )
     }
-  }, [ activeDraft, activeLook, seekProgress ] )
+  }, [ activeDraft, activeLook, tuneVersion, seekProgress ] )
+
+  // ?tune: glide and wheel distance apply to Lenis at once; a scrub change rebuilds the timelines.
+  useEffect( () => subscribeTuning( ( next, previous ) =>
+  {
+    setScrollFeel( { lerp: next.lerp, wheelMultiplier: next.wheelMultiplier } )
+    if ( REBUILD_KEYS.some( ( key ) => next[ key ] !== previous[ key ] ) )
+    {
+      captureScrollSpot()
+      setTuneVersion( ( version ) => version + 1 )
+    }
+  } ), [ captureScrollSpot, setScrollFeel ] )
+
+  // The browser chrome (<meta name="theme-color">) takes the colour of the section under the header:
+  // the stage shows the Intro or Studio, after it Projects and Contact own the header.
+  useEffect( () =>
+  {
+    const meta = document.querySelector( 'meta[name="theme-color"]' )
+    if ( !meta ) return
+    const page = navSection !== 'stage' ? navSection : indicatorPage === 'intro' ? 'intro' : 'studio'
+    meta.setAttribute( 'content', getThemeColor( activeLook, page ) )
+  }, [ activeLook, indicatorPage, navSection ] )
+
+  // What the preloader waits for: the faces, the page's own resources, and the active intro Draft's
+  // first finished frame (drafts without a controller, like 03 Original, need only the page load).
+  const whenIntroReady = useCallback( () =>
+  {
+    const fonts = document.fonts?.ready ?? Promise.resolve()
+    const pageLoad = document.readyState === 'complete'
+      ? Promise.resolve()
+      : new Promise( ( resolve ) => window.addEventListener( 'load', resolve, { once: true } ) )
+    const draft = draftControllersRef.current[ activeDraftRef.current ]?.ready ?? Promise.resolve()
+    return Promise.all( [ fonts, pageLoad, draft ] )
+  }, [] )
 
   // Section tops move with viewport height and fonts; re-measure whenever ScrollTrigger re-measures.
   useLayoutEffect( () =>
@@ -383,7 +466,11 @@ function App ()
     const root = rootRef.current
     const ballRig = root.querySelector( '.ball-rig' )
     // The active look supplies the Studio cue's reveal shape and entrances; switching looks rebuilds this timeline.
-    const motion = getLookConfig( activeLook ).motion
+    const look = getLookConfig( activeLook )
+    const motion = look.motion
+    // Scrub catch-up comes from the tuning store: STORY_TIMING unless ?tune has changed it.
+    const tuning = getTuning()
+    let stopNavSections = null
     const studioReveal = getRevealVars( activeLook )
     // entranceTo covers entrance properties with no neutral rest value (a chalk wipe's clip-path).
     const charRest = { ...CHAR_REST, ...( motion.entranceTo || {} ), ease: motion.letterEase }
@@ -441,6 +528,9 @@ function App ()
 
     const animationContext = gsap.context( () =>
     {
+      // The header follows the section under it in every motion mode, reduced motion included.
+      stopNavSections = createNavSections( { root, onNavSection: setNavSection } )
+
       if ( prefersReducedMotion )
       {
         // Progress here is through the pinned stage only; Projects and Contact are static sections
@@ -627,7 +717,7 @@ function App ()
               start: 'top top',
               end: 'bottom bottom',
               // Seconds the animations take to catch up with the Lenis-smoothed scroll (extra weight).
-              scrub: STORY_TIMING.scroll.scrubSeconds,
+              scrub: tuning.scrubSeconds,
               invalidateOnRefresh: true,
               onRefresh: ( self ) => syncStoryVisuals( self.animation ? self.animation.progress() : self.progress ),
             },
@@ -726,6 +816,30 @@ function App ()
               ease: 'none',
               duration: cameraEnd - cameraStart,
             }, cameraStart )
+
+          // After the stage: the Studio → Projects handoff, the Projects run, the Contact reveal,
+          // and the velocity lean on everything in flow. Shared by every look; reverted with this branch.
+          const stopFlowMotion = createFlowMotion( {
+            root,
+            motion,
+            charRest,
+            sectionThemes: look.sectionThemes,
+            compact: !desktop,
+            scrub: tuning.sectionScrubSeconds,
+            scrollToY,
+          } )
+          const stopVelocitySkew = createVelocitySkew( {
+            root,
+            subscribeScroll,
+            getVelocity,
+            settleSeconds: STORY_TIMING.flow.skewSettleSeconds,
+          } )
+
+          return () =>
+          {
+            stopVelocitySkew()
+            stopFlowMotion()
+          }
         },
       )
 
@@ -738,9 +852,10 @@ function App ()
       if ( moveLightX ) window.removeEventListener( 'pointermove', movePointer )
       gsap.killTweensOf( keyLight )
       ballRig.style.removeProperty( 'will-change' )
+      stopNavSections?.()
       animationContext.revert()
     }
-  }, [ activeLook ] )
+  }, [ activeLook, tuneVersion, getVelocity, scrollToY, subscribeScroll ] )
 
   // Top is an intentional direct jump, so it targets the Intro Page.
   const replay = () => goToPage( 'intro' )
@@ -752,9 +867,13 @@ function App ()
       ref={ rootRef }
       data-story-page={ activePage }
       data-story-indicator-page={ indicatorPage }
+      data-nav-section={ navSection }
       data-story-state={ isTransitioning ? 'transitioning' : 'settled' }
       data-story-transitioning={ String( isTransitioning ) }
     >
+      {/* Covers the Intro only while its faces and active Draft load, once per session. */}
+      <Preloader whenReady={ whenIntroReady } stopScroll={ stopScroll } startScroll={ startScroll } />
+
       {/* Fixed, outside the pinned stage, so navigation stays on screen over the scrolling sections. */}
       <header className="site-header">
         <a className="wordmark" href="#top" onClick={ ( event ) => { event.preventDefault(); replay() } } aria-label="8 Ball Studio — return to start">
@@ -794,7 +913,7 @@ function App ()
       </header>
 
       {/* Pinned stage: scroll range = timeline units × viewportsPerUnit screens, plus the sticky screen itself.
-          It holds the Intro break and Studio; when it ends, Studio scrolls away with the sections below. */}
+          It holds the Intro break and Studio; in its last screen Projects rises over the held Studio. */}
       <section
         className="story"
         ref={ storyRef }
@@ -805,7 +924,7 @@ function App ()
         data-story-state={ isTransitioning ? 'transitioning' : 'settled' }
         data-story-transitioning={ String( isTransitioning ) }
       >
-        <div className="stage">
+        <div className="stage" data-cursor={ indicatorPage === 'intro' ? 'Scroll to break' : undefined }>
           <div className="camera-grid" aria-hidden="true" />
           <div className="ambient ambient-one" aria-hidden="true" />
           <div className="ambient ambient-two" aria-hidden="true" />
@@ -842,6 +961,9 @@ function App ()
             </div>
           </div>
 
+          {/* Fills the stage in the look's hall colour behind Studio while it shrinks back for Projects. */}
+          <div className="stage-backdrop" aria-hidden="true" />
+
           {/* Studio: the lights come up on a pink-gel cyc. */}
           <section className="title-screen cyc cyc-studio" aria-labelledby="studio-title">
             <div className="cyc-wall" aria-hidden="true" />
@@ -860,75 +982,127 @@ function App ()
             <p className="final-meta tape">Greater Kuala Lumpur, Malaysia</p>
           </section>
 
+          {/* Dims the held Studio as Projects covers it. */}
+          <div className="stage-shade" aria-hidden="true" />
         </div>
       </section>
 
-      {/* Projects: past the pinned stage the Story scrolls as normal sections, with no transitions. */}
-      <section id="projects" className="projects-screen cyc cyc-flow cyc-projects" ref={ projectsRef } aria-labelledby="projects-title">
-        <div className="cyc-wall" aria-hidden="true" />
-        <LookScenery look={ activeLook } page="projects" />
-        <div className="projects-content">
-          <h2 id="projects-title" className="projects-title cyc-title" aria-label="Our Projects">
-            <CueLine className="projects-title-line" text="Our" />
-            <CueLine className="projects-title-line" text="Projects" />
-          </h2>
-        </div>
-        <ul className="projects-floor" aria-label="Clients">
-          { PROJECT_ITEMS.map( ( project ) => (
-            <li className={ `project-card${project.type ? ` is-${project.type}` : ''}` } key={ project.alt }>
-              <div className="project-board">
-                <img src={ project.src } alt={ project.alt } />
+      {/* Projects rises over the held Studio, then pins while its boards run sideways across the screen.
+          Pulled up by the handoff screens; its height grows by the run (--run-distance, measured in JS). */}
+      <section
+        id="projects"
+        className="projects-screen cyc cyc-flow cyc-projects"
+        ref={ projectsRef }
+        aria-labelledby="projects-title"
+        style={ { '--handoff-screens': STORY_TIMING.pages.handoffScreens } }
+      >
+        <div className="projects-sticky">
+          <div className="cyc-wall" aria-hidden="true" />
+          <LookScenery look={ activeLook } page="projects" />
+          <div className="projects-content">
+            <h2 id="projects-title" className="projects-title cyc-title skew-layer" aria-label="Our Projects">
+              <CueLine className="projects-title-line" text="Our" />
+              <CueLine className="projects-title-line" text="Projects" />
+            </h2>
+          </div>
+          <div className="projects-rail">
+            <div className="projects-lean skew-layer-x">
+              <div className="projects-track">
+                <ul className="projects-floor" aria-label="Clients">
+                  { PROJECT_ITEMS.map( ( project ) => (
+                    <li className={ `project-card${project.type ? ` is-${project.type}` : ''}` } key={ project.alt }>
+                      <div className="project-board">
+                        <img src={ project.src } alt={ project.alt } />
+                      </div>
+                      <span className="tape">{ project.alt }</span>
+                    </li>
+                  ) ) }
+                </ul>
+                <ul className="projects-next" aria-label="Work with us">
+                  { NEXT_BOARDS.map( ( board ) => (
+                    <li className={ `project-card is-next is-next-${board.id}` } key={ board.id }>
+                      <a
+                        className="project-board project-next"
+                        href={ board.href }
+                        data-cursor={ board.cursor }
+                        target={ board.external ? '_blank' : undefined }
+                        rel={ board.external ? 'noreferrer' : undefined }
+                        onClick={ board.external ? undefined : ( event ) =>
+                        {
+                          // Glide to Contact with the Story's own motion instead of the browser jump.
+                          event.preventDefault()
+                          goToPage( 'contact' )
+                        } }
+                      >
+                        <span className="project-next-title">{ board.title }</span>
+                        { board.detail && <span className="project-next-detail">{ board.detail }</span> }
+                        <svg className="project-next-arrow" viewBox="0 0 20 12" aria-hidden="true"><path d="M1 6h17M13 1l5 5-5 5" /></svg>
+                      </a>
+                      <span className="tape" aria-hidden="true">{ board.caption }</span>
+                    </li>
+                  ) ) }
+                </ul>
               </div>
-              <span className="tape">{ project.alt }</span>
-            </li>
-          ) ) }
-        </ul>
-
-      </section>
-
-      {/* Contact: a call sheet taped to the wall; the last section of the page. */}
-      <section id="contact" className="contact-screen cyc cyc-flow cyc-contact" ref={ contactRef } aria-labelledby="contact-title">
-        <div className="cyc-wall" aria-hidden="true" />
-        <LookScenery look={ activeLook } page="contact" />
-        <div className="contact-content">
-          <h2 id="contact-title" className="contact-title cyc-title" aria-label="Contact Us">
-            <CueLine className="contact-title-line" text="Contact" />
-            <CueLine className="contact-title-line" text="Us" />
-          </h2>
-          <div className="call-sheet">
-            <ul className="contact-list">
-              { CONTACT_ITEMS.map( ( item ) => (
-                <li key={ item.title }>
-                  <a
-                    className="contact-item"
-                    href={ item.href }
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label={ `${item.action} 8 Ball Studio on ${item.title}: ${item.description}` }
-                  >
-                    <span className="contact-icon"><ContactIcon type={ item.icon } /></span>
-                    <span className="contact-channel">{ item.title }</span>
-                    <span className="contact-detail">{ item.description }</span>
-                    <span className="contact-action">
-                      <span className="contact-action-label">{ item.action }</span>
-                      <svg viewBox="0 0 20 12" aria-hidden="true"><path d="M1 6h17M13 1l5 5-5 5" /></svg>
-                    </span>
-                  </a>
-                </li>
-              ) ) }
-            </ul>
-            <p className="call-sheet-foot">
-              <span>8 Ball Studio</span>
-              <span>Greater Kuala Lumpur</span>
-            </p>
+            </div>
           </div>
         </div>
+      </section>
 
+      {/* Contact: uncovered from beneath Projects as it scrolls away; the last section of the page. */}
+      <section id="contact" className="contact-screen cyc cyc-flow cyc-contact" ref={ contactRef } aria-labelledby="contact-title">
+        <div className="contact-inner">
+          <div className="cyc-wall" aria-hidden="true" />
+          <LookScenery look={ activeLook } page="contact" />
+          <div className="contact-content skew-layer">
+            <h2 id="contact-title" className="contact-title cyc-title" aria-label="Contact Us">
+              <CueLine className="contact-title-line" text="Contact" />
+              <CueLine className="contact-title-line" text="Us" />
+            </h2>
+            <div className="call-sheet">
+              <ul className="contact-list">
+                { CONTACT_ITEMS.map( ( item ) => (
+                  <li key={ item.title }>
+                    <a
+                      className="contact-item"
+                      href={ item.href }
+                      target="_blank"
+                      rel="noreferrer"
+                      data-cursor={ item.action }
+                      aria-label={ `${item.action} 8 Ball Studio on ${item.title}: ${item.description}` }
+                    >
+                      <span className="contact-icon"><ContactIcon type={ item.icon } /></span>
+                      <span className="contact-channel">{ item.title }</span>
+                      <span className="contact-detail">{ item.description }</span>
+                      <span className="contact-action">
+                        <span className="contact-action-label">{ item.action }</span>
+                        <svg viewBox="0 0 20 12" aria-hidden="true"><path d="M1 6h17M13 1l5 5-5 5" /></svg>
+                      </span>
+                    </a>
+                  </li>
+                ) ) }
+              </ul>
+              <p className="call-sheet-foot">
+                <span>8 Ball Studio</span>
+                <span>Greater Kuala Lumpur</span>
+              </p>
+            </div>
+          </div>
+        </div>
+        {/* The shadow Projects casts on Contact, lifting as Contact is uncovered. */}
+        <div className="contact-shade" aria-hidden="true" />
       </section>
 
       <DraftSwitcher activeDraft={ activeDraft } onChange={ switchDraft } />
       <LookSwitcher activeLook={ activeLook } onChange={ switchLook } />
 
+      {/* Mouse and trackpad only: a cue ball replaces the pointer. */}
+      <CursorBall />
+
+      { TUNE_REQUESTED && (
+        <Suspense fallback={ null }>
+          <TunePanel />
+        </Suspense>
+      ) }
     </main>
   )
 }

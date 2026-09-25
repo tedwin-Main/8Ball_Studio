@@ -28,6 +28,8 @@
   --ink: var(--cyc);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --font: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  /* Side gutter every section hangs its content from. */
+  --gutter: clamp(20px, 5vw, 80px);
   color: var(--cyc);
   background: var(--hall);
   font-family: var(--font);
@@ -350,6 +352,30 @@ a:focus-visible {
   transform: translateZ(25px);
 }
 
+/* Behind Studio while it shrinks back for Projects: the look's hall colour, so the frozen Intro
+   scene never shows around the receding Studio's edges (src/motion/flowMotion.js turns it on). */
+.stage-backdrop {
+  position: absolute;
+  z-index: 13;
+  inset: 0;
+  background: var(--hall);
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+  will-change: opacity;
+}
+
+/* Over Studio while Projects covers it: the held frame dims as it recedes. */
+.stage-shade {
+  position: absolute;
+  z-index: 16;
+  inset: 0;
+  background: var(--shade-color, #000);
+  pointer-events: none;
+  opacity: 0;
+  will-change: opacity;
+}
+
 /* Black circle grows from the pocket and creates the warp into the Studio page. */
 .pocket-iris {
   position: absolute;
@@ -592,21 +618,69 @@ button.tape:focus-visible {
 .projects-screen {
   --gel: var(--gel-projects);
   --gel-deep: var(--gel-projects-deep);
-  z-index: 16;
 }
 
 .contact-screen {
   --gel: var(--gel-contact);
   --gel-deep: var(--gel-contact-deep);
-  z-index: 17;
 }
 
-/* Projects and Contact live after the pinned stage as normal sections: one screen each, always lit,
-   moved only by the scroll itself. Their content keeps its absolute layout inside that screen. */
+/* Projects and Contact live after the pinned stage as sections with their own choreography
+   (src/motion/flowMotion.js): each is lit from the start, one screen of content, absolutely laid out. */
 .cyc-flow {
   position: relative;
   height: 100svh;
   visibility: visible;
+}
+
+/* Projects is pulled up over the stage's last screen (the handoff: it rises over the held Studio),
+   sits above both neighbours, and is as tall as one screen plus its horizontal run, during which
+   its sticky screen stays put while the track of boards slides sideways. Overflow stays visible:
+   clipping here would stop the sticky screen from sticking. */
+.projects-screen.cyc-flow {
+  z-index: 3;
+  height: calc(100svh + var(--run-distance, 0px));
+  margin-top: calc(var(--handoff-screens, 1) * -100svh);
+  overflow: visible;
+}
+
+.projects-sticky {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  /* clip, not hidden: a hidden box is still scrollable, and focusing a board would scroll it sideways. */
+  overflow: clip;
+}
+
+/* Contact sits under Projects and is uncovered as Projects scrolls away: its inner screen starts
+   higher up and settles (flowMotion.js), while the shadow Projects cast on it lifts. */
+.contact-screen.cyc-flow {
+  z-index: 2;
+}
+
+.contact-inner {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+
+.contact-shade {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  background: var(--shade-color, #000);
+  pointer-events: none;
+  opacity: 0;
+  will-change: opacity;
+}
+
+/* Velocity skew targets (src/motion/velocitySkew.js): wrappers nothing else transforms, leaning
+   about their own centre with the speed of the scroll. Each is its own layer, so a lean moves
+   pixels already drawn instead of repainting the content on every scrolled frame. */
+.skew-layer,
+.skew-layer-x {
+  transform-origin: 50% 50%;
+  will-change: transform;
 }
 
 .cyc-wall {
@@ -639,13 +713,19 @@ button.tape:focus-visible {
     var(--gel);
 }
 
-/* The Studio camera move (App.jsx) transforms these on every pinned scroll frame. Own layers keep it
-   compositor-only instead of repainting the gradient wall and cast shadows each step. The sections
-   after the stage never animate, so they get no extra layers. */
+/* The Studio camera move (App.jsx) and the flow choreography (flowMotion.js) transform these on
+   every scroll frame. Own layers keep the moves compositor-only instead of repainting the gradient
+   walls, the cast shadows, and the boards at each step. */
 .title-screen .cyc-wall,
 .final-content,
 .studio-floor,
-.final-meta {
+.final-meta,
+.projects-sticky > .cyc-wall,
+.projects-sticky > .look-scenery,
+.projects-content,
+.projects-rail,
+.projects-track,
+.project-board {
   will-change: transform;
 }
 
@@ -739,30 +819,42 @@ button.tape:focus-visible {
   margin: 0;
 }
 
-/* Projects: title top-left, client boards gliding on the floor. */
+/* Projects: title top-left, client boards standing on the floor, running sideways past the key light. */
 .projects-content {
   position: absolute;
   z-index: 1;
   top: clamp(92px, 14vh, 150px);
-  left: clamp(20px, 5vw, 80px);
+  left: var(--gutter);
 }
 
 .projects-title {
-  font-size: clamp(64px, 12.5vw, 214px);
+  font-size: clamp(64px, 11vw, 190px);
 }
 
-.projects-floor {
+/* The rail spans the screen; the track inside it is as wide as its boards and slides left by the
+   run (flowMotion.js measures track width minus rail width and pins Projects for that distance). */
+.projects-rail {
   position: absolute;
   z-index: 1;
-  right: clamp(20px, 5vw, 80px);
+  right: 0;
   bottom: 13vh;
-  left: clamp(20px, 5vw, 80px);
-  display: grid;
-  align-items: end;
-  gap: clamp(16px, 2.4vw, 40px);
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  /* Boards are stood up with a rotationX; perspective gives the pivot real depth. */
-  perspective: 900px;
+  left: 0;
+}
+
+.projects-track {
+  position: relative;
+  display: flex;
+  width: max-content;
+  align-items: flex-end;
+  gap: var(--board-gap, clamp(16px, 2.4vw, 40px));
+  padding-inline: var(--gutter);
+}
+
+.projects-floor,
+.projects-next {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--board-gap, clamp(16px, 2.4vw, 40px));
 }
 
 /* Each board is a flat leaning against the cove at its own depth: slightly different size and lean,
@@ -774,7 +866,9 @@ button.tape:focus-visible {
   perspective-origin: 50% 100%;
   position: relative;
   display: flex;
+  width: var(--board-size, clamp(180px, min(21vw, 34svh), 300px));
   margin: 0;
+  flex: none;
   align-items: flex-start;
   flex-direction: column;
   gap: 14px;
@@ -798,16 +892,18 @@ button.tape:focus-visible {
 .project-board {
   position: relative;
   display: grid;
-  width: calc(min(100%, 250px) * var(--depth));
+  width: calc(100% * var(--depth));
   aspect-ratio: 1;
   place-items: center;
   background: var(--sheet);
   box-shadow:
     inset 0 -10px 18px -12px rgb(0 0 0 / 0.18),
     0 1px 1px rgb(0 0 0 / 0.14);
-  /* Foot flat on the floor, top tipped back into the cove. */
-  transform: rotateX(var(--lean));
+  /* Foot flat on the floor, top tipped back into the cove. Crossing the key light at the centre of
+     the run (--lift, 0 to 1, from flowMotion.js) stands the board nearly upright and raises it. */
+  transform: rotateX(calc(var(--lean) * (1 - 0.75 * var(--lift, 0))));
   transform-origin: 50% 100%;
+  translate: 0 calc(var(--lift, 0) * -10px + var(--hover-lift, 0px));
   transition:
     translate 360ms var(--ease-out),
     filter 360ms var(--ease-out);
@@ -847,12 +943,65 @@ button.tape:focus-visible {
 }
 
 /* A board under the pointer is lifted into the key light; the others drop a stop. */
-.project-card:hover .project-board {
-  translate: 0 -8px;
+.project-card:hover .project-board,
+.project-card:focus-within .project-board {
+  --hover-lift: -8px;
 }
 
-.projects-floor:hover .project-card:not(:hover) .project-board {
+.projects-track:hover .project-card:not(:hover) .project-board {
   filter: brightness(0.84) saturate(0.9);
+}
+
+/* The two boards that close the run are links: a next step, lettered like the rest of the set. */
+.project-next {
+  align-content: space-between;
+  justify-items: start;
+  padding: clamp(14px, 1.4vw, 22px);
+  color: var(--gaffer);
+  text-decoration: none;
+  place-items: stretch;
+}
+
+.project-next-title {
+  font-size: clamp(22px, 2.2vw, 34px);
+  font-stretch: 68%;
+  font-weight: 850;
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+.project-next-detail {
+  align-self: end;
+  color: var(--gaffer-soft);
+  font-size: clamp(12px, 0.95vw, 14px);
+  font-weight: 600;
+}
+
+.project-next-arrow {
+  justify-self: end;
+  width: 26px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+  transition: translate 280ms var(--ease-out);
+}
+
+.project-next:hover .project-next-arrow,
+.project-next:focus-visible .project-next-arrow {
+  translate: 5px 0;
+}
+
+/* Your brand, next: the board is cut from the Contact gel, the way its nav tape is. */
+.project-card.is-next-contact .project-board {
+  background: var(--gel-contact);
+}
+
+.project-next:focus-visible {
+  outline: 2px solid var(--gaffer);
+  outline-offset: 4px;
 }
 
 /* Contact: title top-left, the call sheet taped to the wall. */
@@ -1006,6 +1155,13 @@ button.tape:focus-visible {
 }
 
 @media (max-width: 768px), (max-height: 540px) {
+  :root {
+    --gutter: 18px;
+    /* Phones: boards a little under two-thirds of the width, so the run shows one and a half at a time. */
+    --board-size: min(62vw, 34svh);
+    --board-gap: 16px;
+  }
+
   .pool-table {
     top: 53%;
     width: 94vw;
@@ -1098,12 +1254,9 @@ button.tape:focus-visible {
     font-size: clamp(60px, 21vw, 130px);
   }
 
-  .projects-floor {
-    right: 18px;
-    bottom: max(15vh, 128px);
-    left: 18px;
-    gap: 22px 16px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* Clear of the stacked Draft and Look switchers, and nearer the title than the floor. */
+  .projects-rail {
+    bottom: max(21vh, 176px);
   }
 
   .project-board {
@@ -1232,7 +1385,11 @@ button.tape:focus-visible {
     flex-direction: row;
   }
 
-  .projects-floor {
+  :root {
+    --board-size: min(24vw, 40svh);
+  }
+
+  .projects-rail {
     bottom: 6vh;
   }
 
@@ -1506,5 +1663,271 @@ button.tape:focus-visible {
   .draft-layer,
   .draft-switcher-button {
     transition: none;
+  }
+}
+
+/* ---------- Cue-ball cursor (src/components/CursorBall.jsx): mouse and trackpad only ---------- */
+.experience.has-cursor-ball,
+.experience.has-cursor-ball :is(a, button, label, [role='button']) {
+  cursor: none;
+}
+
+/* The system pointer returns over the controls the ball would only get in the way of. */
+.experience.has-cursor-ball :is(.look-switcher, .draft-switcher, .tune-panel),
+.experience.has-cursor-ball :is(.look-switcher, .draft-switcher, .tune-panel) * {
+  cursor: auto;
+}
+
+.experience.has-cursor-ball :is(.look-switcher, .draft-switcher button, .tune-panel button, .tune-panel input) {
+  cursor: pointer;
+}
+
+.cursor-ball {
+  /* The ball is a cue ball; the label pill takes the section's ink. Each look re-cuts these. */
+  --cursor-fill: #f4f1e8;
+  --cursor-ring: rgb(0 0 0 / 0.3);
+  --cursor-label-bg: var(--cyc);
+  --cursor-label-ink: var(--gaffer);
+  position: fixed;
+  z-index: 70;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms ease;
+  will-change: transform;
+}
+
+.experience:not([data-story-indicator-page='intro']) .cursor-ball {
+  --cursor-label-bg: var(--gaffer);
+  --cursor-label-ink: var(--cyc);
+}
+
+.cursor-ball[data-visible='true']:not([data-state='hidden']) {
+  opacity: 1;
+}
+
+.cursor-ball-dot {
+  position: absolute;
+  top: -7px;
+  left: -7px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  /* A lit resin ball: a hard highlight up and to the left, falling off into the ball's colour. */
+  background: radial-gradient(circle at 34% 30%, rgb(255 255 255 / 0.95) 0 14%, var(--cursor-fill) 52%);
+  box-shadow:
+    0 0 0 1px var(--cursor-ring),
+    0 3px 8px rgb(0 0 0 / 0.28);
+  transition: scale 260ms var(--ease-out);
+}
+
+.cursor-ball[data-state='hover'] .cursor-ball-dot {
+  scale: 2.1;
+}
+
+.cursor-ball[data-state='label'] .cursor-ball-dot {
+  scale: 0.7;
+}
+
+.cursor-ball[data-pressed='true'] .cursor-ball-dot {
+  scale: 0.82;
+}
+
+.cursor-ball-label {
+  position: absolute;
+  top: -14px;
+  left: 14px;
+  display: inline-flex;
+  height: 28px;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--cursor-label-bg);
+  color: var(--cursor-label-ink);
+  font-family: var(--label-font, var(--font));
+  font-size: 11px;
+  font-stretch: 118%;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  translate: -6px 0;
+  transition:
+    opacity 180ms ease,
+    translate 260ms var(--ease-out);
+}
+
+.cursor-ball[data-state='label'] .cursor-ball-label {
+  opacity: 1;
+  translate: 0 0;
+}
+
+/* ---------- Preloader (src/components/Preloader.jsx): once per session, only while loading ---------- */
+.preloader {
+  position: fixed;
+  z-index: 80;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 22px;
+  background: var(--preloader-bg, var(--hall));
+  color: var(--preloader-ink, var(--cyc));
+  clip-path: inset(0% 0% 0% 0%);
+}
+
+.preloader-mark {
+  width: 56px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.5);
+  /* The 8-ball rolls in place while the count runs. */
+  animation: preloader-roll 1.6s linear infinite;
+}
+
+.preloader-count {
+  margin: 0;
+  font-family: var(--label-font, var(--font));
+  font-size: 12px;
+  font-stretch: 118%;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+}
+
+@keyframes preloader-roll {
+  to {
+    rotate: 360deg;
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- ?tune panel (src/components/TunePanel.jsx): a dev tool, deliberately plain ---------- */
+.tune-panel {
+  position: fixed;
+  z-index: 75;
+  top: 84px;
+  right: 16px;
+  display: grid;
+  width: min(300px, calc(100vw - 32px));
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 6px;
+  background: rgb(10 12 11 / 0.92);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 0.4);
+  color: #f2f1e9;
+  font: 500 11px/1.3 ui-monospace, 'DM Mono', monospace;
+  backdrop-filter: blur(10px);
+}
+
+.tune-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tune-panel-head strong {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tune-panel-row {
+  display: grid;
+  align-items: center;
+  gap: 4px 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.tune-panel-row input {
+  width: 100%;
+  accent-color: #b7d95b;
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+.tune-panel-row em {
+  color: #b7d95b;
+  font-style: normal;
+}
+
+.tune-panel-row output {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+.tune-panel-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.tune-panel button {
+  padding: 6px 10px;
+  border: 1px solid rgb(255 255 255 / 0.22);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.tune-panel button:hover,
+.tune-panel button:focus-visible {
+  border-color: #b7d95b;
+}
+
+/* ---------- Reduced motion: nothing runs, pins, or leans; every section is simply laid out ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .projects-screen.cyc-flow {
+    height: auto;
+    min-height: 100svh;
+  }
+
+  .projects-sticky {
+    position: relative;
+    height: auto;
+    min-height: 100svh;
+    padding-bottom: 13vh;
+  }
+
+  .projects-content {
+    position: relative;
+    top: auto;
+    left: auto;
+    padding: clamp(92px, 14vh, 150px) var(--gutter) 0;
+  }
+
+  .projects-rail {
+    position: relative;
+    bottom: auto;
+    margin-top: 6vh;
+  }
+
+  /* The run becomes a wrapped floor of boards. */
+  .projects-track,
+  .projects-floor,
+  .projects-next {
+    flex-wrap: wrap;
+  }
+
+  .projects-track {
+    width: auto;
+    align-items: flex-start;
+    row-gap: 32px;
+  }
+
+  .preloader-mark {
+    animation: none;
   }
 }

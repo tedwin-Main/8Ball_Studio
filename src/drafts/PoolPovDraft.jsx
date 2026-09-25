@@ -444,6 +444,15 @@ export function PoolPovDraft ( { active, onController } )
 
     const requestRender = () => scheduler.invalidate()
 
+    // Ready once the photographic plate is decoded and the first ball frame is drawn, so the
+    // preloader (src/components/Preloader.jsx) lifts on a finished Intro, never on a blank one.
+    // Without WebGL the plate alone is the Intro, so only the plate is awaited.
+    let markFirstFrame = () => {}
+    const firstFrame = world ? new Promise( ( resolve ) => { markFirstFrame = resolve } ) : Promise.resolve()
+    const plate = root.querySelector( '.pool-pov-photo' )
+    const plateReady = plate?.decode ? plate.decode().catch( () => {} ) : Promise.resolve()
+    const ready = Promise.all( [ plateReady, firstFrame ] ).then( () => {} )
+
     // Fine-pointer input shares Draft 2's bounded damping for the transparent 3D ball layer.
     const prefersReducedMotion = window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches
     const pointer = createPointerParallax( {
@@ -560,6 +569,7 @@ export function PoolPovDraft ( { active, onController } )
     }
 
     const controller = {
+      ready,
       setProgress ( nextProgress )
       {
         // Skip identical playheads (progress holds at 1 on every later Page) so scrolling there costs no WebGL frames.
@@ -596,6 +606,7 @@ export function PoolPovDraft ( { active, onController } )
       }
 
       renderScene()
+      markFirstFrame()
 
       const pointerSettled = pointer.advance()
       // Pointer damping or a pending resize keeps the demand-driven scheduler alive until settled.

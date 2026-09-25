@@ -2,29 +2,11 @@
 // Everything here is decorative (aria-hidden, no pointer events); the Page content, headings, and
 // links stay in App.jsx so every look shares one accessible structure and one set of class hooks.
 
-// Marker Board: the hall's scoring board on the wall, and the lit table in front of it.
-function MarkerBoard ( { children } )
+// Acid Night: the thin orbit rings of the original single-look build (commit 91fcc52), drawn on each
+// Page where that build drew them: two over Studio, one over Projects, one over Contact.
+function AcidOrbits ( { rings } )
 {
-  return (
-    <div className="mk-board">
-      {/* Brass corner fittings screwed into the mahogany frame. */}
-      <span className="mk-fitting mk-fitting-tl" />
-      <span className="mk-fitting mk-fitting-tr" />
-      <span className="mk-fitting mk-fitting-bl" />
-      <span className="mk-fitting mk-fitting-br" />
-      { children }
-    </div>
-  )
-}
-
-// A chalk tally: four strokes for the four clients on the board (a true count, not a score).
-function ChalkTally ()
-{
-  return (
-    <svg className="mk-tally" viewBox="0 0 120 90">
-      <path d="M14 10 16 80M38 8 36 82M60 11 62 79M84 9 82 81" />
-    </svg>
-  )
+  return rings.map( ( ring ) => <span className={ `acid-orbit acid-orbit-${ring}` } key={ ring } /> )
 }
 
 // Downlight: the table seen from the lamp, with six pockets and the diamond sights on the rails.
@@ -39,10 +21,10 @@ function DownlightTable ()
 }
 
 const SCENES = {
-  marker: {
-    studio: () => <><MarkerBoard /><div className="mk-table" /></>,
-    projects: () => <MarkerBoard><ChalkTally /></MarkerBoard>,
-    contact: () => <MarkerBoard />,
+  acid: {
+    studio: () => <AcidOrbits rings={ [ 'one', 'two' ] } />,
+    projects: () => <AcidOrbits rings={ [ 'three' ] } />,
+    contact: () => <AcidOrbits rings={ [ 'four' ] } />,
   },
   downlight: {
     studio: DownlightTable,

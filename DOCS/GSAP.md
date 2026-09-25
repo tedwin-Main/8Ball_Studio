@@ -1,6 +1,6 @@
 # GSAP and Scroll Physics Reference
 
-This project uses Lenis for weighted scrolling and GSAP ScrollTrigger for realtime animation scrubbing. Story navigation owns page intent and transition locking; the browser adapter owns Lenis and ScrollTrigger wiring.
+This project uses Lenis for weighted scrolling and GSAP ScrollTrigger for realtime animation scrubbing. Story navigation owns page intent and transition locking; the browser adapter owns Lenis and ScrollTrigger wiring. The section choreography after the pinned stage lives in `src/motion/` (see **Flow choreography** below).
 
 ## Runtime flow
 
@@ -18,13 +18,14 @@ The deep Story navigation module is `src/storyNavigation.js`. `src/storyNavigati
 
 ## Lenis options
 
-Configured in `new Lenis({ ... })` (`src/storyNavigationBrowser.js`), with values from `STORY_TIMING.scroll`.
-The feel values match rockstargames.com/VI exactly: its live ReactLenis options, read 2026-09-24.
+Configured in `new Lenis({ ... })` (`src/storyNavigationBrowser.js`), with values from `STORY_TIMING.scroll` (live overrides from the `?tune` panel via `src/motion/runtimeTuning.js`).
+The feel is a heavy, cinematic glide, chosen 2026-09-25: heavier than rockstargames.com/VI (lerp 0.07, wheel 1.2) and far heavier than hugeinc.com, which runs Lenis at its defaults (lerp 0.1, wheel 1) and gets its weight from choreography instead.
+Lenis is created only when the visitor has not asked for reduced motion; with `prefers-reduced-motion: reduce` the adapter's native path scrolls the page (as hugeinc.com does).
 
 | Attribute | Current value | Purpose |
 | --- | ---: | --- |
-| `lerp` | `0.07` | Each 60fps frame closes 7% of the remaining distance, so the page keeps gliding after input. |
-| `wheelMultiplier` | `1.2` | Scales wheel input: one tick travels 1.2x its raw delta. |
+| `lerp` | `0.05` | Each 60fps frame closes 5% of the remaining distance, so the page keeps coasting after input. |
+| `wheelMultiplier` | `0.8` | Scales wheel input: one tick travels 0.8x its raw delta. |
 | `syncTouch` | `!freeScroll` | Free scroll leaves touch to native momentum (as the reference site does); paged mode needs Lenis-owned touch for its gesture lock. |
 | `touchMultiplier` | `1` | Swipe distance scale (Lenis-owned touch only). |
 | `syncTouchLerp` | `0.075` | Touch glide after release (Lenis-owned touch only). |
@@ -55,7 +56,7 @@ Used in the story timeline and reduced-motion trigger.
 | `trigger` | `storyRef.current` | Element whose scroll range controls the animation. |
 | `start` | `'top top'` | Starts when the story top reaches the viewport top. |
 | `end` | `'bottom bottom'` | Ends when the story bottom reaches the viewport bottom. |
-| `scrub` | `1.2` (`STORY_TIMING.scroll.scrubSeconds`) | The playhead takes 1.2 s to catch up with the Lenis-smoothed scroll, which gives the animations extra weight. |
+| `scrub` | `1.2` (`STORY_TIMING.scroll.scrubSeconds`) | The playhead takes 1.2 s to catch up with the Lenis-smoothed scroll, which gives the Intro break extra weight. The section choreography uses `sectionScrubSeconds` (`0.6`) instead. |
 | `invalidateOnRefresh` | `true` | Recalculates function-based values after resize or refresh. Important for mobile dimensions. |
 | timeline `onUpdate` | callback | Drives the 3D draft, the Draft 2 handoff, and ball-layer promotion from the *timeline's* lagged progress, so they stay in step with the DOM tweens. Stable Page state still comes from raw scroll via Story navigation. |
 | `onRefresh` | callback | Reapplies visual state after ScrollTrigger recalculates its range. Navigation separately retains normalized progress on resize. |
@@ -70,7 +71,7 @@ scrub: STORY_TIMING.scroll.scrubSeconds // 1.2
 - `true`: the animation follows the scroll playhead directly.
 - `false` or omitted: the animation plays independently of scroll.
 
-This project uses a numeric scrub (1.2 s) on top of the Lenis glide. Two rules keep that lag coherent:
+This project uses a numeric scrub (1.2 s on the pinned stage, 0.6 s after it) on top of the Lenis glide. The shorter section scrub keeps text being read from swimming after the scroll stops. Two rules keep that lag coherent:
 
 1. **One clock for visuals.** Everything visual reads the scrubbed timeline's progress: DOM tweens, the 3D intro draft, and the Draft 2 handoff. Raw scroll progress is only remembered, for Draft/Look switch restores.
 2. **Jumps don't replay.** After a Draft/Look switch seeks the Story, `finishScrubCatchUp()` completes the scrub tween at once.
@@ -113,8 +114,8 @@ Used by `gsap.timeline().to(...)` and `gsap.set(...)`.
 
 | API / attribute | Current value | Purpose |
 | --- | ---: | --- |
-| `gsap.quickTo()` | `duration: 0.05–0.14` | Creates reusable setters for cursor position without creating a new tween for every pointer event. |
-| `quickTo` `ease` | `'power2.out'` for glow | Gives the pointer glow a soft follow-through. |
+| `gsap.quickTo()` | key light `0.9`, cue-ball cursor `0.18` (`STORY_TIMING.flow.cursorLagSeconds`), skew `0.4` | Reusable followers for the key light, the cursor ball, and the velocity lean, without a new tween per event. |
+| `quickTo` `ease` | `'power3.out'` | A soft follow-through for all three. |
 | `gsap.ticker.add()` | `driveLenis` in `storyNavigationBrowser.js` | Runs Lenis from the GSAP frame loop while the browser adapter is mounted. |
 | `gsap.ticker.remove()` | adapter cleanup callback | Stops the Lenis driver when Story navigation is destroyed. |
 | `gsap.ticker.lagSmoothing(0)` | `0` | Prevents GSAP from hiding delayed frames and causing scroll jumps. |
@@ -147,12 +148,28 @@ There is no active `acceleration` option in this project. Scroll acceleration is
 | More immediate response | Lower Lenis `duration`, or raise `lerp`. |
 | More animation catch-up delay | Use numeric `scrub`, but this adds another smoothing layer. |
 | Preserve direct scroll intent | Keep `scrub: true`. |
-| Keep marquee speed unchanged | Do not change `.projects-track` `animation-duration` in `src/styles.css`. |
+| Try values live | Open the site with `?tune`, drag the sliders, then "Copy values" into `STORY_TIMING_DEFAULTS`. |
 
 ## Important distinction
 
 - Lenis `duration` is measured in seconds.
 - GSAP tween `duration` is measured in timeline units and is mapped to scroll distance by ScrollTrigger.
-- CSS `animation-duration` controls the Projects marquee and is independent of Lenis and GSAP.
 - `wheelMultiplier` changes input distance; it does not change animation speed directly.
 - `acceleration` is not a configured GSAP, ScrollTrigger, or Lenis property here.
+
+## Flow choreography (after the pinned stage)
+
+Built by `createFlowMotion()` in `src/motion/flowMotion.js`, inside the Story's `gsap.context` / `matchMedia` in `src/App.jsx`, so a look switch or a `?tune` scrub change reverts and rebuilds it. Shared by every look; values live in `STORY_TIMING.flow`. Pure arithmetic is in `src/motion/flowMath.js` (unit-tested).
+
+| Part | Trigger (scrub `sectionScrubSeconds`) | What moves |
+| --- | --- | --- |
+| Studio → Projects handoff | `#projects` `top bottom` → `top top` | Projects is pulled up by `pages.handoffScreens` (1 screen) and rises over the held Studio; its content rises `riseVh`. Studio shrinks to `shrinkScale`, lifts `shrinkLiftPercent`, and dims to `shrinkDim` (`.stage-shade`); `.stage-backdrop` fills the stage behind it. |
+| Projects run | `#projects` `top top` → `+= run distance` | `.projects-sticky` stays put (CSS sticky) while `.projects-track` slides left by track width minus rail width, measured on every `refreshInit` into `--run-distance`. Boards get `--lift` (0 to 1) as they cross the centre (`containerAnimation`); the title drifts and the wall pushes in. |
+| Projects → Contact reveal | `#contact` `top bottom` → `top top` | `.contact-inner` settles from `-contactRevealOffsetPercent` to 0 and `.contact-shade` lifts, so Contact seems to lie under Projects. Rows fade in (opacity only, so links stay focusable). |
+| Titles | per section | Each look's own Studio letter entrance, scrubbed. |
+| Section themes | `#projects` `top bottom` → `#contact` `top top` | Looks with `sectionThemes` (Acid Night) get one palette position `--theme-t` (0 ink, 1 paper, 2 acid), held at 1 through the run; `easeThemeMorph` keeps each change short. |
+| Header section | `createNavSections()`, header line `top+=64` | `data-nav-section` on `.experience` (stage, projects, contact) drives the header ink and `<meta name="theme-color">`. Runs with reduced motion too. |
+
+Velocity skew (`src/motion/velocitySkew.js`): every `.skew-layer` leans `skewY` and the `.skew-layer-x` track leans `skewX` with Lenis velocity (`skewGain`, clamped to `skewMaxDeg`, eased over `skewSettleSeconds`). The pinned stage and the fixed chrome never skew.
+
+Keyboard focus on a board link glides the run until that board sits at the centre (`getRunScrollTarget`).

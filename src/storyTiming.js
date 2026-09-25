@@ -61,8 +61,10 @@ function freeze( value )
 
 // Edit these semantic values while Vite is running; all dependent progress is derived below.
 // The scrubbed timeline covers only the pinned stage: the Intro break (unit 0 to 1, where Studio is
-// lit) plus a short Studio hold. After it the stage releases and Studio, Projects, and Contact scroll
-// as normal sections, so totalTimelineUnits is derived (1 + pages.studioReleaseHold), not configured.
+// lit), a short Studio hold, then the handoff screen in which Projects rises over the pinned Studio.
+// After it the stage releases and Projects and Contact scroll on with their own choreography
+// (src/motion/flowMotion.js), so totalTimelineUnits is derived, not configured:
+// 1 + pages.studioReleaseHold + pages.handoffScreens / scroll.viewportsPerUnit.
 export const STORY_TIMING_DEFAULTS = freeze( {
   // Shared progress tolerance keeps cue gates and page indicators from disagreeing at boundaries.
   progressEpsilon: 0.0005,
@@ -73,12 +75,13 @@ export const STORY_TIMING_DEFAULTS = freeze( {
     // Screens of scroll per timeline unit on the pinned stage. More scroll per cue means each wheel
     // notch moves the Intro break less; the flow sections after it always scroll 1:1.
     viewportsPerUnit: 3,
-    // Lenis values match rockstargames.com/VI exactly (its live ReactLenis options, read 2026-09-24).
-    // lerp: each 60fps frame closes 7% of the remaining distance, so the page glides after input.
+    // Heavy, cinematic glide (chosen 2026-09-25, heavier than the rockstargames.com/VI reference of
+    // lerp 0.07 / wheel 1.2 and far heavier than hugeinc.com's Lenis defaults of 0.1 / 1).
+    // lerp: each 60fps frame closes 5% of the remaining distance, so the page keeps coasting after input.
     // No duration/easing on purpose: in Lenis those override lerp and turn every flick into a fixed-length glide.
-    lerp: 0.07,
-    // One wheel tick travels 1.2x its raw delta.
-    wheelMultiplier: 1.2,
+    lerp: 0.05,
+    // One wheel tick travels 0.8x its raw delta, so a flick covers less of the short Story.
+    wheelMultiplier: 0.8,
     // Touch values only apply in paged mode (freeScroll: false), where Lenis owns touch.
     // Free scroll leaves touch to native momentum, as the reference site does (syncTouch: false).
     touchMultiplier: 1,
@@ -86,6 +89,9 @@ export const STORY_TIMING_DEFAULTS = freeze( {
     touchInertiaExponent: 1.7,
     // GSAP scrub catch-up in seconds: the Intro → Studio cue trails the smoothed scroll for extra weight.
     scrubSeconds: 1.2,
+    // Scrub catch-up for the section choreography after the stage (handoffs, the Projects run, the
+    // Contact reveal): shorter than the stage's, so text being read settles soon after the scroll does.
+    sectionScrubSeconds: 0.6,
   } ),
   // Programmatic autoplay and gesture qualification live here so every input source
   // uses the same stable-page contract. Durations are seconds; threshold/reset are px/ms.
@@ -160,9 +166,12 @@ export const STORY_TIMING_DEFAULTS = freeze( {
     } ),
   } ),
   pages: freeze( {
-    // Pinned hold after the Studio cue settles, before the stage releases into normal scroll, so
-    // Studio reads as a finished frame. 0.17 units is about half a screen at viewportsPerUnit 3.
+    // Pinned hold after the Studio cue settles, before Projects starts rising over it, so Studio
+    // reads as a finished frame. 0.17 units is about half a screen at viewportsPerUnit 3.
     studioReleaseHold: 0.17,
+    // Screens of the pinned stage that Projects spends rising over the held Studio (the handoff).
+    // Projects is pulled up by this many screens (App.jsx sets its margin); 0 to 1.
+    handoffScreens: 1,
     // Studio camera move, linear in scroll from the cue to the release, so no wheel notch lands on a
     // frozen frame. Foreground rise in vh per timeline unit; zero offset at Studio's stable mark.
     driftVhPerUnit: 10,
@@ -170,6 +179,32 @@ export const STORY_TIMING_DEFAULTS = freeze( {
     wallPushPerUnit: 0.06,
     // Keeps the GSAP timeline exactly as long as the pinned stage.
     timelineEndEpsilon: 0.01,
+  } ),
+  // Section choreography after the stage (src/motion/flowMotion.js) and the extras around it.
+  // Distances are vh or % of the element; angles are degrees; times are seconds unless named ms.
+  flow: freeze( {
+    // Studio → Projects: Projects' content rises this many vh into place while Studio shrinks back.
+    riseVh: 8,
+    shrinkScale: 0.965,
+    // Studio also lifts this % of its height as it shrinks back (applied as a negative yPercent).
+    shrinkLiftPercent: 2,
+    // Darkness laid over Studio as Projects covers it (0 to 1).
+    shrinkDim: 0.35,
+    // Projects → Contact: Contact's content starts this % of its height higher up, and settles as it
+    // is uncovered, so it seems to lie under Projects (applied as a negative yPercent).
+    contactRevealOffsetPercent: 25,
+    // Shade over Contact at the start of its reveal (0 to 1); it lifts as Contact is uncovered.
+    contactShade: 0.6,
+    // Velocity skew: the most any flowing content leans, and degrees per unit of Lenis velocity.
+    skewMaxDeg: 4,
+    skewGain: 0.35,
+    // How long the lean takes to follow the velocity and to settle back to upright.
+    skewSettleSeconds: 0.4,
+    // Cue-ball cursor: seconds the ball takes to catch the pointer.
+    cursorLagSeconds: 0.18,
+    // Preloader: shown at least this long (no flash), and never longer than the cap.
+    preloaderMinMs: 600,
+    preloaderMaxMs: 2500,
   } ),
 } )
 
@@ -181,6 +216,7 @@ function merge( overrides = {} )
   const overrideIntro = overrides.intro || {}
   const overrideVisual = overrideIntro.visual || {}
   const overridePages = overrides.pages || {}
+  const overrideFlow = overrides.flow || {}
 
   return {
     ...STORY_TIMING_DEFAULTS,
@@ -204,6 +240,10 @@ function merge( overrides = {} )
     pages: {
       ...STORY_TIMING_DEFAULTS.pages,
       ...overridePages,
+    },
+    flow: {
+      ...STORY_TIMING_DEFAULTS.flow,
+      ...overrideFlow,
     },
   }
 }
@@ -231,6 +271,7 @@ function validateSchedule( schedule )
     schedule.pages.draft2StudioStart,
     schedule.pages.cinematicStudioStart,
     schedule.pages.studioStable,
+    schedule.pages.handoffStart,
     schedule.pages.releaseEnd,
     schedule.pages.timelineEndStart,
   ]
@@ -276,6 +317,15 @@ export function resolveStoryTiming( overrides = {} )
   validateNumericEntries( input.intro, 'intro', [ 'visual' ] )
   validateNumericEntries( input.intro.visual, 'intro.visual' )
   validateNumericEntries( input.pages, 'pages' )
+  validateNumericEntries( input.flow, 'flow' )
+  // Projects can rise over at most the whole last screen of the pinned stage.
+  assertProgress( input.pages.handoffScreens, 'pages.handoffScreens' )
+  assertProgress( input.flow.shrinkDim, 'flow.shrinkDim' )
+  assertProgress( input.flow.contactShade, 'flow.contactShade' )
+  if ( input.flow.preloaderMaxMs < input.flow.preloaderMinMs )
+  {
+    throw new RangeError( 'flow.preloaderMaxMs must not be shorter than flow.preloaderMinMs.' )
+  }
 
   const cueReady = assertProgress( input.intro.cueReadyDuration, 'intro.cueReadyDuration' )
   const approachEnd = assertProgress( input.intro.approachDuration, 'intro.approachDuration' )
@@ -374,13 +424,16 @@ export function resolveStoryTiming( overrides = {} )
   {
     assertWindow( windowStart, windowDuration, windowName )
   }
-  // Studio is lit at unit 1; the pinned stage holds it a little longer, then releases.
+  // Studio is lit at unit 1; the pinned stage holds it a little longer, then Projects rises over it
+  // for handoffScreens, and the stage releases as Projects covers the frame.
   const studioStable = 1
-  const releaseEnd = studioStable + input.pages.studioReleaseHold
+  const handoffStart = studioStable + input.pages.studioReleaseHold
+  const releaseEnd = handoffStart + input.pages.handoffScreens / input.scroll.viewportsPerUnit
   const totalTimelineUnits = releaseEnd
   // Resolve this timeline-unit threshold here so App.jsx never rebuilds a Draft 2 boundary.
   const draft2StudioStart = draft2TransitionReady + input.progressEpsilon * totalTimelineUnits
   const pageSchedule = {
+    handoffStart,
     studioStart: draft2TransitionReady,
     draft2StudioStart,
     cinematicStudioStart: draft1TransitionReady,
@@ -393,6 +446,7 @@ export function resolveStoryTiming( overrides = {} )
     ...input,
     totalTimelineUnits,
     navigation: freeze( { ...input.navigation } ),
+    flow: freeze( { ...input.flow } ),
     cue: freeze( {
       ready: cueReady,
       release: cueRelease,

@@ -31,7 +31,7 @@ The site exists to make a visitor understand that offer quickly and contact the 
 
 ## Operating Context
 
-The site is one linear Story of four Pages: Intro, Studio, Projects, Contact (see `CONTEXT.md` for the vocabulary). Visitors move through it by scroll, touch, key, or page marks, one Page per gesture. The Intro is a 3D pool break: the 8-ball rolls into a rack and scatters it. It has selectable Drafts (`01 3D POV`, `02 3D Break`, `03 Original`).
+The site is one linear Story of four Pages: Intro, Studio, Projects, Contact (see `CONTEXT.md` for the vocabulary). Visitors scroll through it freely on a heavy, cinematic glide; the header links and keys glide to a Page. The Intro is a 3D pool break: the 8-ball rolls into a rack and scatters it. It has selectable Drafts (`01 3D POV`, `02 3D Break`, `03 Original`). After it, every Page moves with the scroll: Projects rises over Studio and runs its boards sideways, and Contact is uncovered from beneath it. The whole site comes in three Looks (Acid Night by default, Cyc Wall, Downlight), switchable by visitors alongside the Drafts.
 
 ## Capabilities and Constraints
 

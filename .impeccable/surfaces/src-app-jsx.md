@@ -10,8 +10,8 @@ related_targets: ["src/styles.css","src/looks/downlight.css","src/looks/LookScen
 Scope: Studio, Projects, and Contact Pages, the intro overlay, and all chrome. The 3D pool-break Intro scenes are kept unchanged.
 Mode: Persuade. Audience: KL SMB/F&B owners and regional marketing teams, weighted equally. Success: a message on WhatsApp, Instagram, or email.
 Proof: 4 client logos only; never invent case studies or metrics.
-Scroll model: one transition only (Intro → Studio, on the pinned stage). Studio holds for about half a screen, then Studio, Projects, and Contact scroll as normal sections: no transitions, static content.
-Looks: the site ships switchable looks (?look=); Downlight is the default. The other looks stay switchable at draft quality.
+Scroll model: the Intro → Studio cue on the pinned stage; Studio holds about half a screen, then Projects rises over it (handoff), pins while its boards run sideways, and scrolls away to uncover Contact. Heavy Lenis glide (lerp 0.05, wheel 0.8), stage scrub 1.2 s, section scrub 0.6 s, velocity skew on everything in flow. Spec: DOCS/SPEC_FLUID_SCROLL_AND_LOOKS.md.
+Looks: three switchable looks (?look= and the Look dropdown): Acid Night (default, commit 91fcc52 restored, per-Page palettes ink → paper → acid), Cyc Wall, Downlight. The other looks were retired 2026-09-25.
 
 ## Direction contract
 
@@ -29,6 +29,6 @@ FIRST VIEWPORT (Studio): The whole table from above fills the frame inside a bla
 
 FORM: Downlight (overhead, top-down table), #1 on the re-roll 2 grounded list, presented as IMPECCABLE'S PICK and chosen; seed key b4bcb539 (re-roll 2). Code-led; the decision comp .impeccable/mocks/decision/downlight.png is the critique reference.
 - Signature interaction: the Intro → Studio cue. The downlight switches on as a rectangle opening from the table's centre while the title letters roll onto the cloth, turning as they come and stopping on friction (left to right); the service balls roll in from the left. The pointer sways the lamp's hotspot on the cloth.
-- Motion: scrubbed on the pinned stage only; nothing moves on Projects or Contact but the scroll.
+- Motion: the Studio cue on the pinned stage, then the shared flow choreography (src/motion/flowMotion.js) on Projects and Contact.
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance

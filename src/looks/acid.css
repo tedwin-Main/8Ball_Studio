@@ -1,0 +1,750 @@
+/* ==========================================================================
+   Look: Acid Night (the default). The original single-look build, commit 91fcc52, restored.
+   Near-black ink, warm paper, and one acid-green signal. Titles are Space Grotesk caps pulled
+   tight (tracking -0.075em, line-height 0.72), their second line indented and lit acid;
+   every label is DM Mono in small caps. Thin orbit rings hang behind the Pages.
+   It is the one look whose palette moves with the Story: Studio is ink, Projects is paper, Contact
+   is full acid, and the colours morph with the scroll between them (--theme-t, from
+   src/motion/flowMotion.js; 0 = ink, 1 = paper, 2 = acid).
+   ========================================================================== */
+@property --theme-t {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+.experience[data-look='acid'] {
+  --an-ink: #070908;
+  --an-paper: #f2f1e9;
+  --an-acid: #b7d95b;
+  --an-felt: #0b5b3b;
+  --an-night: #07110d;
+  /* Shared tokens the base sheet and the motion layers read. */
+  --hall: var(--an-ink);
+  --cyc: var(--an-paper);
+  --gaffer: var(--an-ink);
+  --gaffer-soft: rgb(7 9 8 / 0.72);
+  --sheet: var(--an-paper);
+  --look-ink: var(--an-paper);
+  --shade-color: var(--an-ink);
+  --label-font: 'DM Mono', ui-monospace, monospace;
+  --preloader-bg: var(--an-night);
+  --preloader-ink: var(--an-paper);
+  /* The header's ink: paper over the dark stage, ink once Projects or Contact owns the header. */
+  --nav-ink: var(--an-paper);
+  --nav-accent: var(--an-acid);
+  --board-size: clamp(220px, min(24vw, 44svh), 360px);
+  background: var(--an-night);
+  color: var(--an-paper);
+  font-family: 'Space Grotesk', 'Helvetica Neue', Arial, sans-serif;
+}
+
+.experience[data-look='acid']:is([data-nav-section='projects'], [data-nav-section='contact']) {
+  --nav-ink: var(--an-ink);
+  --nav-accent: var(--an-felt);
+  /* Focus rings in the header follow its ink. */
+  --ink: var(--an-ink);
+}
+
+.experience[data-look='acid'] ::selection {
+  background: var(--an-acid);
+  color: var(--an-ink);
+}
+
+/* ---------- Titles: tight caps; each line is a mask the letters rise out of ---------- */
+.experience[data-look='acid'] .cyc-title {
+  color: var(--an-paper);
+  font-family: 'Space Grotesk', 'Helvetica Neue', Arial, sans-serif;
+  font-stretch: 100%;
+  font-weight: 700;
+  letter-spacing: -0.075em;
+  line-height: 0.72;
+}
+
+.experience[data-look='acid'] .cyc-title > span {
+  overflow: hidden;
+  padding: 0 0.08em 0.1em 0;
+}
+
+/* The second line steps in and takes the signal colour, as the original set it. */
+.experience[data-look='acid'] .cyc-title > span + span {
+  padding-left: 15vw;
+  color: var(--an-acid);
+}
+
+/* No cast shadows: this room is lit flat, the type is printed, not cut out. */
+.experience[data-look='acid'] .cue-char {
+  text-shadow: none;
+}
+
+.experience[data-look='acid'] .final-content::after {
+  display: none;
+}
+
+/* ---------- Orbits (src/looks/LookScenery.jsx) ---------- */
+.experience[data-look='acid'] .acid-orbit {
+  position: absolute;
+  aspect-ratio: 1;
+  border: 1px solid rgb(242 241 233 / 0.08);
+  border-radius: 50%;
+}
+
+.experience[data-look='acid'] .acid-orbit-one {
+  top: -42vw;
+  right: -20vw;
+  width: 84vw;
+}
+
+.experience[data-look='acid'] .acid-orbit-two {
+  right: -4vw;
+  bottom: -29vw;
+  width: 62vw;
+  border-color: rgb(183 217 91 / 0.1);
+}
+
+.experience[data-look='acid'] .acid-orbit-three {
+  top: -30vw;
+  right: -24vw;
+  width: 70vw;
+  border-color: rgb(7 9 8 / 0.1);
+}
+
+.experience[data-look='acid'] .acid-orbit-four {
+  top: -28vw;
+  left: -20vw;
+  width: 68vw;
+  border-color: rgb(7 9 8 / 0.14);
+}
+
+/* ---------- Header: DM Mono links on a hairline, ink following the section under it ---------- */
+.experience[data-look='acid'] .site-header {
+  border-bottom: 1px solid color-mix(in srgb, var(--nav-ink) 20%, transparent);
+  color: var(--nav-ink);
+  transition:
+    border-color 500ms ease,
+    color 500ms ease;
+}
+
+.experience[data-look='acid'] .brand-logo {
+  width: 36px;
+}
+
+.experience[data-look='acid'] .header-meta {
+  gap: 30px;
+}
+
+.experience[data-look='acid'] .header-meta .tape {
+  --tilt: 0deg;
+  min-height: 44px;
+  gap: 8px;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--nav-ink);
+  font-family: var(--label-font);
+  font-size: 10px;
+  font-stretch: 100%;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  transition: color 300ms ease;
+}
+
+.experience[data-look='acid'] .header-meta .tape:is(:hover, :focus-visible) {
+  translate: 0 0;
+  box-shadow: none;
+  color: var(--nav-accent);
+}
+
+.experience[data-look='acid'] .header-meta .tape-contact svg {
+  width: 16px;
+}
+
+/* The Page you are on is underlined in the signal colour. */
+.experience[data-look='acid'][data-story-indicator-page='projects'] .header-meta .tape-projects,
+.experience[data-look='acid'][data-story-indicator-page='contact'] .header-meta .tape-contact {
+  color: var(--nav-ink);
+  text-decoration: underline 1.5px var(--nav-accent);
+  text-underline-offset: 6px;
+}
+
+/* ---------- Intro overlay, over the kept 3D break ---------- */
+.experience[data-look='acid'] .hero-copy h1 {
+  color: var(--an-paper);
+  font-family: 'Space Grotesk', 'Helvetica Neue', Arial, sans-serif;
+  font-size: clamp(55px, 7.6vw, 118px);
+  font-stretch: 100%;
+  font-weight: 700;
+  letter-spacing: -0.06em;
+  line-height: 0.83;
+  text-transform: none;
+}
+
+.experience[data-look='acid'] .hero-services {
+  margin-top: 26px;
+  flex-direction: column;
+  gap: 2px;
+  color: rgb(242 241 233 / 0.78);
+  font-size: clamp(13px, 1.05vw, 16px);
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.experience[data-look='acid'] .hero-services li + li::before {
+  content: none;
+}
+
+.experience[data-look='acid'] .scroll-prompt .tape {
+  --tilt: 0deg;
+  min-height: 0;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--an-paper);
+  font-family: var(--label-font);
+  font-size: 9px;
+  font-stretch: 100%;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+}
+
+.experience[data-look='acid'] .scroll-arrow {
+  stroke: rgb(242 241 233 / 0.72);
+}
+
+/* ---------- Studio: the name centred on ink under a faint acid glow ---------- */
+.experience[data-look='acid'] .title-screen .cyc-wall {
+  background:
+    /* The pointer carries a soft felt-green glow across the ink, as the original stage did. */
+    radial-gradient(circle at calc(var(--lx, 30) * 1%) calc(var(--ly, 26) * 1%), rgb(48 145 96 / 0.12), transparent 34%),
+    radial-gradient(circle at 74% 20%, rgb(183 217 91 / 0.06), transparent 22%),
+    var(--an-ink);
+}
+
+.experience[data-look='acid'] .final-content {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: min(90vw, 1320px);
+  height: max-content;
+  margin: auto;
+}
+
+.experience[data-look='acid'] .final-title {
+  font-size: clamp(60px, 14vw, 224px);
+}
+
+/* The footer rule under the name: services on the left, the location on the right. */
+.experience[data-look='acid'] .studio-floor {
+  top: auto;
+  right: var(--gutter);
+  bottom: clamp(64px, 11vh, 104px);
+  left: var(--gutter);
+  padding-top: 18px;
+  border-top: 1px solid rgb(242 241 233 / 0.24);
+  counter-reset: service;
+}
+
+.experience[data-look='acid'] .studio-services {
+  gap: 8px 28px;
+}
+
+.experience[data-look='acid'] :is(.studio-services .tape, .final-meta) {
+  --tilt: 0deg;
+  min-height: 0;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  color: rgb(242 241 233 / 0.72);
+  font-family: var(--label-font);
+  font-size: clamp(9px, 0.75vw, 11px);
+  font-stretch: 100%;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  line-height: 1.55;
+}
+
+/* Services are numbered like a running order: 01, 02, 03. */
+.experience[data-look='acid'] .studio-services .tape::before {
+  margin-right: 10px;
+  color: var(--an-acid);
+  content: counter(service, decimal-leading-zero);
+  counter-increment: service;
+}
+
+.experience[data-look='acid'] .final-meta {
+  top: auto;
+  right: var(--gutter);
+  bottom: clamp(64px, 11vh, 104px);
+  left: auto;
+  padding-top: 18px;
+}
+
+/* ---------- Projects: paper, and the boards run past like the original's card reel ---------- */
+.experience[data-look='acid'] :is(.projects-screen, .contact-screen) {
+  /* Focus rings inside these Pages are ink: they sit on paper and acid. */
+  --ink: var(--an-ink);
+  color: var(--an-ink);
+}
+
+/* Each wall mixes its own ground from the palette position: 0 → 1 is ink to paper, 1 → 2 is paper
+   to acid. flowMotion.js sets --theme-t on the walls themselves as the page scrolls. */
+.experience[data-look='acid'] :is(.projects-screen, .contact-screen) .cyc-wall {
+  --t-paper: clamp(0, var(--theme-t), 1);
+  --t-acid: clamp(0, var(--theme-t) - 1, 1);
+  --theme-bg: color-mix(
+    in oklab,
+    color-mix(in oklab, var(--an-ink), var(--an-paper) calc(var(--t-paper) * 100%)),
+    var(--an-acid) calc(var(--t-acid) * 100%)
+  );
+}
+
+/* At rest (and with reduced motion, when nothing drives it) each Page shows its own palette. */
+.experience[data-look='acid'] .projects-screen {
+  --theme-t: 1;
+}
+
+.experience[data-look='acid'] .contact-screen {
+  --theme-t: 2;
+}
+
+.experience[data-look='acid'] .projects-screen .cyc-wall {
+  background:
+    radial-gradient(circle at 86% 16%, rgb(183 217 91 / 0.22), transparent 24%),
+    var(--theme-bg);
+}
+
+.experience[data-look='acid'] :is(.projects-title, .contact-title) {
+  color: var(--an-ink);
+}
+
+/* On paper and acid the indented line takes the felt green: the signal colour would vanish there. */
+.experience[data-look='acid'] :is(.projects-title, .contact-title) > span + span {
+  color: var(--an-felt);
+}
+
+.experience[data-look='acid'] .projects-title {
+  font-size: clamp(52px, 11vw, 190px);
+}
+
+.experience[data-look='acid'] .project-card {
+  perspective: none;
+  gap: 12px;
+}
+
+/* White cards on paper, square-shouldered at 4px, lifted on a soft shadow as they cross the centre. */
+.experience[data-look='acid'] .project-board {
+  width: 100%;
+  aspect-ratio: 7 / 5;
+  border: 1px solid rgb(7 9 8 / 0.12);
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 20px 45px rgb(7 9 8 / 0.08);
+  transform: none;
+  translate: 0 calc(var(--lift, 0) * -14px + var(--hover-lift, 0px));
+}
+
+/* The deeper shadow of a lifted card is drawn once and faded in with the lift, so crossing the
+   centre changes an opacity, never a blurred shadow that would repaint on every frame. */
+.experience[data-look='acid'] .project-board::after {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  height: auto;
+  border-radius: inherit;
+  background: none;
+  box-shadow: 0 34px 60px rgb(7 9 8 / 0.2);
+  opacity: var(--lift, 0);
+  will-change: opacity;
+}
+
+.experience[data-look='acid'] .project-card.is-haruplate .project-board {
+  border-color: transparent;
+  background: var(--an-ink);
+}
+
+.experience[data-look='acid'] .project-card .tape {
+  --tilt: 0deg;
+  min-height: 0;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  color: rgb(7 9 8 / 0.72);
+  font-family: var(--label-font);
+  font-size: 10px;
+  font-stretch: 100%;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+
+.experience[data-look='acid'] .projects-track:hover .project-card:not(:hover) .project-board {
+  filter: saturate(0.85) brightness(0.96);
+}
+
+/* The two closing boards: Contact is cut from acid, Instagram from ink. */
+.experience[data-look='acid'] .project-next {
+  color: var(--an-ink);
+}
+
+.experience[data-look='acid'] .project-card.is-next-contact .project-board {
+  border-color: transparent;
+  background: var(--an-acid);
+}
+
+.experience[data-look='acid'] .project-card.is-next-instagram .project-board {
+  border-color: transparent;
+  background: var(--an-ink);
+  color: var(--an-paper);
+}
+
+.experience[data-look='acid'] .project-next-title {
+  font-family: 'Space Grotesk', 'Helvetica Neue', Arial, sans-serif;
+  font-size: clamp(24px, 2.4vw, 38px);
+  font-stretch: 100%;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  line-height: 0.86;
+}
+
+.experience[data-look='acid'] .project-next-detail {
+  color: inherit;
+  font-family: var(--label-font);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  opacity: 0.72;
+}
+
+.experience[data-look='acid'] .is-next-instagram .project-next-arrow {
+  color: var(--an-acid);
+}
+
+.experience[data-look='acid'] .project-next:focus-visible {
+  outline-color: var(--an-ink);
+}
+
+/* ---------- Contact: full acid, the three channels ruled across it ---------- */
+.experience[data-look='acid'] .contact-screen .cyc-wall {
+  background:
+    radial-gradient(circle at 12% 82%, rgb(7 9 8 / 0.08), transparent 26%),
+    var(--theme-bg);
+}
+
+.experience[data-look='acid'] .contact-content {
+  display: flex;
+  /* The base grid aligns to the end; the ruled list here spans the full measure under the title. */
+  align-items: stretch;
+  justify-content: center;
+  flex-direction: column;
+  gap: 6vh;
+  padding: clamp(96px, 14vh, 150px) var(--gutter) clamp(96px, 14vh, 140px);
+}
+
+.experience[data-look='acid'] .contact-title {
+  align-self: flex-start;
+  font-size: clamp(44px, 12vw, 190px);
+}
+
+.experience[data-look='acid'] .contact-title > span + span {
+  padding-left: 0;
+}
+
+.experience[data-look='acid'] .call-sheet {
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--an-ink);
+  rotate: 0deg;
+}
+
+.experience[data-look='acid'] .contact-list {
+  display: grid;
+  border-top: 1px solid rgb(7 9 8 / 0.24);
+  border-bottom: 1px solid rgb(7 9 8 / 0.24);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.experience[data-look='acid'] .contact-list li + li {
+  border-top: 0;
+  border-left: 1px solid rgb(7 9 8 / 0.18);
+}
+
+.experience[data-look='acid'] .contact-item {
+  height: 100%;
+  padding: clamp(18px, 2.4vw, 34px);
+  column-gap: clamp(14px, 1.6vw, 22px);
+  row-gap: 6px;
+  grid-template-areas:
+    'icon channel action'
+    'icon detail action';
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  transition: background 150ms ease;
+}
+
+.experience[data-look='acid'] .contact-item:is(:hover, :focus-visible) {
+  background: rgb(7 9 8 / 0.07);
+}
+
+.experience[data-look='acid'] .contact-icon {
+  width: clamp(40px, 4vw, 56px);
+  border: 1px solid rgb(7 9 8 / 0.52);
+  color: var(--an-ink);
+  transition:
+    background 300ms ease,
+    color 300ms ease;
+}
+
+.experience[data-look='acid'] .contact-item:is(:hover, :focus-visible) .contact-icon {
+  background: var(--an-ink);
+  color: var(--an-acid);
+}
+
+.experience[data-look='acid'] .contact-icon svg {
+  width: 44%;
+  stroke-width: 1.5;
+}
+
+.experience[data-look='acid'] .contact-channel {
+  padding: 0;
+  background: none;
+  font-family: 'Space Grotesk', 'Helvetica Neue', Arial, sans-serif;
+  font-size: clamp(16px, 1.4vw, 22px);
+  font-stretch: 100%;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+
+.experience[data-look='acid'] :is(.contact-detail, .contact-action, .call-sheet-foot) {
+  font-family: var(--label-font);
+  font-stretch: 100%;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.experience[data-look='acid'] .contact-detail {
+  color: rgb(7 9 8 / 0.72);
+  font-size: clamp(10px, 0.8vw, 12px);
+  font-weight: 400;
+}
+
+.experience[data-look='acid'] .contact-action {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.experience[data-look='acid'] .call-sheet-foot {
+  border-top: 0;
+  color: rgb(7 9 8 / 0.6);
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.experience[data-look='acid'] .contact-item:focus-visible {
+  outline-color: var(--an-ink);
+}
+
+/* ---------- Controls: the original's dark pills, blurred over whatever is behind ---------- */
+.experience[data-look='acid'] :is(.draft-switcher, .look-switcher) {
+  border: 1px solid rgb(242 241 233 / 0.22);
+  border-radius: 999px;
+  background: rgb(7 9 8 / 0.84);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 0.26);
+  color: var(--an-paper);
+  font-family: var(--label-font);
+  backdrop-filter: blur(14px);
+}
+
+.experience[data-look='acid'] .draft-switcher-options {
+  padding: 5px 6px;
+  gap: 3px;
+}
+
+.experience[data-look='acid'] .draft-switcher-button {
+  --tilt: 0deg;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: none;
+  color: rgb(242 241 233 / 0.62);
+  font-family: var(--label-font);
+  font-size: 9px;
+  font-stretch: 100%;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  transition:
+    color 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease;
+}
+
+.experience[data-look='acid'] .draft-switcher-button:is(:hover, :focus-visible) {
+  translate: 0 0;
+  border-color: rgb(183 217 91 / 0.5);
+  box-shadow: none;
+  color: var(--an-paper);
+}
+
+.experience[data-look='acid'] .draft-switcher-button.is-active {
+  border-color: var(--an-acid);
+  background: var(--an-acid);
+  color: var(--an-ink);
+}
+
+.experience[data-look='acid'] .look-switcher {
+  --tilt: 0deg;
+  min-height: 42px;
+  padding: 0 32px 0 16px;
+  font-size: 9px;
+  font-stretch: 100%;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+
+.experience[data-look='acid'] .look-switcher-label {
+  color: var(--an-acid);
+  opacity: 1;
+}
+
+/* ---------- Cursor, preloader ---------- */
+.experience[data-look='acid'] .cursor-ball {
+  --cursor-fill: var(--an-paper);
+  --cursor-ring: rgb(0 0 0 / 0.3);
+  --cursor-label-bg: var(--an-acid);
+  --cursor-label-ink: var(--an-ink);
+}
+
+.experience[data-look='acid'] .cursor-ball:is([data-section='projects'], [data-section='contact']) {
+  --cursor-fill: var(--an-ink);
+  --cursor-ring: rgb(255 255 255 / 0.28);
+  --cursor-label-bg: var(--an-ink);
+  --cursor-label-ink: var(--an-paper);
+}
+
+.experience[data-look='acid'] .cursor-ball[data-section='contact'] {
+  --cursor-label-ink: var(--an-acid);
+}
+
+.experience[data-look='acid'] .cursor-ball-label {
+  font-size: 10px;
+  font-stretch: 100%;
+  font-weight: 500;
+}
+
+.experience[data-look='acid'] .preloader-count {
+  color: var(--an-acid);
+  font-stretch: 100%;
+  font-weight: 400;
+}
+
+/* ---------- Phones and short landscape screens ---------- */
+@media (max-width: 768px), (max-height: 540px) {
+  .experience[data-look='acid'] {
+    --board-size: min(72vw, 40svh);
+  }
+
+  .experience[data-look='acid'] .header-meta {
+    gap: clamp(10px, 3vw, 18px);
+  }
+
+  .experience[data-look='acid'] .header-meta .tape {
+    font-size: 9.5px;
+  }
+
+  .experience[data-look='acid'] .hero-copy h1 {
+    font-size: clamp(42px, 12.5vw, 64px);
+  }
+
+  .experience[data-look='acid'] .final-content {
+    width: calc(100vw - 34px);
+  }
+
+  .experience[data-look='acid'] .final-title {
+    font-size: clamp(60px, 18vw, 112px);
+    line-height: 0.8;
+  }
+
+  .experience[data-look='acid'] .cyc-title > span + span {
+    padding-left: 7vw;
+  }
+
+  .experience[data-look='acid'] .contact-title > span + span {
+    padding-left: 0;
+  }
+
+  /* The footer rule clears the Draft switcher, which sits higher on phones. */
+  .experience[data-look='acid'] :is(.studio-floor, .final-meta) {
+    bottom: max(136px, calc(env(safe-area-inset-bottom) + 130px));
+  }
+
+  .experience[data-look='acid'] .studio-floor {
+    padding-bottom: 28px;
+  }
+
+  .experience[data-look='acid'] .studio-services {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .experience[data-look='acid'] .final-meta {
+    right: auto;
+    bottom: calc(max(136px, calc(env(safe-area-inset-bottom) + 130px)) - 4px);
+    left: var(--gutter);
+    padding-top: 0;
+  }
+
+  .experience[data-look='acid'] .projects-title {
+    font-size: clamp(52px, 18vw, 102px);
+    line-height: 0.78;
+  }
+
+  .experience[data-look='acid'] .contact-content {
+    justify-content: flex-start;
+    gap: 4vh;
+    padding: max(88px, 12vh) var(--gutter) 150px;
+  }
+
+  .experience[data-look='acid'] .contact-title {
+    font-size: clamp(44px, 14vw, 88px);
+    line-height: 0.78;
+  }
+
+  .experience[data-look='acid'] .contact-list {
+    grid-template-columns: 1fr;
+  }
+
+  .experience[data-look='acid'] .contact-list li + li {
+    border-top: 1px solid rgb(7 9 8 / 0.18);
+    border-left: 0;
+  }
+
+  .experience[data-look='acid'] .contact-item {
+    padding: 12px 8px;
+  }
+
+  .experience[data-look='acid'] .contact-icon {
+    width: 36px;
+  }
+}
+
+@media (max-height: 540px) and (orientation: landscape) {
+  .experience[data-look='acid'] {
+    --board-size: min(26vw, 46svh);
+  }
+
+  .experience[data-look='acid'] .final-title {
+    font-size: clamp(56px, 13vw, 112px);
+    line-height: 0.72;
+  }
+
+  .experience[data-look='acid'] .contact-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .experience[data-look='acid'] .contact-list li + li {
+    border-top: 0;
+    border-left: 1px solid rgb(7 9 8 / 0.18);
+  }
+}

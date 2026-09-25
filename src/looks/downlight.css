@@ -8,6 +8,9 @@
    Projects, the 8 for Contact, the cue ball for the top), and the services are the rack's first three.
    ========================================================================== */
 .experience[data-look='downlight'] {
+  /* Cards laid on the cloth: a little smaller than the other looks' boards, the table is framed in. */
+  --board-size: clamp(170px, min(18vw, 30svh), 250px);
+  --label-font: 'Schibsted Grotesk', 'Archivo', sans-serif;
   --hall: #030403;
   --cloth: #1e6a46;
   --cloth-deep: #0c3322;
@@ -355,27 +358,93 @@
   font-size: clamp(52px, 7vw, 128px);
 }
 
-.experience[data-look='downlight'] .projects-floor {
-  right: var(--inset-x);
+/* The cards run across the cloth and slide under the rails at either end. */
+.experience[data-look='downlight'] .projects-rail {
+  right: calc(var(--tbl-side) + var(--rail));
   bottom: calc(var(--tbl-bottom) + var(--rail) + clamp(24px, 7vh, 72px));
-  left: var(--inset-x);
-  perspective: none;
+  left: calc(var(--tbl-side) + var(--rail));
+  overflow: clip;
+}
+
+.experience[data-look='downlight'] .projects-track {
+  padding-inline: calc(var(--inset-x) - var(--tbl-side) - var(--rail));
 }
 
 .experience[data-look='downlight'] .project-card {
   perspective: none;
 }
 
+/* Seen from straight above, a card crossing the lamp rises toward the camera: it grows a touch and
+   its shadow spreads (a second, wider shadow faded in with the lift), instead of tipping up. */
 .experience[data-look='downlight'] .project-board {
-  width: min(100%, 240px);
+  width: 100%;
   border-radius: 3px;
   background: var(--ivory);
   box-shadow: 0 0 24px 4px rgb(0 0 0 / 0.5);
   transform: none;
+  translate: none;
+  scale: calc(1 + var(--lift, 0) * 0.04);
+  transition:
+    scale 360ms var(--ease-out),
+    filter 360ms var(--ease-out);
+}
+
+.experience[data-look='downlight'] .project-card:is(:hover, :focus-within) .project-board {
+  scale: calc(1.03 + var(--lift, 0) * 0.04);
+}
+
+/* The closing cards: Contact is an ivory card with the 8-ball, Instagram a dark one. */
+.experience[data-look='downlight'] .project-next {
+  color: #0c1a13;
+}
+
+.experience[data-look='downlight'] .project-card.is-next-contact .project-board {
+  background: var(--ivory);
+}
+
+.experience[data-look='downlight'] .project-card.is-next-contact .project-next-title::before {
+  display: block;
+  width: 30px;
+  aspect-ratio: 1;
+  margin-bottom: 12px;
+  border-radius: 50%;
+  background: url('../assets/looks/downlight/ball-8.webp') center / contain no-repeat;
+  box-shadow: 0 0 10px 2px rgb(0 0 0 / 0.35);
+  content: '';
+}
+
+.experience[data-look='downlight'] .project-card.is-next-instagram .project-board {
+  background: #101512;
+  color: var(--ivory);
+}
+
+.experience[data-look='downlight'] .project-next-title {
+  font-family: 'Schibsted Grotesk', 'Archivo', sans-serif;
+  font-stretch: 100%;
+  font-weight: 820;
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+
+.experience[data-look='downlight'] .project-next-detail {
+  color: inherit;
+  font-family: 'Schibsted Grotesk', 'Archivo', sans-serif;
+  opacity: 0.72;
+}
+
+.experience[data-look='downlight'] .project-next:focus-visible {
+  outline-color: var(--ivory);
 }
 
 .experience[data-look='downlight'] .project-board::after {
-  display: none;
+  inset: 0;
+  z-index: -1;
+  height: auto;
+  border-radius: inherit;
+  background: none;
+  box-shadow: 0 0 44px 10px rgb(0 0 0 / 0.55);
+  opacity: var(--lift, 0);
+  will-change: opacity;
 }
 
 .experience[data-look='downlight'] .project-card.is-haruplate .project-board {
@@ -446,7 +515,23 @@
   border-top-color: rgb(243 238 226 / 0.45);
 }
 
+/* ---------- Cursor: a cue ball on the cloth, its labels on an ivory chip ---------- */
+.experience[data-look='downlight'] .cursor-ball {
+  --cursor-fill: var(--ivory);
+  --cursor-label-bg: var(--ivory);
+  --cursor-label-ink: #0c1a13;
+}
+
+.experience[data-look='downlight'] .cursor-ball-label {
+  font-stretch: 100%;
+  letter-spacing: 0.04em;
+}
+
 @media (max-width: 768px), (max-height: 540px) {
+  .experience[data-look='downlight'] {
+    --board-size: min(56vw, 30svh);
+  }
+
   .experience[data-look='downlight'] .cyc {
     --tbl-top: 76px;
     --tbl-side: 10px;

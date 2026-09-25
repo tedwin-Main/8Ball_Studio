@@ -397,6 +397,11 @@ export default function PhotorealPoolDraft ( {
       onUnavailable?.( draftId )
     }
 
+    // Ready once the first frame of the 3D table is drawn (or at once when WebGL failed and the
+    // fallback takes over), so the preloader lifts on a finished Intro.
+    let markFirstFrame = () => {}
+    const ready = world ? new Promise( ( resolve ) => { markFirstFrame = resolve } ) : Promise.resolve()
+
     const cameraPos = new THREE.Vector3()
     const cameraTgt = new THREE.Vector3()
 
@@ -445,6 +450,7 @@ export default function PhotorealPoolDraft ( {
       }
 
       world.render()
+      markFirstFrame()
 
       root.dataset.webglProgress = currentProgress.toFixed( 4 )
       root.dataset.webglRenderAt = performance.now().toFixed( 3 )
@@ -459,6 +465,7 @@ export default function PhotorealPoolDraft ( {
     }
 
     const controller = {
+      ready,
       setProgress: ( nextProgress ) =>
       {
         // Story progress clamps at 1 after the Intro, so later Pages would otherwise re-render the

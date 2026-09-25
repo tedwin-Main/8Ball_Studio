@@ -20,6 +20,9 @@ const NATIVE_INPUT_EVENTS = [ 'wheel', 'touchstart', 'touchmove', 'touchend', 't
 export function createStoryScrollAdapter ( {
   eventTarget = window,
   documentTarget = document,
+  // Weighted smoothing only when the visitor has not asked for reduced motion (as hugeinc.com does):
+  // with reduced motion the page scrolls natively and the adapter's native path takes over.
+  smooth = !eventTarget.matchMedia?.( '(prefers-reduced-motion: reduce)' )?.matches,
 } = {} )
 {
   let lenis = null
@@ -46,8 +49,17 @@ export function createStoryScrollAdapter ( {
     if ( !destroyed ) lenis?.raf( time * 1000 )
   }
 
+  // Lenis measures the page once (autoResize is off, see below), but the page grows after mount:
+  // the Projects run adds its length (--run-distance) on every ScrollTrigger refresh. Re-measure
+  // Lenis after each refresh, or its scroll limit stays short and the wheel can't reach Contact.
+  const syncLenisLimit = () =>
+  {
+    if ( !destroyed ) lenis?.resize()
+  }
+
   try
   {
+    if ( !smooth ) throw new Error( 'reduced motion: native scroll' )
     // Keep the adapter's production path identical to the existing weighted scroll behavior.
     lenis = new Lenis( {
       wheelMultiplier: STORY_TIMING.scroll.wheelMultiplier,
@@ -70,8 +82,10 @@ export function createStoryScrollAdapter ( {
   }
   catch ( error )
   {
-    // Native scrolling keeps the Story usable when Lenis cannot initialize on a device.
-    console.warn( 'Story Lenis unavailable; native scroll adapter active.', error )
+    lenis = null
+    // Native scrolling keeps the Story usable when Lenis cannot initialize on a device
+    // (reduced motion takes this path on purpose, so it is not worth a warning).
+    if ( smooth ) console.warn( 'Story Lenis unavailable; native scroll adapter active.', error )
   }
 
   const attachNativeScroll = () =>
@@ -114,6 +128,7 @@ export function createStoryScrollAdapter ( {
       } )
     }
     lenis.on( 'scroll', handleLenisScroll )
+    ScrollTrigger.addEventListener( 'refresh', syncLenisLimit )
     gsap.ticker.add( driveLenis )
     // Disable ticker lag smoothing so a delayed frame cannot jump Story progress.
     gsap.ticker.lagSmoothing( 0 )
@@ -180,6 +195,36 @@ export function createStoryScrollAdapter ( {
     if ( options.immediate ) options.onComplete?.()
   }
 
+  // Scroll speed in px per frame (signed), for the velocity skew. Lenis tracks it for wheel and for
+  // native touch momentum alike; the native fallback (reduced motion) reports 0, so nothing leans.
+  const getVelocity = () => ( lenis && Number.isFinite( lenis.velocity ) ? lenis.velocity : 0 )
+
+  // Holds the page still (the preloader) and lets it go again.
+  const stop = () =>
+  {
+    if ( lenis ) lenis.stop()
+    else documentTarget.documentElement.style.overflow = 'hidden'
+  }
+
+  const start = () =>
+  {
+    if ( lenis ) lenis.start()
+    else documentTarget.documentElement.style.removeProperty( 'overflow' )
+  }
+
+  // Live scroll feel for the ?tune panel. Lenis reads lerp from its options on every input, and the
+  // wheel multiplier from its VirtualScroll's options.
+  const setFeel = ( { lerp, wheelMultiplier } = {} ) =>
+  {
+    if ( !lenis ) return
+    if ( Number.isFinite( lerp ) && lerp > 0 ) lenis.options.lerp = lerp
+    if ( Number.isFinite( wheelMultiplier ) && wheelMultiplier > 0 )
+    {
+      lenis.options.wheelMultiplier = wheelMultiplier
+      if ( lenis.virtualScroll?.options ) lenis.virtualScroll.options.wheelMultiplier = wheelMultiplier
+    }
+  }
+
   const refresh = () =>
   {
     // Recompute Lenis limits before ScrollTrigger measures the Story range.
@@ -206,6 +251,7 @@ export function createStoryScrollAdapter ( {
     if ( lenis )
     {
       lenis.off( 'scroll', handleLenisScroll )
+      ScrollTrigger.removeEventListener( 'refresh', syncLenisLimit )
       gsap.ticker.remove( driveLenis )
       lenis.destroy()
       const body = documentTarget.body
@@ -216,9 +262,13 @@ export function createStoryScrollAdapter ( {
 
   return {
     getScrollPosition,
+    getVelocity,
     scrollTo,
     onScroll,
     onVirtualScroll,
+    stop,
+    start,
+    setFeel,
     refresh,
     destroy,
     get isFallback () { return !lenis },

@@ -30,7 +30,22 @@ test( 'Studio holds before the stage releases, and every Page starts after the o
     assert.ok( pages[ i ].startProgress > pages[ i - 1 ].startProgress, `${pages[ i ].id} starts after ${pages[ i - 1 ].id}` )
     assert.ok( pages[ i ].targetProgress >= pages[ i ].startProgress, `${pages[ i ].id} target follows its start` )
   }
-  assert.ok( pages[ 2 ].startProgress > pinnedRange / documentRange, 'Projects starts after the stage releases' )
+  // Projects rises over the held Studio: it becomes the Page once it covers the lower half of the
+  // screen, inside the handoff, and its target is exactly where the stage releases.
+  assert.ok( pages[ 2 ].startProgress > pages[ 1 ].targetProgress, 'Projects starts after Studio is stable' )
+  assert.ok( pages[ 2 ].startProgress < pinnedRange / documentRange, 'Projects starts during the handoff' )
+  assert.equal( pages[ 2 ].targetProgress, pinnedRange / documentRange )
+} )
+
+test( 'the handoff overlap is a valid layout: Projects may start exactly where the stage releases', () =>
+{
+  const layout = { viewport: 800, pinnedRange: 3600, projectsTop: 3600, contactTop: 5600, documentRange: 5600 }
+  const pages = getStoryPages( 'cinematic', layout )
+  assert.equal( pages[ 2 ].startProgress, 3200 / 5600 )
+  assert.equal( pages[ 2 ].targetProgress, 3600 / 5600 )
+  assert.equal( pages[ 3 ].targetProgress, 1 )
+  // Projects cannot start before the stage's last screen begins.
+  assert.throws( () => getStoryPages( 'cinematic', { ...layout, projectsTop: 3599 } ), /in order/ )
 } )
 
 test( 'Draft 2 gets its measured Studio threshold without moving stable targets', () =>

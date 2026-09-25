@@ -56,6 +56,9 @@ export function useStoryPager ( {
 } )
 {
   const controllerRef = useRef( null )
+  // The browser scroll adapter (Lenis or native): the flow choreography reads its velocity and
+  // subscribes to its scroll events, the preloader holds it still, and ?tune changes its feel.
+  const adapterRef = useRef( null )
   const pagesRef = useRef( pages )
   const targetPageRef = useRef( activePage )
   const isTransitioningRef = useRef( false )
@@ -70,6 +73,7 @@ export function useStoryPager ( {
   useLayoutEffect( () =>
   {
     const adapter = createStoryScrollAdapter()
+    adapterRef.current = adapter
     const navigation = createStoryNavigation( {
       pages: pagesRef.current,
       initialPage: activePage,
@@ -138,6 +142,7 @@ export function useStoryPager ( {
       if ( window.__storyNavigationBenchmark === benchmarkHandle ) delete window.__storyNavigationBenchmark
       navigation.destroy()
       controllerRef.current = null
+      adapterRef.current = null
       isTransitioningRef.current = false
       setIsTransitioning( false )
     }
@@ -154,10 +159,26 @@ export function useStoryPager ( {
     controllerRef.current?.getProgress() ?? 0,
   [] )
 
+  // Adapter passthroughs. Each is stable for the life of the component and safe before mount.
+  const subscribeScroll = useCallback( ( listener ) =>
+    adapterRef.current?.onScroll( listener ) ?? ( () => {} ),
+  [] )
+  const getVelocity = useCallback( () => adapterRef.current?.getVelocity() ?? 0, [] )
+  const stopScroll = useCallback( () => adapterRef.current?.stop(), [] )
+  const startScroll = useCallback( () => adapterRef.current?.start(), [] )
+  const setScrollFeel = useCallback( ( feel ) => adapterRef.current?.setFeel( feel ), [] )
+  const scrollToY = useCallback( ( y, options ) => adapterRef.current?.scrollTo( y, options ), [] )
+
   return {
     goToPage,
     seekProgress,
     getProgress,
+    subscribeScroll,
+    getVelocity,
+    stopScroll,
+    startScroll,
+    setScrollFeel,
+    scrollToY,
     isTransitioning,
     isTransitioningRef,
     targetPage: targetPageRef.current,
