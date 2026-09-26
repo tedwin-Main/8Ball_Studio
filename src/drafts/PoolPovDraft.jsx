@@ -8,7 +8,7 @@ import {
   getBreakSimulation,
   sampleCinematicBreakState,
 } from './poolBreakPhysics'
-import { STORY_TIMING } from '../storyTiming'
+import { STAGE } from '../storyStage'
 import {
   createPointerParallax,
   DRAFT2_SCENE_SCALE,
@@ -457,7 +457,9 @@ export function PoolPovDraft ( { active, onController } )
     const prefersReducedMotion = window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches
     const pointer = createPointerParallax( {
       windowObject: window,
-      isActive: () => isActive,
+      // Only while the table can be seen: the layer has faded to nothing by its exit end, so a
+      // moving pointer over Studio and later Pages must not render it.
+      isActive: () => isActive && progress < STAGE.intro.draft1.exitEnd,
       requestRender,
       onResize: () => { resizePending = true },
       // Reduced-motion visitors get the neutral plate composition without a damped hover loop.
@@ -498,7 +500,7 @@ export function PoolPovDraft ( { active, onController } )
 
         const framing = resolveIntroCameraFraming( {
           progress,
-          transitionReadyProgress: STORY_TIMING.intro.draft1.transitionReady,
+          transitionReadyProgress: STAGE.intro.draft1.transitionReady,
           aspect: world.camera.aspect,
           sourceScale: 1 / DRAFT2_SCENE_SCALE,
           pointerX: pointer.state.x,

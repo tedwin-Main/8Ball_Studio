@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { easeThemeMorph, getRunDistance, getRunScrollTarget, liftAt, sectionAt, skewFromVelocity, themeProgressAt } from './flowMath.js'
+import { getRunDistance, getRunScrollTarget, liftAt, sectionAt, skewFromVelocity } from './flowMath.js'
 
 test( 'the Projects run slides the track by its overflow, never backwards', () =>
 {
@@ -33,44 +33,6 @@ test( 'keyboard focus scrolls the run until the board sits at the centre', () =>
   assert.equal( getRunScrollTarget( { ...base, boardLeft: 5000 } ), 6000 )
   // No run (the track fits): the section top.
   assert.equal( getRunScrollTarget( { ...base, runDistance: 0, boardLeft: 1100 } ), 5000 )
-} )
-
-test( 'the section theme runs 0 → 1 over the handoff, holds through the run, then 1 → 2 over the reveal', () =>
-{
-  const parts = { handoff: 800, run: 1600, reveal: 800 }
-  assert.equal( themeProgressAt( 0, parts ), 0 )
-  assert.equal( themeProgressAt( 0.125, parts ), 0.5 )
-  assert.equal( themeProgressAt( 0.25, parts ), 1 )
-  assert.equal( themeProgressAt( 0.5, parts ), 1 )
-  assert.equal( themeProgressAt( 0.75, parts ), 1 )
-  assert.equal( themeProgressAt( 0.875, parts ), 1.5 )
-  assert.equal( themeProgressAt( 1, parts ), 2 )
-  // A run of zero length goes straight from the handoff to the reveal.
-  assert.equal( themeProgressAt( 0.5, { handoff: 800, run: 0, reveal: 800 } ), 1 )
-  assert.equal( themeProgressAt( 0.5, { handoff: 0, run: 0, reveal: 0 } ), 0 )
-} )
-
-test( 'each palette change holds, moves inside its window, then settles', () =>
-{
-  // Ink → paper: all within the first half of the handoff.
-  assert.equal( easeThemeMorph( 0 ), 0 )
-  assert.equal( easeThemeMorph( 0.05 ), 0 )
-  assert.ok( Math.abs( easeThemeMorph( 0.3 ) - 0.5 ) < 1e-9 )
-  assert.equal( easeThemeMorph( 0.6 ), 1 )
-  assert.equal( easeThemeMorph( 1 ), 1 )
-  // Paper → acid: through the middle of the reveal.
-  assert.equal( easeThemeMorph( 1.1 ), 1 )
-  assert.ok( Math.abs( easeThemeMorph( 1.45 ) - 1.5 ) < 1e-9 )
-  assert.equal( easeThemeMorph( 1.9 ), 2 )
-  assert.equal( easeThemeMorph( 2 ), 2 )
-  // Monotonic: scrolling on never moves the palette backwards.
-  let previous = 0
-  for ( let t = 0; t <= 2; t += 0.01 )
-  {
-    const eased = easeThemeMorph( t )
-    assert.ok( eased >= previous - 1e-12, `at ${t}` )
-    previous = eased
-  }
 } )
 
 test( 'the section under a line follows the section starts', () =>

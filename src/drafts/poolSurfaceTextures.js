@@ -85,8 +85,10 @@ export const createLogoTexture = ( anisotropy = 16, requestRender = () => {} ) =
   return texture
 }
 
-// Ball numbers use the site's brand face (Archivo); fallbacks cover the frame before the webfont arrives.
-const BALL_NUMBER_FONT = '700 84px "Archivo", "Helvetica Neue", Arial, sans-serif'
+// Ball numbers use Space Grotesk, the face index.html preloads on every page load: it is there by the
+// first frame, so no Look downloads a second face (Archivo, 88 KB) just for the balls.
+// Fallbacks cover the frame before the webfont arrives.
+const BALL_NUMBER_FONT = '700 84px "Space Grotesk", "Helvetica Neue", Arial, sans-serif'
 
 // Numbered pool ball canvas texture for solids and stripes.
 export const createNumberedBallTexture = ( number, color, anisotropy = 16, requestRender = () => {} ) =>

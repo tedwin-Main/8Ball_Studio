@@ -1,14 +1,24 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createStoryNavigation } from '../storyNavigation'
 import { createStoryScrollAdapter } from '../storyNavigationBrowser'
-import { STORY_TIMING, easeCinematicBreakTransition, easeStoryTransition } from '../storyTiming'
+import { easeStoryTransition } from '../storyStage'
+import { getTuning } from '../motion/runtimeTuning'
+
+// Glide seconds back up to the Intro and between the other Pages; a wheel burst ends after a pause
+// this long, and a gesture must move this far to count. The rewind is quick: the visitor asked for it.
+const REWIND_SECONDS = 1
+const PAGE_GLIDE_SECONDS = 1.2
+const GESTURE_RESET_MS = 120
+const GESTURE_THRESHOLD_PX = 14
 
 // Keep DOM measurement in the React adapter; Story navigation itself stays framework-agnostic.
 // Navigation spans the whole document: the pinned Intro → Studio stage and the normal-scroll
-// sections after it, so Page progress is a share of the page's full scroll range.
+// sections after it, so Page progress is a share of the page's full scroll range. The viewport height
+// tells navigation how far one Space press scrolls natively.
 const getStoryMetrics = () => ( {
   top: 0,
   range: Math.max( 0, document.documentElement.scrollHeight - window.innerHeight ),
+  viewport: window.innerHeight,
 } )
 
 // Scroll distance of the pinned stage alone (the Story section minus the sticky screen).
@@ -23,21 +33,21 @@ const getTransition = ( { fromPage, toPage } ) =>
   if ( fromPage?.id === 'intro' && toPage.id === 'studio' )
   {
     return {
-      duration: STORY_TIMING.navigation.introToStudioSeconds,
-      easing: easeCinematicBreakTransition,
+      duration: getTuning().introSeconds,
+      easing: easeStoryTransition,
     }
   }
 
   if ( fromPage?.id === 'studio' && toPage.id === 'intro' )
   {
     return {
-      duration: STORY_TIMING.navigation.studioToIntroSeconds,
-      easing: easeCinematicBreakTransition,
+      duration: REWIND_SECONDS,
+      easing: easeStoryTransition,
     }
   }
 
   return {
-    duration: STORY_TIMING.navigation.defaultEdgeSeconds,
+    duration: PAGE_GLIDE_SECONDS,
     easing: easeStoryTransition,
   }
 }
@@ -87,10 +97,10 @@ export function useStoryPager ( {
       },
       prefersReducedMotion: () => window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches,
       transitionFor: getTransition,
-      gestureThresholdPx: STORY_TIMING.navigation.gestureThresholdPx,
-      gestureResetMs: STORY_TIMING.navigation.gestureResetMs,
-      // The whole Story scrolls freely; no forced stop at each Page.
-      freeScroll: STORY_TIMING.navigation.freeScroll,
+      gestureThresholdPx: GESTURE_THRESHOLD_PX,
+      gestureResetMs: GESTURE_RESET_MS,
+      // One gesture on the Intro plays the whole break to Studio (and back up from Studio).
+      autoplaySpan: { from: 'intro', to: 'studio' },
       onPageChange: ( pageId ) =>
       {
         targetPageRef.current = pageId

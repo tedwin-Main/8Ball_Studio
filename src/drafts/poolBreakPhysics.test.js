@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { STORY_TIMING } from '../storyTiming.js'
+import { STAGE } from '../storyStage.js'
 import {
   createBreakSimulation,
   getBreakSimulation,
@@ -40,7 +40,7 @@ test( 'sampleCinematicBreakState (Draft 1) rolls 8-ball forward immediately on f
 test( 'the intro 8-ball approach carries weight before impact', () =>
 {
   const simulation = getBreakSimulation()
-  const approachEnd = STORY_TIMING.intro.approachEnd
+  const approachEnd = STAGE.intro.approachEnd
   const start = sampleCinematicBreakState( 0, simulation ).balls[ 0 ].position
   const impact = sampleCinematicBreakState( approachEnd, simulation ).balls[ 0 ].position
   const earlyProgress = approachEnd * 0.25
@@ -57,18 +57,18 @@ test( 'the cinematic timeline keeps the existing exit fade timing', () =>
 {
   const simulation = getBreakSimulation()
 
-  assert.equal( sampleCinematicBreakState( STORY_TIMING.intro.draft1.exitStart, simulation ).opacity, 1 )
-  assert.equal( sampleCinematicBreakState( STORY_TIMING.intro.draft1.exitEnd, simulation ).opacity, 0 )
+  assert.equal( sampleCinematicBreakState( STAGE.intro.draft1.exitStart, simulation ).opacity, 1 )
+  assert.equal( sampleCinematicBreakState( STAGE.intro.draft1.exitEnd, simulation ).opacity, 0 )
 } )
 
 
 test( 'Draft 2 maps the deterministic spread to a short, reversible handoff', () =>
 {
   const simulation = getBreakSimulation()
-  const readyState = sampleDraft2BreakState( STORY_TIMING.intro.draft2.transitionReady, simulation )
+  const readyState = sampleDraft2BreakState( STAGE.intro.draft2.transitionReady, simulation )
   const milestoneFrame = simulation.frames[ simulation.milestones.transitionReadyFrame ]
-  const afterReadyState = sampleDraft2BreakState( STORY_TIMING.intro.draft2.transitionReady + 0.001, simulation )
-  const handoffState = sampleDraft2BreakState( STORY_TIMING.intro.draft2.studioHandoff, simulation )
+  const afterReadyState = sampleDraft2BreakState( STAGE.intro.draft2.transitionReady + 0.001, simulation )
+  const handoffState = sampleDraft2BreakState( STAGE.intro.draft2.studioHandoff, simulation )
 
   assert.equal( readyState.phase, 'break' )
   assert.equal( readyState.opacity, 1 )

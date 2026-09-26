@@ -10,12 +10,7 @@ import {
   subscribeTuning,
 } from '../motion/runtimeTuning'
 
-/**
- * Dev-only scroll-feel panel, mounted only on ?tune URLs and loaded as its own chunk, so visitors
- * never download it. Glide, wheel distance, and skew apply while dragging; the two scrubs apply on
- * release, because a scrub is fixed per trigger and changing it rebuilds the Story's timelines.
- * "Copy values" puts the current feel on the clipboard, ready to paste into src/storyTiming.js.
- */
+// The ?tune panel: one slider per STORY_SETTINGS dial; "Copy values" gives lines for src/storyTiming.js.
 export default function TunePanel ()
 {
   const [ values, setValues ] = useState( getTuning )

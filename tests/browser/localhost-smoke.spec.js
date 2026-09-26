@@ -51,11 +51,11 @@ const waitForPreloader = ( page ) => page.waitForSelector( '.preloader', { state
 const sectionTop = ( page, selector ) =>
   page.evaluate( ( target ) => Math.round( document.querySelector( target ).getBoundingClientRect().top ), selector )
 
-test( 'Acid Night is the default look, and the Look dropdown lists the three looks in order', async ( { page } ) =>
+test( 'Main is the default look, and the Look dropdown lists the three looks in order', async ( { page } ) =>
 {
   await page.goto( '/', { waitUntil: 'domcontentloaded' } )
   await expect( page.locator( '.experience' ) ).toHaveAttribute( 'data-look', 'acid' )
-  await expect( page.locator( '.look-switcher-select option' ) ).toHaveText( [ 'Acid Night', 'Cyc Wall', 'Downlight' ] )
+  await expect( page.locator( '.look-switcher-select option' ) ).toHaveText( [ 'Main', 'Cyc Wall', 'Pool Table' ] )
   // A retired look falls back to the default instead of rendering unstyled.
   await page.goto( '/?look=marker', { waitUntil: 'domcontentloaded' } )
   await expect( page.locator( '.experience' ) ).toHaveAttribute( 'data-look', 'acid' )
@@ -95,7 +95,7 @@ test( 'Projects runs its boards sideways and the header links land on each secti
 
   await page.getByRole( 'link', { name: 'Contact Us' } ).click()
   await expect.poll( () => sectionTop( page, '#contact' ), { timeout: 8_000 } ).toBe( 0 )
-  // The header and the browser chrome follow the section: Contact is full acid in Acid Night.
+  // The header and the browser chrome follow the section: Contact is full acid in Main.
   await expect( page.locator( '.experience' ) ).toHaveAttribute( 'data-nav-section', 'contact' )
   await expect( page.locator( 'meta[name="theme-color"]' ) ).toHaveAttribute( 'content', '#b7d95b' )
 

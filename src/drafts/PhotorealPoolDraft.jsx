@@ -28,7 +28,7 @@ import {
   DRAFT2_SCENE_SCALE,
   resolveIntroCameraFraming,
 } from "./cameraFraming.js"
-import { STORY_TIMING } from "../storyTiming.js"
+import { STAGE } from "../storyStage.js"
 import { createDemandFrameScheduler } from "./demandFrameScheduler.js"
 
 import { createStudioEnvironment, createLogoTexture } from './poolSurfaceTextures.js'
@@ -331,6 +331,10 @@ const buildPhotorealScene = ( canvas, onTextureReady, onQualityState ) =>
   }
 }
 
+// Timeline units at which Studio has fully covered this Draft's table: its Studio cue starts at the
+// handoff (transitionReady) and runs one cue length (App.jsx, getDraft2CueProgress).
+const SCENE_COVERED_AT = STAGE.intro.draft2.transitionReady + STAGE.intro.studioCue.duration
+
 export default function PhotorealPoolDraft ( {
   active = false,
   onController,
@@ -373,34 +377,49 @@ export default function PhotorealPoolDraft ( {
     // Pointer parallax responds to fine mouse input while staying neutral on mobile.
     const pointer = createPointerParallax( {
       windowObject: window,
-      isActive: () => isActive,
+      // Only while the table can be seen: once the Studio cue has finished, Studio covers the table
+      // in every look, so a moving pointer over Studio and later Pages must not render it.
+      isActive: () => isActive && currentProgress < SCENE_COVERED_AT,
       requestRender,
       onResize: () => { resizePending = true },
     } )
 
-    try
-    {
-      world = buildPhotorealScene( canvas, requestRender, ( qualityState ) =>
-      {
-        root.dataset.webglQuality = qualityState.id
-        root.dataset.webglDprCap = String( qualityState.pixelRatioCap )
-        root.dataset.webglSsao = String( qualityState.ssao )
-        root.dataset.webglShadowMap = String( qualityState.shadowMapSize )
-      } )
-      root.dataset.webglError = "false"
-    }
-    catch ( error )
-    {
-      failed = true
-      root.dataset.webglError = "true"
-      console.warn( "Draft " + draftId + " setup failed; fallback active.", error )
-      onUnavailable?.( draftId )
-    }
-
-    // Ready once the first frame of the 3D table is drawn (or at once when WebGL failed and the
+    // Ready once the first frame of the 3D table is drawn (or at once when WebGL fails and the
     // fallback takes over), so the preloader lifts on a finished Intro.
     let markFirstFrame = () => {}
-    const ready = world ? new Promise( ( resolve ) => { markFirstFrame = resolve } ) : Promise.resolve()
+    const ready = new Promise( ( resolve ) => { markFirstFrame = resolve } )
+
+    // The 3D table (its WebGL context, shaders, and about 1 MB of walnut scans) is built the first
+    // time this Draft is selected, not on page load: most visits never choose Draft 02.
+    let built = false
+    const build = () =>
+    {
+      if ( built || destroyed ) return
+      built = true
+      try
+      {
+        world = buildPhotorealScene( canvas, requestRender, ( qualityState ) =>
+        {
+          root.dataset.webglQuality = qualityState.id
+          root.dataset.webglDprCap = String( qualityState.pixelRatioCap )
+          root.dataset.webglSsao = String( qualityState.ssao )
+          root.dataset.webglShadowMap = String( qualityState.shadowMapSize )
+        } )
+        root.dataset.webglError = "false"
+      }
+      catch ( error )
+      {
+        failed = true
+        root.dataset.webglError = "true"
+        console.warn( "Draft " + draftId + " setup failed; fallback active.", error )
+        markFirstFrame()
+        onUnavailable?.( draftId )
+        return
+      }
+      pointer.addListeners()
+      world.updateQuality( root.clientWidth || window.innerWidth, root.clientHeight || window.innerHeight )
+      requestRender()
+    }
 
     const cameraPos = new THREE.Vector3()
     const cameraTgt = new THREE.Vector3()
@@ -426,7 +445,7 @@ export default function PhotorealPoolDraft ( {
       const framing = resolveIntroCameraFraming( {
         progress: currentProgress,
         treatment: "photoreal",
-        transitionReadyProgress: STORY_TIMING.intro.draft2.transitionReady,
+        transitionReadyProgress: STAGE.intro.draft2.transitionReady,
         aspect: world.camera.aspect,
         sourceScale: 1,
         pointerX: pointer.state.x,
@@ -477,6 +496,8 @@ export default function PhotorealPoolDraft ( {
       setActive: ( nextActive ) =>
       {
         isActive = nextActive
+        // First selection builds the table (and learns whether WebGL works here).
+        if ( nextActive ) build()
         root.classList.toggle( "is-active", nextActive || failed )
         root.setAttribute( "aria-hidden", String( !nextActive && !failed ) )
         if ( !nextActive ) pointer.reset()
@@ -489,13 +510,6 @@ export default function PhotorealPoolDraft ( {
     onController?.( controller )
     controller.setProgress( 0 )
     controller.setActive( active )
-
-    if ( world )
-    {
-      pointer.addListeners()
-      world.updateQuality( root.clientWidth || window.innerWidth, root.clientHeight || window.innerHeight )
-      requestRender()
-    }
 
     return () =>
     {

@@ -169,4 +169,43 @@ All phases (0–6) are implemented and uncommitted.
   - `?tune`: panel appears only on tune URLs and changes the feel live
 - **Frame pace** (wheel through the whole page, Apple M4 GPU via Metal): untouched main drops 0–2.8% of frames over 20 ms; this build drops 0–1.7% (0–0.6% over the handoff, run and reveal). Under SwiftShader both builds drop far more (main 7–10%) because software compositing dominates, so that renderer is not a valid gate.
 - **Not run:** `npx playwright test`. The @playwright/test 1.45.3 runner hangs at startup on this machine's Node 26.8.1, even `--list` on a one-line spec with an empty config. The new specs were exercised through equivalent playwright-core scripts instead. Real touch devices (iOS Safari, Android Chrome) were not tested.
-- **Not regenerated:** `.impeccable/design.json`, the DESIGN.md sidecar.
+- **Not regenerated:** `.impeccable/design.json`, the DESIGN.md sidecar. (The whole `.impeccable/` folder was removed later on 2026-09-25, when the impeccable skill was uninstalled.)
+
+## Later change: one face per look (2026-09-25)
+
+Small text no longer uses DM Mono or tracked-out caps. Everything except the four big titles (Roll with us, 8 Ball Studio, Our Projects, Contact Us) is set in its look's title family: bold, in sentence case, at 13–15px. This follows hugeinc.com, which runs one family (Matter) at semibold through its whole interface. The shared `--ui-*` tokens are in `src/styles.css`, and each look points them at its face:
+- **Main (was Acid Night):** Space Grotesk 700, tracking −0.01em.
+- **Pool Table:** Schibsted Grotesk 700, tracking −0.005em.
+- **Cyc Wall:** Archivo 700 at 85% width, tracking −0.005em.
+
+Details such as phone numbers and emails drop to 500. The DM Mono files, `@font-face` rules, preload and license entry are removed.
+
+## Later change: Acid Night renamed Main (2026-09-25)
+
+The default look's label is now **Main**. Only the label changed: the id stays `acid` (`?look=acid`, `data-look='acid'`, `acid.css`), so existing links and styles keep working. The decision log above keeps the old name.
+
+## Later change: one-scroll Intro and a slower Studio title (2026-09-25)
+
+- **One-scroll Intro:** the Intro no longer scrubs by hand. One wheel burst or swipe on it glides the whole break to Studio (`navigation.introAutoplay`, 3.0 s, smooth-step, with the 1.2 s scrub trailing it). A gesture up from Studio plays the break back. Everything after Studio stays free scroll. Measured on the Metal GPU after one flick: the 8-ball starts moving at 0.22 s, takes 1.05 s to reach the rack (slow start, peak mid-roll), the scatter completes at 1.72 s, the Studio title at 2.45 s, and the glide lands on Studio at 2.98 s.
+- **Studio title pace:** the Studio cue (lights, "8 Ball Studio" letters, labels) now takes `intro.studioCueScreens` (1 screen) instead of about 0.6, so its letters arrive over the same stretch as the Projects and Contact titles. Draft 02 runs its cue over the same length.
+- **Cursor label:** the cue-ball cursor re-reads what is under a still pointer as the page scrolls, so "Scroll to break" no longer lingers over Studio after the glide.
+
+## Later change: six settings (2026-09-25)
+
+`src/storyTiming.js` is now only `STORY_SETTINGS`, one dial per kind of feel: `glide` 0.05, `wheel` 0.7, `weight` 1.2 (Projects and Contact use half), `introSeconds` 3, `depth` 1 (scales every handoff and reveal amount), `skew` 4. The `?tune` panel has one slider for each. The stage's fixed choreography moved to `src/storyStage.js`; small fixed values moved next to the code that uses them. Deleted: about 20 unused values, paged mode (one Page per gesture) with its touch settings and gesture code, and the separate scrub, skew gain and settle, glide-time, and motion-amount settings.
+
+## Later change: the Sheet Rule replaces the Morph Rule (2026-09-26)
+
+A design critique showed the scroll-driven palette morph as grey and olive fog in the middle of each Handoff: the rising Projects sheet was mid-grey, and Contact was uncovered as dark khaki under the flat 60% shade. The owner chose clean sheets:
+- **Sheets:** each Main Page is its final colour from its first pixel (Projects paper, Contact acid). The `--theme-t` tween, `@property --theme-t`, `--theme-bg`, `themeProgressAt`, `easeThemeMorph`, `THEME_MORPH_WINDOWS` and the `sectionThemes` registry flag are deleted, with their tests.
+- **Shadow:** `.contact-shade` is now a static mask, a band under Projects' bottom edge (`contactShade` 0.4 at depth 1, eased to nothing a third of the way down). This applies to all three Looks.
+- **Unchanged:** the header ink and `<meta name="theme-color">` still follow the section under the header line.
+
+## Later change: performance and controls (2026-09-26)
+
+Items 4 and 5 of the 2026-09-26 critique.
+- **Hidden renders:** Draft 01's pointer parallax stops once its layer has faded (`STAGE.intro.draft1.exitEnd`). Draft 02's stops once Studio covers it (`transitionReady + studioCue.duration`). Measured on 3 s of pointer movement at Studio and Contact: 11,500 WebGL draws went to 0.
+- **Key light:** `--lx` / `--ly` are written only on each Look's readers (`keyLight` in `lookRegistry.js`), never on the root. Style recalc for the same 3 s went from about 750 ms to about 90 ms.
+- **Payload:** Draft 02 builds its scene (and loads the 1 MB of walnut scans) only on first selection. The ball numbers are drawn in Space Grotesk, the preloaded face, so Main no longer downloads Archivo. First load went from 1,791 KB to 671 KB.
+- **Controls:** the Draft switcher shows only while the Intro is settled (hidden during any glide and on later Pages). The Look select sits inline in Contact's foot line. On touch screens every control is at least 44 × 44 px.
+- **Short landscape screens** (phones on their side, 200% zoom): Studio's footer is one line near the bottom, the Projects and Contact titles size from the screen height, and the cards are a little smaller, so nothing overlaps and the Look control stays on screen.

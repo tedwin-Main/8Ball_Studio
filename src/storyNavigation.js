@@ -6,6 +6,20 @@ const DEFAULT_RESIZE_SETTLE_MS = 150
 // normalized position guarded after the settle window has completed.
 const RESIZE_RESTORE_GUARD_MS = 320
 const DEFAULT_TRANSITION_BUFFER_MS = 350
+// Playing the break back needs more intent than playing it: upward input at Studio must add up to
+// this many px (a deliberate swipe, or two wheel notches) before the rewind starts. Separate upward
+// gestures keep adding up while each follows the last within the memory window.
+const DEFAULT_REWIND_THRESHOLD_PX = 120
+const DEFAULT_REWIND_MEMORY_MS = 800
+// Tolerance, in px, for "at" a Page's scroll target.
+const SPAN_EDGE_PX = 2
+// A glide turned around partway takes this share of its full duration at least, so a short way
+// back never snaps.
+const MIN_REDIRECT_SHARE = 0.3
+// How far one key press scrolls natively: an arrow is about one line; Space about one screen.
+const ARROW_STEP_PX = 60
+const SPACE_STEP_SHARE = 0.875
+const FALLBACK_VIEWPORT_PX = 800
 
 // Clamp a number between a minimum and maximum.
 function clamp( value, min = 0, max = 1 )
@@ -29,16 +43,6 @@ const defaultClock = Object.freeze( {
 
 function noop() {}
 
-// Reset touch tracking state back to default empty values.
-function resetTouchGesture( gesture )
-{
-  gesture.active = false
-  gesture.lastY = null
-  gesture.accumulated = 0
-  gesture.direction = 0
-  gesture.committed = false
-}
-
 // Check if an event target is an interactive form element or editable field.
 function isEditableTarget( target )
 {
@@ -58,6 +62,17 @@ function isEditableTarget( target )
   }
 
   return false
+}
+
+// Check if Space would press the focused element (a button or a control acting as one).
+// The browser's own rule wins there: the Story never takes Space from it.
+function isPressableTarget( target )
+{
+  return Boolean(
+    target &&
+    typeof target.matches === 'function' &&
+    target.matches( 'button, summary, [role="button"], [role="switch"], [role="checkbox"], [role="menuitem"], [role="tab"]' )
+  )
 }
 
 // Touch deltas vary by browser; use the finger coordinate when it exists.
@@ -183,10 +198,11 @@ export function createStoryNavigation ( {
   transitionBufferMs = DEFAULT_TRANSITION_BUFFER_MS,
   gestureThresholdPx = 14,
   gestureResetMs = 120,
-  // Free scroll: wheel and touch move the page continuously (Lenis-smoothed) instead of
-  // being qualified into one-Page jumps. Stable Page and indicator then follow the scroll
-  // position; page marks, nav links, and keys still glide to a Page on request.
-  freeScroll = false,
+  rewindThresholdPx = DEFAULT_REWIND_THRESHOLD_PX,
+  rewindMemoryMs = DEFAULT_REWIND_MEMORY_MS,
+  // { from, to } Page ids whose span plays by itself (the Intro break). One gesture
+  // inside it glides the whole way to the Page it points at, instead of scrubbing the span by hand.
+  autoplaySpan = null,
   onPageChange,
   onIndicatorPageChange,
   onTransitionChange,
@@ -217,15 +233,23 @@ export function createStoryNavigation ( {
   let lastScrollProgress = 0
   let unsubscribeScroll = noop
   let unsubscribeVirtualScroll = noop
-  const touchGesture = {
-    active: false,
-    lastY: null,
+  // One gesture in the autoplay span: a burst of wheel events (no pause longer than gestureResetMs)
+  // or one touch. Once it has started a glide, the rest of it is swallowed, so trackpad inertia
+  // cannot carry on past the destination or immediately turn the glide around.
+  const autoplayGesture = {
+    lastTime: -Infinity,
+    startY: 0,
     accumulated: 0,
-    direction: 0,
-    committed: false,
+    touchY: null,
+    consumed: false,
   }
-  let accumulatedDelta = 0
-  let lastGestureTime = 0
+  // Upward input at Studio, added up across nearby gestures until it counts as a rewind.
+  const rewindIntent = { accumulated: 0, lastTime: -Infinity }
+  // The glide in flight ({ fromY, toY }), or null. Each glide is its own object, so a completion
+  // from a glide that was stopped or turned around can never settle the Story.
+  let glide = null
+  // Input against the running glide, added up until it counts as intent to take the page back.
+  const reversal = { accumulated: 0, touchY: null }
 
   // Find a page by id or numeric index.
   function resolvePage( requestedPage )
@@ -333,12 +357,11 @@ export function createStoryNavigation ( {
   {
     if ( destroyed ) return
     clearTransitionTimer()
+    glide = null
     setTransitioning( false )
     activePage = destinationId
     targetPage = destinationId
     setIndicatorPage( resolvePage( destinationId ) )
-    accumulatedDelta = 0
-    resetTouchGesture( touchGesture )
     onPageChange?.( destinationId )
     notifyProgress()
   }
@@ -346,7 +369,8 @@ export function createStoryNavigation ( {
   const goToPage = ( requestedPage, options = {} ) =>
   {
     if ( destroyed ) return false
-    if ( transitioning && options.immediate !== true ) return false
+    // A running glide blocks new ones, except an immediate jump or a turn-around (options.redirect).
+    if ( transitioning && options.immediate !== true && options.redirect !== true ) return false
 
     const fromPage = getCurrentPage()
     const destination = resolvePage( requestedPage )
@@ -369,16 +393,18 @@ export function createStoryNavigation ( {
 
     const isImmediate = options.immediate === true || Boolean( prefersReducedMotion() )
     const transition = transitionFor( { fromPage, toPage: destination } ) || {}
-    const duration = Number.isFinite( transition.duration ) && transition.duration > 0
+    // A glide turned around partway covers only part of its usual distance, so it takes that share
+    // of the time (options.durationScale).
+    const scale = Number.isFinite( options.durationScale ) && options.durationScale > 0 ? options.durationScale : 1
+    const duration = ( Number.isFinite( transition.duration ) && transition.duration > 0
       ? transition.duration
-      : 1
+      : 1 ) * scale
 
     targetPage = destination.id
-    accumulatedDelta = 0
-    resetTouchGesture( touchGesture )
 
     if ( isImmediate )
     {
+      glide = null
       setTransitioning( false )
       adapter.scrollTo( targetY, {
         immediate: true,
@@ -389,7 +415,11 @@ export function createStoryNavigation ( {
       return true
     }
 
-    // Lock incoming Story gestures until the scroll adapter confirms settlement.
+    // Lock incoming Story gestures until the scroll adapter confirms settlement. Input against the
+    // glide can still take the page back (see handleVirtualScroll), so the glide remembers its way.
+    const current = { fromY: adapter.getScrollPosition(), toY: targetY }
+    glide = current
+    reversal.accumulated = 0
     setTransitioning( true )
     adapter.scrollTo( targetY, {
       duration,
@@ -398,14 +428,17 @@ export function createStoryNavigation ( {
       lock: true,
       force: true,
       programmatic: true,
-      onComplete: () => completeTransition( destination.id ),
+      onComplete: () =>
+      {
+        if ( glide === current ) completeTransition( destination.id )
+      },
     } )
 
     // A paused background tab must not leave Story navigation permanently locked.
     clearTransitionTimer()
     transitionTimer = clock.setTimeout( () =>
     {
-      if ( transitioning ) completeTransition( destination.id )
+      if ( transitioning && glide === current ) completeTransition( destination.id )
     }, Math.round( ( duration + transitionBufferMs / 1000 ) * 1000 ) )
 
     return true
@@ -435,6 +468,179 @@ export function createStoryNavigation ( {
     return false
   }
 
+  // The autoplay span's two ends, as Pages and scroll positions, or null when there is none.
+  const getSpan = () =>
+  {
+    if ( !autoplaySpan ) return null
+    const fromPage = resolvePage( autoplaySpan.from )
+    const toPage = resolvePage( autoplaySpan.to )
+    const fromY = getTargetY( fromPage )
+    const toY = getTargetY( toPage )
+    if ( fromY === null || toY === null ) return null
+    return { fromPage, toPage, fromY, toY }
+  }
+
+  // Free-scroll input inside the autoplay span. Returns null to leave the input to the free scroller
+  // (or to the glide lock while one runs), or whether the scroller may still use it.
+  // - Down inside the span glides to `to`; up inside it (or from `to` itself) glides back to `from`.
+  // - Scrolling up from below that would carry into the span stops on `to` instead, so the break is
+  //   never left half-scrubbed by a long flick up from Projects.
+  const handleAutoplayInput = ( { deltaY, event, eventType, isTouch } ) =>
+  {
+    const now = clock.now()
+    const y = adapter.getScrollPosition()
+    const isNewGesture = isTouch ? eventType === 'touchstart' : now - autoplayGesture.lastTime > gestureResetMs
+    if ( isNewGesture )
+    {
+      autoplayGesture.startY = y
+      autoplayGesture.accumulated = 0
+      autoplayGesture.touchY = null
+      autoplayGesture.consumed = false
+    }
+    // The gesture clock keeps running during a glide, so its inertia still counts as the same gesture.
+    autoplayGesture.lastTime = now
+    if ( transitioning || !Number.isFinite( y ) ) return null
+
+    // Taps and lifts pass through; a touch is judged on its moves.
+    if ( isTouch && eventType !== 'touchmove' )
+    {
+      if ( eventType === 'touchstart' ) autoplayGesture.touchY = getTouchY( event )
+      return null
+    }
+    if ( autoplayGesture.consumed )
+    {
+      preventDefault( event )
+      return false
+    }
+
+    let delta = deltaY
+    if ( isTouch )
+    {
+      const touchY = getTouchY( event )
+      if ( touchY !== null && autoplayGesture.touchY !== null ) delta = autoplayGesture.touchY - touchY
+      if ( touchY !== null ) autoplayGesture.touchY = touchY
+    }
+    if ( !Number.isFinite( delta ) || delta === 0 ) return null
+    // Any downward input clears a half-built rewind.
+    if ( delta > 0 ) rewindIntent.accumulated = 0
+
+    const span = getSpan()
+    if ( !span ) return null
+    const { fromPage, toPage, fromY, toY } = span
+
+    const edge = SPAN_EDGE_PX
+    const inSpan = y > fromY - edge && y < toY - edge
+    const atOrInSpan = y > fromY + edge && y <= toY + edge
+    let destination = null
+    let needsIntent = true
+    if ( delta > 0 && inSpan )
+    {
+      destination = toPage
+    }
+    else if ( delta < 0 && atOrInSpan )
+    {
+      // A gesture that began below the span and carried into it settles on `to`.
+      const beganBelow = autoplayGesture.startY > toY + edge
+      destination = beganBelow ? toPage : fromPage
+      needsIntent = !beganBelow
+    }
+    else if ( delta < 0 && y > toY + edge )
+    {
+      const target = adapter.getScrollTarget?.()
+      const landing = ( Number.isFinite( target ) ? target : y ) + delta
+      if ( landing >= toY - edge ) return null
+      destination = toPage
+      needsIntent = false
+    }
+    if ( !destination ) return null
+
+    // Hold the page still until the gesture has moved far enough to count as intent.
+    preventDefault( event )
+    if ( needsIntent && destination === fromPage )
+    {
+      // A rewind: trackpad drift or one stray notch up after Studio lands must not send the visitor
+      // back to the start. Upward input adds up across gestures that follow each other closely.
+      if ( now - rewindIntent.lastTime > rewindMemoryMs ) rewindIntent.accumulated = 0
+      rewindIntent.lastTime = now
+      rewindIntent.accumulated += Math.abs( delta )
+      if ( rewindIntent.accumulated < rewindThresholdPx ) return false
+      rewindIntent.accumulated = 0
+    }
+    else if ( needsIntent )
+    {
+      if ( autoplayGesture.accumulated !== 0 && Math.sign( autoplayGesture.accumulated ) !== Math.sign( delta ) )
+      {
+        autoplayGesture.accumulated = 0
+      }
+      autoplayGesture.accumulated += delta
+      if ( Math.abs( autoplayGesture.accumulated ) < gestureThresholdPx ) return false
+    }
+
+    autoplayGesture.consumed = true
+    goToPage( destination.id )
+    return false
+  }
+
+  // Input against the running glide, added up until it counts as intent (the Story gesture
+  // threshold). Returns the direction the visitor wants (1 down, -1 up), or 0 while there is none.
+  // Input along the glide (its own gesture's inertia) never counts and clears the sum.
+  const readReversal = ( { deltaY, event, eventType, isTouch } ) =>
+  {
+    const direction = glide ? Math.sign( glide.toY - glide.fromY ) : 0
+    if ( direction === 0 ) return 0
+
+    let delta = deltaY
+    if ( isTouch )
+    {
+      const touchY = getTouchY( event )
+      delta = eventType === 'touchmove' && touchY !== null && reversal.touchY !== null ? reversal.touchY - touchY : 0
+      reversal.touchY = touchY
+    }
+    if ( !Number.isFinite( delta ) || delta === 0 ) return 0
+    if ( Math.sign( delta ) === direction )
+    {
+      reversal.accumulated = 0
+      return 0
+    }
+
+    reversal.accumulated += Math.abs( delta )
+    if ( reversal.accumulated < gestureThresholdPx ) return 0
+    reversal.accumulated = 0
+    return -direction
+  }
+
+  // The visitor takes the page back from a glide. Inside the autoplay span the glide turns around
+  // to the span's end in the visitor's direction, so the break is never left half-played. Anywhere
+  // else the glide stops where it is and this input scrolls the page freely.
+  const interruptGlide = ( direction, event ) =>
+  {
+    const y = adapter.getScrollPosition()
+    const span = getSpan()
+    if ( span && Number.isFinite( y ) && y > span.fromY + SPAN_EDGE_PX && y < span.toY - SPAN_EDGE_PX )
+    {
+      const destination = direction > 0 ? span.toPage : span.fromPage
+      const share = Math.abs( getTargetY( destination ) - y ) / Math.max( 1, span.toY - span.fromY )
+      preventDefault( event )
+      goToPage( destination.id, { redirect: true, durationScale: Math.max( MIN_REDIRECT_SHARE, share ) } )
+      return false
+    }
+
+    // Stop here: the Page under the visitor becomes the Stable page, and free scroll resumes.
+    clearTransitionTimer()
+    glide = null
+    const here = pageAtProgress( getProgress() )
+    activePage = here.id
+    targetPage = here.id
+    setTransitioning( false )
+    setIndicatorPage( here )
+    onPageChange?.( here.id )
+    // A scrollTo to the current position cannot stop Lenis mid-glide (its target already equals the
+    // animated position), so adapters end a glide through their own cancelGlide.
+    if ( typeof adapter.cancelGlide === 'function' ) adapter.cancelGlide()
+    else adapter.scrollTo( y, { immediate: true, force: true, programmatic: true } )
+    return true
+  }
+
   const handleVirtualScroll = ( scrollInput = {} ) =>
   {
     const { deltaY = 0, event } = scrollInput
@@ -444,150 +650,50 @@ export function createStoryNavigation ( {
 
     if ( !( isWheel || isTouch ) || !isStoryActive() ) return true
 
-    // Free scroll hands input straight to the scroller unless a requested Page glide is running.
-    if ( freeScroll && !transitioning ) return true
+    // The page scrolls freely, except inside the autoplay span and while a Page glide holds it.
+    const autoplayResult = autoplaySpan ? handleAutoplayInput( { deltaY, event, eventType, isTouch } ) : null
+    if ( autoplayResult !== null ) return autoplayResult
+    if ( !transitioning ) return true
 
-    // Let the scroll adapter observe touchend while a transition lock is active.
-    if ( transitioning )
+    // A glide never takes the page away from the visitor: input against it takes the page back.
+    const against = readReversal( { deltaY, event, eventType, isTouch } )
+    if ( against !== 0 ) return interruptGlide( against, event )
+
+    // Let the scroll adapter observe touchend while a glide holds the page.
+    if ( eventType !== 'touchend' ) preventDefault( event )
+    return eventType === 'touchend'
+  }
+
+  // Which way a scrolling key moves the page (1 down, -1 up), or 0 for any other key.
+  const getKeyDirection = ( event ) =>
+  {
+    if ( event.key === 'ArrowDown' || event.key === 'PageDown' ) return 1
+    if ( event.key === 'ArrowUp' || event.key === 'PageUp' ) return -1
+    if ( event.key === ' ' ) return event.shiftKey ? -1 : 1
+    return 0
+  }
+
+  // Inside the autoplay span every scrolling key is a Story gesture, so the break is never scrubbed
+  // by hand: down plays it, up plays it back. A key step up from just below the span that would land
+  // inside it settles on the span's end instead. Returns the Page to glide to, or null.
+  const getKeySpanDestination = ( event ) =>
+  {
+    const direction = getKeyDirection( event )
+    const span = direction === 0 ? null : getSpan()
+    const y = adapter.getScrollPosition()
+    if ( !span || !Number.isFinite( y ) ) return null
+
+    if ( direction > 0 )
     {
-      if ( isTouch && eventType === 'touchend' ) resetTouchGesture( touchGesture )
-      else preventDefault( event )
-      return eventType === 'touchend'
+      return y >= span.fromY - SPAN_EDGE_PX && y < span.toY - SPAN_EDGE_PX ? span.toPage : null
     }
+    if ( y > span.fromY + SPAN_EDGE_PX && y <= span.toY + SPAN_EDGE_PX ) return span.fromPage
 
-    if ( isTouch )
-    {
-      if ( eventType === 'touchstart' )
-      {
-        touchGesture.active = true
-        touchGesture.lastY = getTouchY( event )
-        touchGesture.accumulated = 0
-        touchGesture.direction = 0
-        touchGesture.committed = false
-        accumulatedDelta = 0
-        lastGestureTime = clock.now()
-        return true
-      }
-
-      if ( eventType === 'touchcancel' )
-      {
-        resetTouchGesture( touchGesture )
-        accumulatedDelta = 0
-        return true
-      }
-
-      if ( !touchGesture.active )
-      {
-        touchGesture.active = true
-        touchGesture.lastY = null
-      }
-
-      const currentY = getTouchY( event )
-      let fingerDelta = 0
-      if ( currentY !== null && touchGesture.lastY !== null )
-      {
-        fingerDelta = touchGesture.lastY - currentY
-      }
-      else if ( Number.isFinite( deltaY ) )
-      {
-        fingerDelta = deltaY
-      }
-
-      if ( currentY !== null )
-      {
-        touchGesture.lastY = currentY
-      }
-
-      if ( fingerDelta !== 0 )
-      {
-        const direction = Math.sign( fingerDelta )
-        if ( touchGesture.direction !== 0 && direction !== touchGesture.direction )
-        {
-          touchGesture.accumulated = 0
-        }
-        touchGesture.direction = direction
-        touchGesture.accumulated += fingerDelta
-        accumulatedDelta = touchGesture.accumulated
-      }
-
-      if ( Math.abs( touchGesture.accumulated ) >= gestureThresholdPx )
-      {
-        const currentPage = getCurrentPage()
-        const currentIndex = findPageIndex( pages, currentPage?.id )
-        let step = 1
-        if ( touchGesture.accumulated < 0 )
-        {
-          step = -1
-        }
-        const nextIndex = currentIndex + step
-
-        if ( nextIndex < 0 || nextIndex >= pages.length )
-        {
-          resetTouchGesture( touchGesture )
-          accumulatedDelta = 0
-          preventDefault( event )
-          return false
-        }
-
-        preventDefault( event )
-        touchGesture.committed = true
-        const didStart = goToPage( pages[ nextIndex ].id )
-        if ( !didStart )
-        {
-          resetTouchGesture( touchGesture )
-        }
-        return false
-      }
-
-      if ( eventType === 'touchend' )
-      {
-        resetTouchGesture( touchGesture )
-      }
-      return true
-    }
-
-    const now = clock.now()
-    if ( now - lastGestureTime > gestureResetMs )
-    {
-      accumulatedDelta = 0
-    }
-    lastGestureTime = now
-
-    if ( !Number.isFinite( deltaY ) || deltaY === 0 )
-    {
-      return true
-    }
-
-    if ( accumulatedDelta !== 0 && Math.sign( accumulatedDelta ) !== Math.sign( deltaY ) )
-    {
-      accumulatedDelta = 0
-    }
-    accumulatedDelta += deltaY
-
-    if ( Math.abs( accumulatedDelta ) >= gestureThresholdPx )
-    {
-      const currentPage = getCurrentPage()
-      const currentIndex = findPageIndex( pages, currentPage?.id )
-      let step = 1
-      if ( accumulatedDelta < 0 )
-      {
-        step = -1
-      }
-      const nextIndex = currentIndex + step
-
-      if ( nextIndex < 0 || nextIndex >= pages.length )
-      {
-        accumulatedDelta = 0
-        preventDefault( event )
-        return false
-      }
-
-      preventDefault( event )
-      goToPage( pages[ nextIndex ].id )
-      return false
-    }
-
-    return true
+    const viewport = getMetrics()?.viewport
+    const step = event.key === ' '
+      ? ( Number.isFinite( viewport ) && viewport > 0 ? viewport : FALLBACK_VIEWPORT_PX ) * SPACE_STEP_SHARE
+      : ARROW_STEP_PX
+    return y > span.toY + SPAN_EDGE_PX && y - step < span.toY - SPAN_EDGE_PX ? span.toPage : null
   }
 
   const handleKeyDown = ( event ) =>
@@ -602,21 +708,28 @@ export function createStoryNavigation ( {
     {
       return
     }
+    // Space presses a focused button; the Story never takes that key from it.
+    if ( event.key === ' ' && isPressableTarget( event.target ) ) return
 
+    const spanDestination = getKeySpanDestination( event )
+    if ( spanDestination )
+    {
+      preventDefault( event )
+      goToPage( spanDestination.id )
+      return
+    }
+
+    // Outside the autoplay span the arrows and Space scroll natively, like any page, so the Projects
+    // run is never skipped. The Page keys (PageUp, PageDown, Home, End) glide one Page at a time.
     const currentPage = getCurrentPage()
     const currentIndex = findPageIndex( pages, currentPage?.id )
     let requestedIndex = null
 
-    if ( event.key === 'ArrowDown' || event.key === 'PageDown' || event.key === ' ' )
+    if ( event.key === 'PageDown' )
     {
-      let step = 1
-      if ( event.key === ' ' && event.shiftKey )
-      {
-        step = -1
-      }
-      requestedIndex = currentIndex + step
+      requestedIndex = currentIndex + 1
     }
-    else if ( event.key === 'ArrowUp' || event.key === 'PageUp' )
+    else if ( event.key === 'PageUp' )
     {
       requestedIndex = currentIndex - 1
     }
@@ -836,7 +949,6 @@ export function createStoryNavigation ( {
       eventTarget.removeEventListener( 'resize', handleResize, true )
     }
 
-    resetTouchGesture( touchGesture )
     if ( adapter && typeof adapter.destroy === 'function' )
     {
       adapter.destroy()

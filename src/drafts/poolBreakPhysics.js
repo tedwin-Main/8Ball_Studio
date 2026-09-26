@@ -1,5 +1,5 @@
 // This module has no DOM or renderer dependency, so the cached break can be tested in Node.
-import { STORY_TIMING, easeWeightedProgress } from '../storyTiming.js'
+import { STAGE, easeWeightedProgress } from '../storyStage.js'
 
 const clamp = ( value, min = 0, max = 1 ) => Math.min( max, Math.max( min, value ) )
 const lerp = ( start, end, progress ) => start + ( end - start ) * progress
@@ -8,8 +8,8 @@ const EPSILON = 1e-9
 const CONTACT_EPSILON = 2e-6
 
 // The resolved intro branches already contain every sampler milestone; keep physics as a pure consumer.
-const LEGACY_BREAK_TIMING = STORY_TIMING.intro.draft1
-const DRAFT2_BREAK_TIMING = STORY_TIMING.intro.draft2
+const LEGACY_BREAK_TIMING = STAGE.intro.draft1
+const DRAFT2_BREAK_TIMING = STAGE.intro.draft2
 
 // SI-unit defaults keep the deterministic break physically consistent with the rendered table.
 export const DEFAULT_BREAK_CONFIG = Object.freeze( {

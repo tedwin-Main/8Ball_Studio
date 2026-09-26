@@ -35,13 +35,14 @@ const CYC_MOTION = Object.freeze( {
 
 export const LOOK_CONFIGS = Object.freeze( {
   // The original single look (commit 91fcc52): near-black ink, paper, and one acid-green signal, set in
-  // Space Grotesk caps with DM Mono labels. The only look whose palette changes per Page: the Story
-  // runs ink (Studio) → paper (Projects) → full acid (Contact), morphing with the scroll.
+  // Space Grotesk throughout: caps titles, bold sentence-case small text. The only look whose palette changes per Page: the Story
+  // runs ink (Studio) → paper (Projects) → full acid (Contact), each sheet arriving in its own colour.
   acid: Object.freeze( {
     id: 'acid',
-    label: 'Acid Night',
-    sectionThemes: true,
+    label: 'Main',
     themeColors: Object.freeze( { intro: '#07110d', studio: '#070908', projects: '#f2f1e9', contact: '#b7d95b' } ),
+    // The elements that read the pointer key light (--lx / --ly): only Studio's wall glow.
+    keyLight: '.title-screen > .cyc-wall',
     motion: Object.freeze( {
       reveal: 'fade',
       origin: '50% 50%',
@@ -58,8 +59,9 @@ export const LOOK_CONFIGS = Object.freeze( {
   cyc: Object.freeze( {
     id: 'cyc',
     label: 'Cyc Wall',
-    sectionThemes: false,
     themeColors: Object.freeze( { intro: '#0a0e0c', studio: '#ef3f86', projects: '#16a597', contact: '#f59e1b' } ),
+    // Every lit cyc: its wall hotspot and the shadows its letters cast (styles.css, --cast-x / --cast-y).
+    keyLight: '.cyc',
     motion: CYC_MOTION,
   } ),
 
@@ -67,9 +69,10 @@ export const LOOK_CONFIGS = Object.freeze( {
   // real walnut, six pockets, the rest of the hall black beyond the light.
   downlight: Object.freeze( {
     id: 'downlight',
-    label: 'Downlight',
-    sectionThemes: false,
+    label: 'Pool Table',
     themeColors: Object.freeze( { intro: '#030403', studio: '#030403', projects: '#030403', contact: '#030403' } ),
+    // The lamp's pool of light on the cloth.
+    keyLight: '.dl-cloth',
     motion: Object.freeze( {
       reveal: 'canopy',
       origin: CYC_MOTION.origin,
@@ -82,7 +85,7 @@ export const LOOK_CONFIGS = Object.freeze( {
   } ),
 } )
 
-// Dropdown order: Acid Night first (the default), then Cyc Wall, then Downlight.
+// Dropdown order: Main first (the default; id 'acid', kept so ?look=acid links still work), then Cyc Wall, then Pool Table (id 'downlight', kept so ?look=downlight links still work).
 export const LOOK_IDS = Object.freeze( Object.keys( LOOK_CONFIGS ) )
 export const DEFAULT_LOOK_ID = 'acid'
 

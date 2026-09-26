@@ -28,6 +28,18 @@
   --ink: var(--cyc);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --font: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  /* Small text: every word that is not one of the four big titles (nav, services, captions, contact
+     details, controls). It is set in the look's own title family, bold, in sentence case, the way
+     hugeinc.com runs one family (Matter) at semibold through its whole interface. Each look points
+     these at its title face; Cyc Wall's is Archivo, a touch condensed to echo its 62%-wide titles. */
+  --ui-font: var(--font);
+  --ui-stretch: 85%;
+  --ui-weight: 700;
+  --ui-weight-soft: 500;
+  --ui-tracking: -0.005em;
+  --ui-size: 15px;
+  --ui-size-sm: 14px;
+  --ui-size-xs: 13px;
   /* Side gutter every section hangs its content from. */
   --gutter: clamp(20px, 5vw, 80px);
   color: var(--cyc);
@@ -129,7 +141,7 @@ a:focus-visible {
 
 .story {
   position: relative;
-  /* Inline style comes from STORY_TIMING so changing totalTimelineUnits updates scroll distance too. */
+  /* Inline style comes from STAGE (src/storyStage.js), so the stage length sets the scroll distance. */
   height: var(--story-height);
 }
 
@@ -411,13 +423,13 @@ a:focus-visible {
     linear-gradient(90deg, rgb(0 0 0 / 0.08), transparent 7px, transparent calc(100% - 7px), rgb(0 0 0 / 0.08)),
     var(--tape-fill, var(--tape));
   color: var(--tape-ink, var(--gaffer));
-  font-size: 11px;
-  font-stretch: 118%;
-  font-weight: 650;
-  letter-spacing: 0.05em;
+  font-family: var(--ui-font);
+  font-size: var(--ui-size-sm);
+  font-stretch: var(--ui-stretch);
+  font-weight: var(--ui-weight);
+  letter-spacing: var(--ui-tracking);
   line-height: 1;
   text-decoration: none;
-  text-transform: uppercase;
   white-space: nowrap;
   /* The resting tilt uses the independent `rotate` property so GSAP transforms stack on top. */
   rotate: var(--tilt);
@@ -462,7 +474,7 @@ button.tape:focus-visible {
   --tape-fill: var(--gel-contact);
   gap: 10px;
   padding: 0 16px;
-  font-size: 12.5px;
+  font-size: var(--ui-size);
 }
 
 .header-meta .tape-contact {
@@ -558,15 +570,24 @@ button.tape:focus-visible {
   text-shadow: 0 10px 40px rgb(0 0 0 / 0.45);
 }
 
+/* One mask per word for the opening shot (src/motion/introEntrance.js): inline-blocks, so each word
+   can be clipped below its line and raised. At rest they set exactly as plain words. */
+.hero-word,
+.hero-word-inner {
+  display: inline-block;
+}
+
 .hero-services {
   display: flex;
   margin-top: 22px;
   flex-wrap: wrap;
   gap: 4px 0;
   color: rgb(236 234 228 / 0.86);
-  font-size: clamp(14px, 1.1vw, 17px);
-  font-stretch: 100%;
-  font-weight: 500;
+  font-family: var(--ui-font);
+  font-size: var(--ui-size);
+  font-stretch: var(--ui-stretch);
+  font-weight: var(--ui-weight);
+  letter-spacing: var(--ui-tracking);
   text-shadow: 0 2px 14px rgb(0 0 0 / 0.6);
 }
 
@@ -664,11 +685,17 @@ button.tape:focus-visible {
   will-change: transform;
 }
 
+/* The shadow Projects casts at its bottom edge, which is always Contact's top. Only a band under
+   that edge darkens, eased to nothing a third of the way down, so Contact keeps its own colour and
+   the shadow reads as a sheet lifting off it. The mask is static; only opacity animates. */
 .contact-shade {
+  --edge-shadow: linear-gradient(to bottom, #000 0%, rgb(0 0 0 / 0.55) 7%, rgb(0 0 0 / 0.24) 16%, rgb(0 0 0 / 0.07) 26%, transparent 34%);
   position: absolute;
   z-index: 3;
   inset: 0;
   background: var(--shade-color, #000);
+  -webkit-mask-image: var(--edge-shadow);
+  mask-image: var(--edge-shadow);
   pointer-events: none;
   opacity: 0;
   will-change: opacity;
@@ -806,7 +833,7 @@ button.tape:focus-visible {
 .studio-floor .tape {
   min-height: clamp(36px, 3.1vw, 46px);
   padding: 0 clamp(13px, 1.2vw, 18px);
-  font-size: clamp(11px, 0.95vw, 14px);
+  font-size: var(--ui-size);
 }
 
 .final-meta {
@@ -962,19 +989,24 @@ button.tape:focus-visible {
   place-items: stretch;
 }
 
+/* Board headings sit one step under the big titles: same small-text face, just larger. */
 .project-next-title {
-  font-size: clamp(22px, 2.2vw, 34px);
-  font-stretch: 68%;
-  font-weight: 850;
-  line-height: 0.95;
-  text-transform: uppercase;
+  font-family: var(--ui-font);
+  font-size: clamp(22px, 2vw, 30px);
+  font-stretch: var(--ui-stretch);
+  font-weight: var(--ui-weight);
+  letter-spacing: -0.02em;
+  line-height: 1.05;
 }
 
 .project-next-detail {
   align-self: end;
   color: var(--gaffer-soft);
-  font-size: clamp(12px, 0.95vw, 14px);
-  font-weight: 600;
+  font-family: var(--ui-font);
+  font-size: var(--ui-size-sm);
+  font-stretch: var(--ui-stretch);
+  font-weight: var(--ui-weight);
+  letter-spacing: var(--ui-tracking);
 }
 
 .project-next-arrow {
@@ -1040,15 +1072,16 @@ button.tape:focus-visible {
   display: flex;
   margin: 8px 0 0;
   padding-top: 12px;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
   border-top: 2px solid var(--gaffer);
   color: var(--gaffer-soft);
-  font-size: 11px;
-  font-stretch: 118%;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-family: var(--ui-font);
+  font-size: var(--ui-size-xs);
+  font-stretch: var(--ui-stretch);
+  font-weight: var(--ui-weight);
+  letter-spacing: var(--ui-tracking);
 }
 
 .contact-list li + li {
@@ -1103,11 +1136,12 @@ button.tape:focus-visible {
   background-position: 0 72%;
   background-repeat: no-repeat;
   background-size: 0% 58%;
-  font-size: clamp(22px, 2.1vw, 34px);
-  font-stretch: 68%;
-  font-weight: 850;
-  line-height: 1;
-  text-transform: uppercase;
+  font-family: var(--ui-font);
+  font-size: clamp(22px, 2vw, 30px);
+  font-stretch: var(--ui-stretch);
+  font-weight: var(--ui-weight);
+  letter-spacing: -0.02em;
+  line-height: 1.05;
   transition: background-size 360ms var(--ease-out);
 }
 
@@ -1115,9 +1149,11 @@ button.tape:focus-visible {
   min-width: 0;
   grid-area: detail;
   color: var(--gaffer-soft);
-  font-size: clamp(13px, 1vw, 15px);
-  font-variant-numeric: tabular-nums;
-  font-weight: 500;
+  font-family: var(--ui-font);
+  font-size: var(--ui-size);
+  font-stretch: var(--ui-stretch);
+  font-weight: var(--ui-weight-soft);
+  letter-spacing: var(--ui-tracking);
   overflow-wrap: anywhere;
 }
 
@@ -1126,11 +1162,11 @@ button.tape:focus-visible {
   grid-area: action;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
-  font-stretch: 118%;
-  font-weight: 750;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-family: var(--ui-font);
+  font-size: var(--ui-size-sm);
+  font-stretch: var(--ui-stretch);
+  font-weight: var(--ui-weight);
+  letter-spacing: var(--ui-tracking);
 }
 
 .contact-action svg {
@@ -1193,8 +1229,7 @@ button.tape:focus-visible {
 
   .header-meta .tape {
     min-height: 36px;
-    padding: 0 9px;
-    font-size: 9.5px;
+    padding: 0 10px;
   }
 
   .hero-copy {
@@ -1209,7 +1244,7 @@ button.tape:focus-visible {
   .hero-services {
     margin-top: 16px;
     flex-direction: column;
-    font-size: 13px;
+    font-size: var(--ui-size-sm);
   }
 
   /* Stacked on phones, so the separators go. */
@@ -1254,7 +1289,7 @@ button.tape:focus-visible {
     font-size: clamp(60px, 21vw, 130px);
   }
 
-  /* Clear of the stacked Draft and Look switchers, and nearer the title than the floor. */
+  /* Nearer the title than the floor. */
   .projects-rail {
     bottom: max(21vh, 176px);
   }
@@ -1271,7 +1306,7 @@ button.tape:focus-visible {
   .tape-contact {
     gap: 6px;
     padding: 0 10px;
-    font-size: 10.5px;
+    font-size: var(--ui-size-sm);
   }
 
   .header-meta .tape-contact {
@@ -1294,7 +1329,7 @@ button.tape:focus-visible {
     align-items: start;
     gap: 5vh;
     grid-template-columns: 1fr;
-    padding: max(84px, 12vh) 18px 150px;
+    padding: max(84px, 12vh) 18px max(48px, calc(env(safe-area-inset-bottom) + 32px));
   }
 
   .contact-title {
@@ -1302,11 +1337,10 @@ button.tape:focus-visible {
   }
 
   .call-sheet-foot {
-    font-size: 10px;
     white-space: nowrap;
   }
 
-  .call-sheet-foot span:first-child {
+  .call-sheet-foot > span:first-child {
     display: none;
   }
 
@@ -1329,7 +1363,7 @@ button.tape:focus-visible {
   }
 
   .contact-detail {
-    font-size: 12px;
+    font-size: var(--ui-size-sm);
   }
 
   .contact-action-label {
@@ -1566,13 +1600,13 @@ button.tape:focus-visible {
   border: 1px solid rgba(242, 241, 233, 0.22);
   background: rgba(7, 9, 8, 0.78);
   color: rgba(242, 241, 233, 0.8);
-  font-family: var(--font);
-  font-stretch: 118%;
-  font-size: 9px;
-  letter-spacing: 0.04em;
+  font-family: var(--ui-font);
+  font-stretch: var(--ui-stretch);
+  font-size: var(--ui-size-sm);
+  font-weight: var(--ui-weight-soft);
+  letter-spacing: var(--ui-tracking);
   line-height: 1.4;
   text-align: center;
-  text-transform: uppercase;
   transform: translate(-50%, -50%);
 }
 
@@ -1583,11 +1617,12 @@ button.tape:focus-visible {
   bottom: max(92px, 12vh);
   margin: 0;
   color: rgba(242, 241, 233, 0.48);
-  font-family: var(--font);
-  font-stretch: 118%;
-  font-size: 8px;
+  font-family: var(--ui-font);
+  font-stretch: var(--ui-stretch);
+  font-size: var(--ui-size-xs);
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.18em;
+  font-weight: var(--ui-weight);
+  letter-spacing: var(--ui-tracking);
   line-height: 1;
   text-shadow: 0 1px 12px rgba(0, 0, 0, 0.7);
 }
@@ -1596,13 +1631,31 @@ button.tape:focus-visible {
   display: block;
 }
 
-/* The draft switcher is a testing control; it never changes story navigation. */
+/* The Draft switcher picks the Intro's treatment; it never changes Story navigation. Drafts belong to
+   the Intro, so the switcher shows only while a visitor is settled there: it fades out as the break
+   starts (any Story navigation glide) and returns once a glide settles on the Intro. Hidden, it also
+   leaves the tab order (visibility), so it never sits over the work on later Pages. */
 .draft-switcher {
   position: fixed;
   z-index: 45;
   bottom: max(16px, env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
+  transition:
+    opacity 320ms var(--ease-out),
+    translate 320ms var(--ease-out),
+    visibility 0s linear 0s;
+}
+
+.experience:is(:not([data-story-indicator-page='intro']), [data-story-state='transitioning']) .draft-switcher {
+  opacity: 0;
+  visibility: hidden;
+  translate: 0 10px;
+  pointer-events: none;
+  transition:
+    opacity 180ms ease,
+    translate 180ms ease,
+    visibility 0s linear 180ms;
 }
 
 .draft-switcher-options {
@@ -1620,7 +1673,7 @@ button.tape:focus-visible {
 
 .draft-switcher-button {
   min-height: 34px;
-  font-size: 10px;
+  font-size: var(--ui-size-xs);
 }
 
 .draft-switcher-button.is-active {
@@ -1650,12 +1703,28 @@ button.tape:focus-visible {
   .draft-switcher-button {
     min-height: 36px;
     padding: 0 9px;
-    font-size: 9.5px;
   }
 
   .webgl-phase {
     right: 18px;
     bottom: max(136px, calc(env(safe-area-inset-bottom) + 126px));
+  }
+}
+
+/* Touch screens: every control is at least a 44 × 44px target. The wordmark and Top grow inward
+   from the gutters (the mark stays left, Top's word stays right), so nothing visibly moves. */
+@media (pointer: coarse) {
+  .draft-switcher-button {
+    min-height: 44px;
+  }
+
+  .wordmark {
+    min-width: 44px;
+  }
+
+  .header-meta .top-link {
+    min-width: 44px;
+    justify-content: flex-end;
   }
 }
 
@@ -1745,13 +1814,12 @@ button.tape:focus-visible {
   border-radius: 999px;
   background: var(--cursor-label-bg);
   color: var(--cursor-label-ink);
-  font-family: var(--label-font, var(--font));
-  font-size: 11px;
-  font-stretch: 118%;
-  font-weight: 650;
-  letter-spacing: 0.06em;
+  font-family: var(--ui-font);
+  font-size: var(--ui-size-xs);
+  font-stretch: var(--ui-stretch);
+  font-weight: var(--ui-weight);
+  letter-spacing: var(--ui-tracking);
   line-height: 1;
-  text-transform: uppercase;
   white-space: nowrap;
   opacity: 0;
   translate: -6px 0;
@@ -1791,12 +1859,12 @@ button.tape:focus-visible {
 
 .preloader-count {
   margin: 0;
-  font-family: var(--label-font, var(--font));
-  font-size: 12px;
-  font-stretch: 118%;
+  font-family: var(--ui-font);
+  font-size: var(--ui-size);
+  font-stretch: var(--ui-stretch);
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  letter-spacing: 0.24em;
+  font-weight: var(--ui-weight);
+  letter-spacing: var(--ui-tracking);
 }
 
 @keyframes preloader-roll {
@@ -1829,7 +1897,7 @@ button.tape:focus-visible {
   background: rgb(10 12 11 / 0.92);
   box-shadow: 0 16px 40px rgb(0 0 0 / 0.4);
   color: #f2f1e9;
-  font: 500 11px/1.3 ui-monospace, 'DM Mono', monospace;
+  font: 500 11px/1.3 ui-monospace, monospace;
   backdrop-filter: blur(10px);
 }
 

@@ -29,39 +29,6 @@ export function getRunScrollTarget ( { sectionTop, runDistance, boardLeft, board
   return Math.round( sectionTop + progress * runDistance )
 }
 
-// The palette position of a look with section themes (Acid Night): 0 while Studio holds the screen,
-// 1 once Projects covers it, 2 once Contact is fully uncovered. The whole stretch, from Projects
-// entering to Contact settling, is one scroll range made of three parts in px: the handoff
-// (Projects rising), the run (held at 1), and the reveal (Contact uncovering).
-export function themeProgressAt ( progress, { handoff, run, reveal } )
-{
-  const total = handoff + run + reveal
-  if ( !( total > 0 ) ) return 0
-  const scrolled = clamp01( progress ) * total
-  if ( scrolled <= handoff ) return handoff > 0 ? scrolled / handoff : 1
-  if ( scrolled <= handoff + run ) return 1
-  return 1 + ( reveal > 0 ? ( scrolled - handoff - run ) / reveal : 1 )
-}
-
-// Where each palette change happens inside its stretch of scroll, as [start, end] shares of it.
-// Ink → paper runs over the first half of the handoff, so Projects is already paper by the time it
-// covers half the screen; paper → acid runs through the middle of the reveal, as Contact emerges.
-export const THEME_MORPH_WINDOWS = Object.freeze( [ Object.freeze( [ 0.1, 0.5 ] ), Object.freeze( [ 0.2, 0.7 ] ) ] )
-
-// Shapes a palette position (from themeProgressAt) so each change holds, then moves quickly and
-// smoothly inside its window, then settles: the muddy midpoint between two palettes only flashes past.
-export function easeThemeMorph ( t, windows = THEME_MORPH_WINDOWS )
-{
-  if ( !Number.isFinite( t ) || t <= 0 ) return 0
-  const whole = Math.floor( t )
-  const part = t - whole
-  const window = windows[ whole ]
-  if ( part === 0 || !window ) return t
-  const [ start, end ] = window
-  const x = clamp01( ( part - start ) / ( end - start ) )
-  return whole + x * x * ( 3 - 2 * x )
-}
-
 // Which part of the Story sits under a line at scroll position y (the header, or the pointer):
 // the pinned stage, Projects, or Contact. Starts are the scroll positions where each section
 // reaches that line.

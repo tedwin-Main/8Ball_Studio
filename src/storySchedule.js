@@ -1,4 +1,4 @@
-import { STORY_TIMING, toStoryProgress } from './storyTiming.js'
+import { STAGE, toStoryProgress } from './storyStage.js'
 
 // Helper function to create an immutable page object.
 function createPage( id, label, startProgress, targetProgress )
@@ -27,9 +27,9 @@ export function getStudioStartUnits( draftId = 'cinematic' )
   // Choose studio start milestone based on draft physics.
   if ( is3dBreakDraft( draftId ) )
   {
-    return STORY_TIMING.pages.draft2StudioStart
+    return STAGE.pages.draft2StudioStart
   }
-  return STORY_TIMING.pages.cinematicStudioStart
+  return STAGE.pages.cinematicStudioStart
 }
 
 // Screens of horizontal run assumed for Projects before the real track is measured (App.jsx
@@ -43,8 +43,8 @@ const DEFAULT_RUN_SCREENS = 1
 // The default is measured in screens.
 export function getDefaultStoryLayout()
 {
-  const pinnedRange = STORY_TIMING.totalTimelineUnits * STORY_TIMING.scroll.viewportsPerUnit
-  const projectsTop = pinnedRange + 1 - STORY_TIMING.pages.handoffScreens
+  const pinnedRange = STAGE.totalTimelineUnits * STAGE.viewportsPerUnit
+  const projectsTop = pinnedRange + 1 - STAGE.pages.handoffScreens
   const contactTop = projectsTop + 1 + DEFAULT_RUN_SCREENS
   return Object.freeze( {
     viewport: 1,
@@ -87,7 +87,7 @@ export function getStoryPages( draftId = 'cinematic', layout = getDefaultStoryLa
 
   const pages = [
     createPage( 'intro', 'Intro', 0, 0 ),
-    createPage( 'studio', 'Studio', pinned( getStudioStartUnits( draftId ) ), pinned( STORY_TIMING.pages.studioStable ) ),
+    createPage( 'studio', 'Studio', pinned( getStudioStartUnits( draftId ) ), pinned( STAGE.pages.studioStable ) ),
     createPage( 'projects', 'Projects', sectionStart( projectsTop ), share( projectsTop ) ),
     // The page cannot scroll past its end, so Contact lands there when its section is short.
     createPage( 'contact', 'Contact', sectionStart( contactTop ), share( Math.min( contactTop, documentRange ) ) ),

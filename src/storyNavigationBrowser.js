@@ -1,7 +1,7 @@
 import gsap from 'gsap'
 import Lenis from 'lenis'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { STORY_TIMING } from './storyTiming'
+import { getTuning } from './motion/runtimeTuning'
 
 gsap.registerPlugin( ScrollTrigger )
 
@@ -61,18 +61,14 @@ export function createStoryScrollAdapter ( {
   {
     if ( !smooth ) throw new Error( 'reduced motion: native scroll' )
     // Keep the adapter's production path identical to the existing weighted scroll behavior.
+    const { glide, wheel } = getTuning()
     lenis = new Lenis( {
-      wheelMultiplier: STORY_TIMING.scroll.wheelMultiplier,
-      // Free scroll leaves touch to the phone's native momentum (as the reference site does);
-      // paged mode needs Lenis-owned touch so its gesture lock can hold the page still.
-      syncTouch: !STORY_TIMING.navigation.freeScroll,
-      syncTouchLerp: STORY_TIMING.scroll.syncTouchLerp,
-      // Lenis-owned touch only (paged mode): swipe distance and how strongly a flick carries on.
-      touchMultiplier: STORY_TIMING.scroll.touchMultiplier,
-      touchInertiaExponent: STORY_TIMING.scroll.touchInertiaExponent,
+      wheelMultiplier: wheel,
+      // Touch keeps the phone's native momentum.
+      syncTouch: false,
       infinite: false,
       gestureOrientation: 'vertical',
-      lerp: STORY_TIMING.scroll.lerp,
+      lerp: glide,
       autoRaf: false,
       // Story navigation debounces viewport changes and calls refresh explicitly;
       // disabling Lenis's delayed observer prevents it from undoing progress retention.
@@ -179,6 +175,10 @@ export function createStoryScrollAdapter ( {
   const getScrollPosition = () =>
     lenis && Number.isFinite( lenis.scroll ) ? lenis.scroll : eventTarget.scrollY
 
+  // Where the smoothed scroll is heading (Lenis eases toward it); native scroll is already there.
+  const getScrollTarget = () =>
+    lenis && Number.isFinite( lenis.targetScroll ) ? lenis.targetScroll : eventTarget.scrollY
+
   const scrollTo = ( targetY, options = {} ) =>
   {
     if ( lenis )
@@ -193,6 +193,23 @@ export function createStoryScrollAdapter ( {
       behavior: options.immediate ? 'auto' : 'smooth',
     } )
     if ( options.immediate ) options.onComplete?.()
+  }
+
+  // Ends a running glide where the page is now, so the visitor's input takes over from there.
+  // Lenis: stop() and start() each reset its animation and input lock (public API only). Native
+  // scroll: a jump to the current position cancels a smooth scroll in progress.
+  const cancelGlide = () =>
+  {
+    if ( lenis )
+    {
+      if ( !lenis.isStopped )
+      {
+        lenis.stop()
+        lenis.start()
+      }
+      return
+    }
+    eventTarget.scrollTo( { top: eventTarget.scrollY, left: 0, behavior: 'auto' } )
   }
 
   // Scroll speed in px per frame (signed), for the velocity skew. Lenis tracks it for wheel and for
@@ -262,8 +279,10 @@ export function createStoryScrollAdapter ( {
 
   return {
     getScrollPosition,
+    getScrollTarget,
     getVelocity,
     scrollTo,
+    cancelGlide,
     onScroll,
     onVirtualScroll,
     stop,

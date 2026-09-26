@@ -11,11 +11,11 @@ import {
   getThemeColor,
 } from './lookRegistry.js'
 
-test( 'lookRegistry exposes three looks in dropdown order, with Acid Night as the default', () =>
+test( 'lookRegistry exposes three looks in dropdown order, with Main as the default', () =>
 {
   assert.deepEqual( LOOK_IDS, [ 'acid', 'cyc', 'downlight' ] )
   assert.equal( DEFAULT_LOOK_ID, 'acid' )
-  assert.equal( LOOK_CONFIGS.acid.label, 'Acid Night' )
+  assert.equal( LOOK_CONFIGS.acid.label, 'Main' )
 } )
 
 test( 'normalizeLookId accepts known ids and falls back to the default', () =>
@@ -30,9 +30,8 @@ test( 'normalizeLookId accepts known ids and falls back to the default', () =>
   assert.equal( normalizeLookId( 'toString' ), 'acid' )
 } )
 
-test( 'only Acid Night changes palette per Page; every look names its chrome colour per Page', () =>
+test( 'every look names its chrome colour per Page', () =>
 {
-  assert.deepEqual( LOOK_IDS.filter( ( id ) => LOOK_CONFIGS[ id ].sectionThemes ), [ 'acid' ] )
   LOOK_IDS.forEach( ( id ) =>
   {
     [ 'intro', 'studio', 'projects', 'contact' ].forEach( ( pageId ) =>
@@ -40,7 +39,7 @@ test( 'only Acid Night changes palette per Page; every look names its chrome col
       assert.match( getThemeColor( id, pageId ), /^#[0-9a-f]{6}$/, `${id} ${pageId}` )
     } )
   } )
-  // Acid Night runs ink → paper → acid.
+  // Main runs ink → paper → acid.
   assert.deepEqual(
     [ 'studio', 'projects', 'contact' ].map( ( pageId ) => getThemeColor( 'acid', pageId ) ),
     [ '#070908', '#f2f1e9', '#b7d95b' ],
@@ -103,5 +102,15 @@ test( 'reveal vars end fully open so Studio is completely lit at rest', () =>
     }
     assert.match( from.clipPath, /^(circle|ellipse|inset|polygon)\(/ )
     assert.match( to.clipPath, /^(circle\(150%|inset\(0% 0% 0% 0%\))/ )
+  } )
+} )
+
+test( 'every look names the elements that read the pointer key light', () =>
+{
+  // App.jsx writes --lx / --ly only on these, never on the page root (whole-page re-style per frame).
+  LOOK_IDS.forEach( ( id ) =>
+  {
+    assert.equal( typeof LOOK_CONFIGS[ id ].keyLight, 'string', id )
+    assert.ok( LOOK_CONFIGS[ id ].keyLight.length > 0, id )
   } )
 } )

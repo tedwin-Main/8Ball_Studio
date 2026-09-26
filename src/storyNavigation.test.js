@@ -20,7 +20,15 @@ class FakeAdapter
     this.pendingCompletion = null
     this.refreshCount = 0
     this.updateCount = 0
+    this.cancelCount = 0
     this.destroyed = false
+  }
+
+  // Like Lenis, a cancelled glide never reports completion by itself; pendingCompletion is kept so a
+  // test can fire the stale completion and prove it is ignored.
+  cancelGlide ()
+  {
+    this.cancelCount += 1
   }
 
   getScrollPosition ()
@@ -166,12 +174,12 @@ const createFixture = ( options = {} ) =>
     adapter,
     eventTarget,
     clock,
-    getMetrics: () => ( { top: 0, range } ),
+    getMetrics: () => ( { top: 0, range, viewport: 200 } ),
     transitionFor: () => ( { duration: 1 } ),
     gestureThresholdPx: 14,
     gestureResetMs: 120,
     prefersReducedMotion: options.prefersReducedMotion || ( () => false ),
-    freeScroll: options.freeScroll || false,
+    autoplaySpan: options.autoplaySpan || null,
     onPageChange: ( page ) => changedPages.push( page ),
     onIndicatorPageChange: ( page ) => indicatorPages.push( page ),
     onTransitionChange: ( isTransitioning ) => transitionStates.push( isTransitioning ),
@@ -274,26 +282,9 @@ test( 'visitor indicator returns at the same boundary during reverse autoplay', 
   assert.equal( fixture.navigation.getState().indicatorPage, 'intro' )
 } )
 
-test( 'wheel qualification advances once and direction changes reset accumulated intent', () =>
-{
-  const fixture = createFixture()
-  const first = wheelEvent( 8 )
-  const second = wheelEvent( 6 )
-
-  assert.equal( fixture.adapter.virtualScroll( { deltaY: 8, event: first.event } ), true )
-  assert.equal( fixture.adapter.virtualScroll( { deltaY: 6, event: second.event } ), false )
-  assert.equal( fixture.navigation.getState().targetPage, 'studio' )
-  assert.equal( fixture.adapter.scrollCalls.length, 1 )
-
-  fixture.adapter.complete()
-  const reversed = wheelEvent( -20 )
-  assert.equal( fixture.adapter.virtualScroll( { deltaY: -20, event: reversed.event } ), false )
-  assert.equal( fixture.navigation.getState().targetPage, 'intro' )
-} )
-
 test( 'free scroll passes wheel input through and Stable page follows the scroll position', () =>
 {
-  const fixture = createFixture( { freeScroll: true } )
+  const fixture = createFixture()
   const wheel = wheelEvent( 40 )
 
   // Input is not qualified into a Page jump: the scroller owns it and nothing is prevented.
@@ -310,7 +301,7 @@ test( 'free scroll passes wheel input through and Stable page follows the scroll
 
 test( 'free scroll still glides to a requested Page and locks input during that glide', () =>
 {
-  const fixture = createFixture( { freeScroll: true } )
+  const fixture = createFixture()
   fixture.navigation.goToPage( 'contact' )
   const wheel = wheelEvent( 40 )
 
@@ -323,7 +314,7 @@ test( 'free scroll still glides to a requested Page and locks input during that 
 test( 'requesting the current Page from partway down glides back to its target', () =>
 {
   // Normal-scroll sections: scrolled 50px past Projects' top is still the Projects Page.
-  const fixture = createFixture( { freeScroll: true, position: 700 } )
+  const fixture = createFixture( { position: 700 } )
   assert.equal( fixture.navigation.getState().activePage, 'projects' )
 
   assert.equal( fixture.navigation.goToPage( 'projects' ), true )
@@ -337,49 +328,82 @@ test( 'requesting the current Page from partway down glides back to its target',
   assert.equal( fixture.adapter.scrollCalls.length, 1 )
 } )
 
-test( 'touch reversal starts a fresh intent and advances at most one Page', () =>
+const keyEvent = ( key, { target = {}, shiftKey = false } = {} ) =>
 {
-  const fixture = createFixture( { position: 300 } )
-  const touch = ( type, y ) => ( {
-    type,
-    touches: type === 'touchend' ? [] : [ { clientY: y } ],
-    changedTouches: [ { clientY: y } ],
-    cancelable: true,
-    preventDefault: () => {},
-  } )
-
-  fixture.adapter.virtualScroll( { event: touch( 'touchstart', 100 ), deltaY: 0 } )
-  fixture.adapter.virtualScroll( { event: touch( 'touchmove', 90 ), deltaY: 0 } )
-  assert.equal(
-    fixture.adapter.virtualScroll( { event: touch( 'touchmove', 115 ), deltaY: 0 } ),
-    false,
-  )
-  assert.equal( fixture.navigation.getState().targetPage, 'intro' )
-  fixture.adapter.complete()
-  assert.equal( fixture.navigation.getState().activePage, 'intro' )
-} )
+  let prevented = false
+  return {
+    event: { key, shiftKey, target, cancelable: true, preventDefault: () => { prevented = true } },
+    wasPrevented: () => prevented,
+  }
+}
 
 test( 'keyboard navigation ignores editable targets and prevents handled keys', () =>
 {
   const fixture = createFixture()
-  const editable = {
-    key: 'ArrowDown',
-    target: { isContentEditable: true },
-    cancelable: true,
-    preventDefault: () => {},
-  }
-  fixture.eventTarget.dispatch( 'keydown', editable )
+  fixture.eventTarget.dispatch( 'keydown', keyEvent( 'PageDown', { target: { isContentEditable: true } } ).event )
   assert.equal( fixture.adapter.scrollCalls.length, 0 )
 
-  let prevented = false
-  fixture.eventTarget.dispatch( 'keydown', {
-    key: 'ArrowDown',
-    target: {},
-    cancelable: true,
-    preventDefault: () => { prevented = true },
-  } )
-  assert.equal( prevented, true )
+  const pageDown = keyEvent( 'PageDown' )
+  fixture.eventTarget.dispatch( 'keydown', pageDown.event )
+  assert.equal( pageDown.wasPrevented(), true )
   assert.equal( fixture.navigation.getState().targetPage, 'studio' )
+} )
+
+test( 'arrows and Space scroll natively outside the autoplay span; the Page keys glide', () =>
+{
+  // Projects' run lives between Page targets: native keys must be able to reach it.
+  const fixture = createFixture( { position: 650 } )
+  for ( const [ key, shiftKey ] of [ [ 'ArrowDown', false ], [ 'ArrowUp', false ], [ ' ', false ], [ ' ', true ] ] )
+  {
+    const press = keyEvent( key, { shiftKey } )
+    fixture.eventTarget.dispatch( 'keydown', press.event )
+    assert.equal( press.wasPrevented(), false, `${key}${shiftKey ? ' + Shift' : ''} scrolls natively` )
+  }
+  assert.equal( fixture.adapter.scrollCalls.length, 0 )
+
+  const pageDown = keyEvent( 'PageDown' )
+  fixture.eventTarget.dispatch( 'keydown', pageDown.event )
+  assert.equal( pageDown.wasPrevented(), true )
+  assert.equal( fixture.adapter.scrollCalls.at( -1 ).targetY, 950 )
+} )
+
+test( 'Space on a focused button is left to the button', () =>
+{
+  const fixture = createFixture( { autoplaySpan: { from: 'intro', to: 'studio' } } )
+  // Only the pressable-control selector matches, as for a real <button>.
+  const button = { matches: ( selector ) => selector.startsWith( 'button' ) }
+  const press = keyEvent( ' ', { target: button } )
+  fixture.eventTarget.dispatch( 'keydown', press.event )
+
+  assert.equal( press.wasPrevented(), false )
+  assert.equal( fixture.adapter.scrollCalls.length, 0 )
+  assert.equal( fixture.navigation.getState().targetPage, 'intro' )
+} )
+
+test( 'input against a glide stops it where it is, and the page scrolls freely from there', () =>
+{
+  const fixture = createFixture()
+  fixture.navigation.goToPage( 'contact' )
+  fixture.adapter.position = 400
+
+  // Below the gesture threshold the glide keeps the page.
+  const nudge = wheelEvent( -10 )
+  assert.equal( fixture.adapter.virtualScroll( { deltaY: -10, event: nudge.event } ), false )
+  assert.equal( nudge.wasPrevented(), true )
+
+  fixture.clock.advance( 16 )
+  const against = wheelEvent( -10 )
+  assert.equal( fixture.adapter.virtualScroll( { deltaY: -10, event: against.event } ), true )
+  assert.equal( against.wasPrevented(), false )
+  assert.equal( fixture.adapter.cancelCount, 1 )
+  assert.equal( fixture.navigation.getState().isTransitioning, false )
+  assert.equal( fixture.navigation.getState().activePage, 'studio' )
+  assert.deepEqual( fixture.transitionStates, [ true, false ] )
+
+  // The cancelled glide's completion and its safety timer can no longer settle the Story on Contact.
+  fixture.adapter.complete()
+  fixture.clock.advance( 5000 )
+  assert.equal( fixture.navigation.getState().activePage, 'studio' )
 } )
 
 test( 'resize preserves normalized progress after metrics change', () =>
@@ -425,4 +449,192 @@ test( 'destroy removes handlers, timers, and adapter work', () =>
   assert.equal( fixture.adapter.destroyed, true )
   fixture.clock.advance( 5000 )
   assert.equal( fixture.navigation.getState().isTransitioning, true )
+} )
+
+// Intro autoplay: free scroll everywhere, but one gesture on the Intro plays the break to Studio.
+const createAutoplayFixture = ( position = 0 ) => createFixture( { autoplaySpan: { from: 'intro', to: 'studio' }, position } )
+
+test( 'autoplay span: one wheel gesture on the Intro glides the whole way to Studio', () =>
+{
+  const fixture = createAutoplayFixture()
+
+  // Below the intent threshold the page is held still, and nothing glides yet.
+  const nudge = wheelEvent( 6 )
+  assert.equal( fixture.adapter.virtualScroll( { deltaY: 6, event: nudge.event } ), false )
+  assert.equal( nudge.wasPrevented(), true )
+  assert.equal( fixture.adapter.scrollCalls.length, 0 )
+
+  fixture.clock.advance( 16 )
+  assert.equal( fixture.adapter.virtualScroll( { deltaY: 10, event: wheelEvent( 10 ).event } ), false )
+  assert.equal( fixture.adapter.scrollCalls.length, 1 )
+  assert.equal( fixture.adapter.scrollCalls[ 0 ].targetY, 300 )
+  assert.equal( fixture.navigation.getState().targetPage, 'studio' )
+  assert.equal( fixture.navigation.isTransitioning, true )
+} )
+
+test( 'autoplay span: the rest of the gesture is swallowed, then Studio scrolls freely', () =>
+{
+  const fixture = createAutoplayFixture()
+  fixture.adapter.virtualScroll( { deltaY: 40, event: wheelEvent( 40 ).event } )
+  fixture.clock.advance( 16 )
+  // Trackpad inertia during the glide is locked out.
+  assert.equal( fixture.adapter.virtualScroll( { deltaY: 30, event: wheelEvent( 30 ).event } ), false )
+  fixture.adapter.complete()
+  assert.equal( fixture.navigation.getState().activePage, 'studio' )
+
+  // The same burst carrying on after the glide lands is still swallowed.
+  fixture.clock.advance( 16 )
+  const tail = wheelEvent( 20 )
+  assert.equal( fixture.adapter.virtualScroll( { deltaY: 20, event: tail.event } ), false )
+  assert.equal( tail.wasPrevented(), true )
+
+  // A fresh gesture down from Studio is free scroll.
+  fixture.clock.advance( 500 )
+  const next = wheelEvent( 20 )
+  assert.equal( fixture.adapter.virtualScroll( { deltaY: 20, event: next.event } ), true )
+  assert.equal( next.wasPrevented(), false )
+  assert.equal( fixture.adapter.scrollCalls.length, 1 )
+} )
+
+test( 'autoplay span: a deliberate gesture up from Studio plays the break back to the Intro', () =>
+{
+  const fixture = createAutoplayFixture( 300 )
+  assert.equal( fixture.navigation.getState().activePage, 'studio' )
+
+  // One swipe: the page holds at Studio until the swipe has moved 120px, then rewinds.
+  for ( let i = 0; i < 2; i++ )
+  {
+    assert.equal( fixture.adapter.virtualScroll( { deltaY: -40, event: wheelEvent( -40 ).event } ), false )
+    assert.equal( fixture.adapter.scrollCalls.length, 0 )
+    fixture.clock.advance( 16 )
+  }
+  assert.equal( fixture.adapter.virtualScroll( { deltaY: -40, event: wheelEvent( -40 ).event } ), false )
+  assert.equal( fixture.adapter.scrollCalls.at( -1 ).targetY, 0 )
+  assert.equal( fixture.navigation.getState().targetPage, 'intro' )
+} )
+
+test( 'autoplay span: a stray nudge up at Studio never rewinds; close notches add up to one', () =>
+{
+  const fixture = createAutoplayFixture( 300 )
+  const up = ( delta ) =>
+  {
+    const input = wheelEvent( delta )
+    const result = fixture.adapter.virtualScroll( { deltaY: delta, event: input.event } )
+    return { result, prevented: input.wasPrevented() }
+  }
+
+  // Trackpad drift after landing: held still at Studio, no rewind.
+  assert.deepEqual( up( -80 ), { result: false, prevented: true } )
+  // A pause longer than the memory window forgets it.
+  fixture.clock.advance( 1000 )
+  assert.deepEqual( up( -80 ), { result: false, prevented: true } )
+  assert.equal( fixture.adapter.scrollCalls.length, 0 )
+
+  // Any downward input clears it too.
+  fixture.clock.advance( 300 )
+  assert.equal( fixture.adapter.virtualScroll( { deltaY: 10, event: wheelEvent( 10 ).event } ), true )
+  fixture.clock.advance( 300 )
+  up( -80 )
+  assert.equal( fixture.adapter.scrollCalls.length, 0 )
+
+  // Two separate wheel notches close together are a deliberate rewind.
+  fixture.clock.advance( 300 )
+  up( -70 )
+  assert.equal( fixture.adapter.scrollCalls.at( -1 ).targetY, 0 )
+  assert.equal( fixture.navigation.getState().targetPage, 'intro' )
+} )
+
+test( 'autoplay span: input against the break glide turns it around, never leaving it half-played', () =>
+{
+  const fixture = createAutoplayFixture()
+  fixture.adapter.virtualScroll( { deltaY: 40, event: wheelEvent( 40 ).event } )
+  assert.equal( fixture.adapter.scrollCalls.at( -1 ).targetY, 300 )
+
+  // Halfway through the break the visitor scrolls up: the glide heads back to the Intro, taking
+  // the matching share of its time.
+  fixture.adapter.position = 150
+  fixture.clock.advance( 200 )
+  const against = wheelEvent( -20 )
+  assert.equal( fixture.adapter.virtualScroll( { deltaY: -20, event: against.event } ), false )
+  assert.equal( against.wasPrevented(), true )
+  assert.equal( fixture.adapter.scrollCalls.at( -1 ).targetY, 0 )
+  assert.equal( fixture.adapter.scrollCalls.at( -1 ).options.duration, 0.5 )
+  assert.equal( fixture.navigation.getState().targetPage, 'intro' )
+  assert.equal( fixture.navigation.isTransitioning, true )
+  assert.equal( fixture.adapter.cancelCount, 0 )
+
+  // The rest of that upward flick runs along the new glide: locked.
+  fixture.clock.advance( 16 )
+  assert.equal( fixture.adapter.virtualScroll( { deltaY: -30, event: wheelEvent( -30 ).event } ), false )
+  assert.equal( fixture.adapter.scrollCalls.length, 2 )
+
+  fixture.adapter.complete()
+  assert.equal( fixture.navigation.getState().activePage, 'intro' )
+} )
+
+test( 'autoplay span: arrows and Space play the break both ways instead of scrubbing it', () =>
+{
+  const press = ( fixture, key, shiftKey = false ) =>
+  {
+    const input = keyEvent( key, { shiftKey } )
+    fixture.eventTarget.dispatch( 'keydown', input.event )
+    return input.wasPrevented()
+  }
+
+  const intro = createAutoplayFixture( 0 )
+  assert.equal( press( intro, 'ArrowDown' ), true )
+  assert.equal( intro.adapter.scrollCalls.at( -1 ).targetY, 300 )
+
+  const studio = createAutoplayFixture( 300 )
+  assert.equal( press( studio, 'ArrowUp' ), true )
+  assert.equal( studio.adapter.scrollCalls.at( -1 ).targetY, 0 )
+
+  // Just below Studio, a key step up that would land inside the break settles on Studio.
+  const belowByArrow = createAutoplayFixture( 320 )
+  assert.equal( press( belowByArrow, 'ArrowUp' ), true )
+  assert.equal( belowByArrow.adapter.scrollCalls.at( -1 ).targetY, 300 )
+  const belowBySpace = createAutoplayFixture( 400 )
+  assert.equal( press( belowBySpace, ' ', true ), true )
+  assert.equal( belowBySpace.adapter.scrollCalls.at( -1 ).targetY, 300 )
+
+  // Further down, the same keys scroll natively.
+  const further = createAutoplayFixture( 600 )
+  assert.equal( press( further, 'ArrowUp' ), false )
+  assert.equal( press( further, ' ', true ), false )
+  assert.equal( further.adapter.scrollCalls.length, 0 )
+} )
+
+test( 'autoplay span: a flick up from Projects that would reach the break stops on Studio', () =>
+{
+  const fixture = createAutoplayFixture( 700 )
+
+  // Short of the span: free scroll.
+  assert.equal( fixture.adapter.virtualScroll( { deltaY: -100, event: wheelEvent( -100 ).event } ), true )
+  fixture.clock.advance( 16 )
+  // Carrying into it: glide to Studio instead of half-scrubbing the break.
+  assert.equal( fixture.adapter.virtualScroll( { deltaY: -500, event: wheelEvent( -500 ).event } ), false )
+  assert.equal( fixture.adapter.scrollCalls.at( -1 ).targetY, 300 )
+  assert.equal( fixture.navigation.getState().targetPage, 'studio' )
+} )
+
+test( 'autoplay span: one swipe on the Intro glides to Studio; taps pass through', () =>
+{
+  const fixture = createAutoplayFixture()
+  const touch = ( type, y ) =>
+  {
+    let prevented = false
+    return {
+      event: { type, cancelable: true, touches: type === 'touchend' ? [] : [ { clientY: y } ], preventDefault: () => { prevented = true } },
+      wasPrevented: () => prevented,
+    }
+  }
+
+  const start = touch( 'touchstart', 500 )
+  assert.equal( fixture.adapter.virtualScroll( { deltaY: 0, event: start.event } ), true )
+  assert.equal( start.wasPrevented(), false )
+
+  const move = touch( 'touchmove', 480 )
+  assert.equal( fixture.adapter.virtualScroll( { deltaY: 0, event: move.event } ), false )
+  assert.equal( move.wasPrevented(), true )
+  assert.equal( fixture.adapter.scrollCalls.at( -1 ).targetY, 300 )
 } )

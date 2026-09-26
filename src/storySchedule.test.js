@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { getDefaultStoryLayout, getStoryPages, getStudioStartUnits } from './storySchedule.js'
-import { STORY_TIMING, toStoryProgress } from './storyTiming.js'
+import { STAGE, toStoryProgress } from './storyStage.js'
 
 test( 'Story schedule exposes domain Page ids and stable targets', () =>
 {
@@ -56,7 +56,7 @@ test( 'Draft 2 gets its measured Studio threshold without moving stable targets'
   assert.ok( webglPages[ 1 ].startProgress > cinematicPages[ 1 ].startProgress )
   assert.equal( webglPages[ 1 ].targetProgress, cinematicPages[ 1 ].targetProgress )
   assert.equal( getStoryPages( 'original' )[ 1 ].startProgress, cinematicPages[ 1 ].startProgress )
-  assert.equal( getStudioStartUnits( 'photoreal' ), STORY_TIMING.pages.draft2StudioStart )
+  assert.equal( getStudioStartUnits( 'photoreal' ), STAGE.pages.draft2StudioStart )
 } )
 
 test( 'measured layouts put Projects and Contact on their real section tops', () =>

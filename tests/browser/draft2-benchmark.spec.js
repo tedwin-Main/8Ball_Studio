@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, relative } from 'node:path'
 import { test, expect } from '@playwright/test'
-import { STORY_TIMING, toStoryProgress } from '../../src/storyTiming.js'
+import { STAGE, toStoryProgress } from '../../src/storyStage.js'
 
 const VIEWPORTS = [
   { name: 'desktop', width: 1280, height: 800 },
@@ -17,9 +17,9 @@ const INACTIVE_RENDER_FRAME_BUDGET = 0
 
 const BREAK_STATES = [
   { name: 'start', progress: 0, settleMs: 220 },
-  { name: 'impact', progress: toStoryProgress( STORY_TIMING.intro.impact ), settleMs: 80 },
-  { name: 'scatter', progress: toStoryProgress( STORY_TIMING.intro.draft2.transitionReady ), settleMs: 220 },
-  { name: 'exit', progress: toStoryProgress( STORY_TIMING.intro.draft2.exitEnd + 0.03 ), settleMs: 220 },
+  { name: 'impact', progress: toStoryProgress( STAGE.intro.impact ), settleMs: 80 },
+  { name: 'scatter', progress: toStoryProgress( STAGE.intro.draft2.transitionReady ), settleMs: 220 },
+  { name: 'exit', progress: toStoryProgress( STAGE.intro.draft2.exitEnd + 0.03 ), settleMs: 220 },
 ]
 
 const median = ( values ) =>
@@ -272,9 +272,9 @@ const dispatchPortraitTap = async ( context, page, x, y ) =>
 
 const FRAMING_MILESTONES = [
   { name: 'start', progress: 0 },
-  { name: 'approach', progress: STORY_TIMING.intro.approachEnd * 0.5 },
-  { name: 'impact', progress: STORY_TIMING.intro.impact },
-  { name: 'scatter', progress: STORY_TIMING.intro.draft2.transitionReady },
+  { name: 'approach', progress: STAGE.intro.approachEnd * 0.5 },
+  { name: 'impact', progress: STAGE.intro.impact },
+  { name: 'scatter', progress: STAGE.intro.draft2.transitionReady },
 ]
 
 test( 'Draft 1 stays registered to the photo table while Draft 2 tracks its 3D table', async ( { browser, baseURL } ) =>
@@ -409,7 +409,7 @@ test( 'Draft 1 hover stays grounded while Draft 2 parallax remains bounded', asy
     await waitForDraftTwo( page )
     const draftOneCanvas = '.pool-pov-balls-canvas'
     const draftTwoCanvas = '.webgl-pool-canvas'
-    const approachProgress = STORY_TIMING.intro.approachEnd * 0.5
+    const approachProgress = STAGE.intro.approachEnd * 0.5
     await driveStoryProgress( page, toStoryProgress( approachProgress ) )
     await waitForFramingSnapshot( page, draftOneCanvas, approachProgress )
     await page.mouse.move( 640, 400 )
@@ -470,7 +470,7 @@ test( 'Draft 1 clears hover state when resizing from desktop to portrait', async
     await page.goto( `${baseURL}/?draft=cinematic&benchmark=draft2`, { waitUntil: 'domcontentloaded' } )
     await waitForDraftTwo( page )
     const draftOneCanvas = '.pool-pov-balls-canvas'
-    const progress = STORY_TIMING.intro.approachEnd * 0.5
+    const progress = STAGE.intro.approachEnd * 0.5
     await driveStoryProgress( page, toStoryProgress( progress ) )
     await waitForFramingSnapshot( page, draftOneCanvas, progress )
     await page.mouse.move( 1270, 400 )
@@ -719,7 +719,7 @@ test( 'Draft 2 touch gesture reaches Studio on portrait', async ( { browser, bas
     await installGestureProbe( page )
     await page.goto( `${baseURL}/?draft=webgl&benchmark=draft2`, { waitUntil: 'domcontentloaded' } )
     await waitForDraftTwo( page )
-    await driveStoryProgress( page, toStoryProgress( STORY_TIMING.pages.studioStart ) - 0.006 )
+    await driveStoryProgress( page, toStoryProgress( STAGE.pages.studioStart ) - 0.006 )
     await dispatchPortraitTouchGesture( context )
     await waitForStudioHandoff( page )
 
@@ -857,7 +857,7 @@ test( 'Draft 2 cuts the pocket drop before the Studio crossfade', async ( { brow
   {
     await page.goto( `${baseURL}/?draft=webgl&benchmark=draft2`, { waitUntil: 'domcontentloaded' } )
     await waitForDraftTwo( page )
-    await driveStoryProgress( page, toStoryProgress( STORY_TIMING.intro.draft2.pocketCut ) )
+    await driveStoryProgress( page, toStoryProgress( STAGE.intro.draft2.pocketCut ) )
 
     const ballOpacity = await page.locator( '.ball-rig' ).evaluate( ( node ) => getComputedStyle( node ).opacity )
     const pocketOpacity = await page.locator( '.pocket-iris' ).evaluate( ( node ) => getComputedStyle( node ).opacity )
@@ -1052,7 +1052,7 @@ for ( const viewport of VIEWPORTS )
       }
 
       // Restore a settled source playhead, then rotate. Resize must not restart it.
-      await driveStoryProgress( page, toStoryProgress( STORY_TIMING.intro.draft2.transitionReady ) )
+      await driveStoryProgress( page, toStoryProgress( STAGE.intro.draft2.transitionReady ) )
       await page.waitForTimeout( 350 )
       const beforeResize = await readDraftDiagnostics( page )
 

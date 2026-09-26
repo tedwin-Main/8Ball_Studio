@@ -1,12 +1,15 @@
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { STORY_TIMING } from '../storyTiming.js'
-import { easeThemeMorph, getRunDistance, getRunScrollTarget, liftAt, sectionAt, themeProgressAt } from './flowMath.js'
+import { getRunDistance, getRunScrollTarget, liftAt, sectionAt } from './flowMath.js'
 
 gsap.registerPlugin( ScrollTrigger )
 
 // A section takes over the header (its ink, the browser chrome colour) once its top passes this line.
 const HEADER_LINE_PX = 64
+
+// The handoff and reveal amounts at depth 1; the depth setting scales them all together.
+// contactShade is the strength of the shadow Projects casts at its bottom edge onto Contact.
+const FLOW_AT_DEPTH_1 = { riseVh: 8, shrink: 0.035, liftPercent: 2, dim: 0.35, contactOffsetPercent: 25, contactShade: 0.4 }
 
 /**
  * Tracks which part of the Story sits under the header: the pinned stage, Projects, or Contact.
@@ -63,14 +66,24 @@ export function createNavSections ( { root, onNavSection } )
  *    lifting (--lift) as it crosses the centre; the title drifts and the wall pushes in for depth.
  * 3. Projects → Contact: Projects scrolls away and Contact is uncovered from beneath it.
  * 4. Titles are set with the look's own letter entrance; Contact's rows settle in.
- * 5. Looks with section themes (Acid Night) get one scroll-driven palette position, --theme-t.
+ *
+ * Every sheet arrives in its final colour: nothing here changes a Page's ground while it moves, so
+ * a Handoff never shows a mid-tone between two palettes (see the Sheet Rule in DESIGN.md).
  *
  * Call it inside the Story's gsap.context / matchMedia callback: every tween and ScrollTrigger made
  * here is reverted with it. The returned cleanup undoes what GSAP cannot (listeners, custom props).
  */
-export function createFlowMotion ( { root, motion, charRest, sectionThemes, compact, scrub, scrollToY } )
+export function createFlowMotion ( { root, motion, charRest, compact, scrub, depth = 1, scrollToY } )
 {
-  const flow = STORY_TIMING.flow
+  const d = Math.max( 0, depth )
+  const flow = {
+    riseVh: FLOW_AT_DEPTH_1.riseVh * d,
+    shrinkScale: 1 - FLOW_AT_DEPTH_1.shrink * d,
+    shrinkLiftPercent: FLOW_AT_DEPTH_1.liftPercent * d,
+    shrinkDim: Math.min( 1, FLOW_AT_DEPTH_1.dim * d ),
+    contactRevealOffsetPercent: FLOW_AT_DEPTH_1.contactOffsetPercent * d,
+    contactShade: Math.min( 1, FLOW_AT_DEPTH_1.contactShade * d ),
+  }
   const projects = root.querySelector( '.projects-screen' )
   const contact = root.querySelector( '.contact-screen' )
   const track = projects?.querySelector( '.projects-track' )
@@ -90,14 +103,10 @@ export function createFlowMotion ( { root, motion, charRest, sectionThemes, comp
 
   // ---- The run's length: measured before every refresh, so Projects is tall enough to pin it. ----
   let runDistance = 0
-  const parts = { handoff: 1, run: 0, reveal: 1 }
   const measure = () =>
   {
     runDistance = getRunDistance( track.scrollWidth, rail.clientWidth )
     projects.style.setProperty( '--run-distance', `${runDistance}px` )
-    parts.handoff = window.innerHeight
-    parts.run = runDistance
-    parts.reveal = window.innerHeight
   }
   measure()
   ScrollTrigger.addEventListener( 'refreshInit', measure )
@@ -174,6 +183,8 @@ export function createFlowMotion ( { root, motion, charRest, sectionThemes, comp
   cleanups.push( () => track.removeEventListener( 'focusin', followFocus ) )
 
   // ---- 3. Projects → Contact: uncovered from beneath. ----
+  // The shade is the soft shadow Projects casts at its bottom edge (a mask in styles.css), so
+  // Contact shows its own colour from the first pixel; the shadow lifts as Projects leaves.
   gsap.timeline( {
     scrollTrigger: { trigger: contact, start: 'top bottom', end: 'top top', scrub, invalidateOnRefresh: true },
   } )
@@ -205,34 +216,6 @@ export function createFlowMotion ( { root, motion, charRest, sectionThemes, comp
       stagger: 0.12,
       scrollTrigger: { trigger: contact, start: 'top 60%', end: 'top 5%', scrub },
     } )
-  }
-
-  // ---- 5. Section themes: one palette position from Projects entering to Contact settling. ----
-  // 0 = Studio's palette, 1 = Projects', 2 = Contact's; the look's CSS mixes its colours from it.
-  if ( sectionThemes )
-  {
-    const theme = { t: 0 }
-    // Set on the two walls, the only surfaces that paint with it, so a change re-styles two leaf
-    // elements instead of both sections' whole subtrees on every scrolled frame.
-    const surfaces = [ projects, contact ].map( ( section ) => section.querySelector( '.cyc-wall' ) ).filter( Boolean )
-    const applyTheme = () => surfaces.forEach( ( surface ) => surface.style.setProperty( '--theme-t', theme.t.toFixed( 4 ) ) )
-    gsap.to( theme, {
-      t: 2,
-      // The tween runs 0 → 2 over the whole stretch; this ease holds it at 1 through the run and
-      // makes each palette change inside a short window of its handoff (easeThemeMorph).
-      ease: ( progress ) => easeThemeMorph( themeProgressAt( progress, parts ) ) / 2,
-      onUpdate: applyTheme,
-      scrollTrigger: {
-        trigger: projects,
-        start: 'top bottom',
-        endTrigger: contact,
-        end: 'top top',
-        scrub,
-        invalidateOnRefresh: true,
-      },
-    } )
-    applyTheme()
-    cleanups.push( () => surfaces.forEach( ( surface ) => surface.style.removeProperty( '--theme-t' ) ) )
   }
 
   return () => cleanups.forEach( ( cleanup ) => cleanup() )

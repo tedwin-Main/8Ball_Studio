@@ -1,32 +1,25 @@
-import { STORY_TIMING } from '../storyTiming.js'
+import { STORY_SETTINGS } from '../storyTiming.js'
 
-// Live overrides for the scroll feel, set by the dev-only ?tune panel (src/components/TunePanel.jsx).
-// Everything reads its values through getTuning(), so production (no panel) always gets the
-// STORY_TIMING contract. Nothing is persisted: "Copy values" is how a feel makes it into storyTiming.js.
-
-// The tunable values, where each lives in STORY_TIMING, and the slider range the panel offers.
+// Live overrides of STORY_SETTINGS from the ?tune panel; everything reads its values through getTuning().
 export const TUNING_FIELDS = Object.freeze( [
-  Object.freeze( { key: 'lerp', group: 'scroll', label: 'Glide (lerp)', min: 0.02, max: 0.2, step: 0.005 } ),
-  Object.freeze( { key: 'wheelMultiplier', group: 'scroll', label: 'Wheel distance', min: 0.3, max: 2, step: 0.05 } ),
-  Object.freeze( { key: 'scrubSeconds', group: 'scroll', label: 'Stage scrub (s)', min: 0, max: 3, step: 0.05 } ),
-  Object.freeze( { key: 'sectionScrubSeconds', group: 'scroll', label: 'Section scrub (s)', min: 0, max: 2, step: 0.05 } ),
-  Object.freeze( { key: 'skewMaxDeg', group: 'flow', label: 'Skew max (deg)', min: 0, max: 12, step: 0.5 } ),
-  Object.freeze( { key: 'skewGain', group: 'flow', label: 'Skew gain', min: 0, max: 1.5, step: 0.05 } ),
+  Object.freeze( { key: 'glide', label: 'Glide (1 = no coast)', min: 0.02, max: 1, step: 0.01 } ),
+  Object.freeze( { key: 'wheel', label: 'Wheel distance', min: 0.3, max: 2, step: 0.05 } ),
+  Object.freeze( { key: 'weight', label: 'Weight (s)', min: 0, max: 3, step: 0.05 } ),
+  Object.freeze( { key: 'introSeconds', label: 'Intro (s)', min: 1, max: 6, step: 0.1 } ),
+  Object.freeze( { key: 'depth', label: 'Depth', min: 0, max: 2, step: 0.05 } ),
+  Object.freeze( { key: 'skew', label: 'Skew (deg)', min: 0, max: 12, step: 0.5 } ),
 ] )
 
-// Values that only take effect when the scroll timelines are rebuilt (a scrub is fixed per trigger).
-export const REBUILD_KEYS = Object.freeze( [ 'scrubSeconds', 'sectionScrubSeconds' ] )
+// Values baked into the scroll timelines when they are built, so changing one rebuilds them.
+export const REBUILD_KEYS = Object.freeze( [ 'weight', 'depth' ] )
 
-export const TUNING_DEFAULTS = Object.freeze( Object.fromEntries(
-  TUNING_FIELDS.map( ( { key, group } ) => [ key, STORY_TIMING[ group ][ key ] ] ),
-) )
+export const TUNING_DEFAULTS = STORY_SETTINGS
 
 let values = TUNING_DEFAULTS
 const listeners = new Set()
 
 export const getTuning = () => values
 
-// Merges known, finite values and tells every subscriber; unknown keys are ignored.
 export function setTuning ( patch )
 {
   const next = { ...values }
@@ -58,11 +51,8 @@ export function subscribeTuning ( listener )
   return () => listeners.delete( listener )
 }
 
-// The current values as the lines to paste into STORY_TIMING_DEFAULTS in src/storyTiming.js.
+// The current values as lines to paste into STORY_SETTINGS in src/storyTiming.js.
 export function formatTuningForTiming ( tuning = values )
 {
-  const lines = ( group ) => TUNING_FIELDS
-    .filter( ( field ) => field.group === group )
-    .map( ( { key } ) => `    ${key}: ${tuning[ key ]},` )
-  return [ '  scroll: {', ...lines( 'scroll' ), '  },', '  flow: {', ...lines( 'flow' ), '  },' ].join( '\n' )
+  return TUNING_FIELDS.map( ( { key } ) => `  ${key}: ${tuning[ key ]},` ).join( '\n' )
 }
