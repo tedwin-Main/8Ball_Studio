@@ -2148,3 +2148,12 @@ button.tape:focus-visible {
   visibility: hidden;
   opacity: 0;
 }
+
+/* Touch screens: while a Story navigation glide runs (Lenis adds lenis-locked), the page takes no
+   native scrolling. That ends any iOS momentum still running from the last swipe, so momentum and
+   the glide never fight over the position. Lenis still moves the page programmatically. */
+@media (pointer: coarse) {
+  html.lenis.lenis-locked {
+    overflow: hidden;
+  }
+}

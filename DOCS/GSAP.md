@@ -6,7 +6,7 @@ This project uses Lenis for weighted scrolling and GSAP ScrollTrigger for realti
 
 ```text
 wheel / touch input
-  -> Story navigation qualifies one-page intent
+  -> Story navigation decides: free scroll, the one-scroll Intro, or a Page glide
   -> Lenis applies input weight and easing
   -> GSAP ticker calls lenis.raf()
   -> Lenis emits scroll
@@ -24,12 +24,9 @@ Lenis is created only when the visitor has not asked for reduced motion; with `p
 
 | Attribute | Current value | Purpose |
 | --- | ---: | --- |
-| `lerp` | `0.1` | Each 60fps frame closes 10% of the remaining distance: a short coast after input. |
-| `wheelMultiplier` | `0.7` | Scales wheel input: one tick travels 0.7x its raw delta. |
-| `syncTouch` | `false` | Touch keeps native momentum, as the reference site does. |
-| `touchMultiplier` | `1` | Swipe distance scale (Lenis-owned touch only). |
-| `syncTouchLerp` | `0.075` | Touch glide after release (Lenis-owned touch only). |
-| `touchInertiaExponent` | `1.7` | How strongly a touch flick carries on (Lenis-owned touch only). |
+| `lerp` | `glide` (0.1) | Each 60fps frame closes 10% of the remaining distance: a short coast after input. |
+| `wheelMultiplier` | `wheel` (0.7) | Scales wheel input: one tick travels 0.7x its raw delta. |
+| `syncTouch` | `false` | Touch keeps native momentum, as the reference site does, so Lenis's touch options are left unset. |
 | `duration` / `easing` | unset | Deliberately unused: in Lenis they override `lerp` and turn every flick into a fixed-length glide. |
 | `infinite` | `false` | Prevents the page from looping after the scroll limit. |
 | `gestureOrientation` | `'vertical'` | Limits gesture processing to vertical scrolling. |
@@ -50,11 +47,19 @@ All motion settings are the six dials in `STORY_SETTINGS` (`src/storyTiming.js`)
 | `depth` | `1` | Scales every handoff and reveal amount (rise, shrink, dim, Contact offset and shade, Studio drift and push-in); 0 is flat. |
 | `skew` | `1.5` | Most degrees the Projects cards lean at speed. |
 
+Notes:
+- Raise `glide` for a more immediate response (1 = no coast); lower it for a heavier settle. `wheel` changes distance per tick, not animation speed.
+- Lenis `duration` is in seconds; a GSAP tween `duration` inside a scrubbed timeline is timeline units, mapped to scroll distance by ScrollTrigger.
+- There is no `acceleration` option in Lenis, GSAP or ScrollTrigger here: the feel is `wheel` × `glide` × `weight`.
+- Try values live: open the site with `?tune`, drag the sliders, then "Copy values" into `STORY_SETTINGS`.
+
 The stage's fixed choreography (break phases, Studio cue, hold, handoff) lives in `src/storyStage.js`; small fixed values sit as constants next to the code that uses them (Intro beats in `App.jsx`, glide times and gesture thresholds in `useStoryPager.js`, skew gain in `velocitySkew.js`, cursor lag, preloader times).
 
 ### Scrolling
 
-Wheel and touch scroll the page freely through Lenis. Header links and the Page keys (PageUp, PageDown, Home, End) glide to a Page on an expo ease-out (0.7 s plus 0.14 s per screen travelled, at most 1.5 s); Top, the wordmark and Home return to the Intro as a cut (the night fades up, the page jumps, it fades away), never a rewind through the break; the arrows and Space scroll natively, so the Projects run is never skipped, and Space on a focused button presses it. A glide never takes the page away: input along it is swallowed, but input against it (past the 14 px gesture threshold) takes the page back. Outside the break the glide stops where it is (`cancelGlide` in `src/storyNavigationBrowser.js`) and the page scrolls freely from there.
+Wheel and touch scroll the page freely through Lenis. Header links and the Page keys (PageUp, PageDown, Home, End) glide to a Page on a quart ease-out (0.7 s plus 0.14 s per screen travelled, at most 1.5 s); Top, the wordmark and Home return to the Intro as a cut (the night fades up, the page jumps, it fades away), never a rewind through the break; the arrows and Space scroll natively, so the Projects run is never skipped, and Space on a focused button presses it. A glide never takes the page away: input along it is swallowed, but input against it (past the 14 px gesture threshold) takes the page back. Outside the break the glide stops where it is (`cancelGlide` in `src/storyNavigationBrowser.js`) and the page scrolls freely from there.
+
+On phones three rules keep glides steady. A resize that only moves the browser chrome (the address bar sliding, same width, height change of 180 px or less on a touch screen; `src/viewportResize.js`) only re-measures the Lenis limit (`syncLimits`): no ScrollTrigger refresh, no position restore, no Story re-measure, because the layout is sized in `svh`. While a glide runs, `html.lenis.lenis-locked` takes `overflow: hidden` on touch screens, which ends any native momentum so it cannot fight the glide. A touch that pulls past the top or the bottom of the Story is held still, so the page never rubber-bands.
 
 The Intro is the exception: the span from Intro to Studio is an autoplay span (`autoplaySpan` in `src/storyNavigation.js`). One wheel burst, swipe, ArrowDown or Space there glides the whole break to Studio in `introSeconds` on a smooth-step ease, with the `weight` scrub trailing it, so the 8-ball starts slowly and rolls in heavy. Playing it back needs more intent: upward input at Studio must add up to 120 px (`rewindThresholdPx`; separate gestures add up while each follows the last within 800 ms), so trackpad drift or one stray notch never rewinds; then the break plays back in 1 s. Input against either glide turns it around to the other end, taking the matching share of its time, so the break is never left half-played. A flick or key step up from further down that would carry into the break stops on Studio. The rest of a gesture that started a glide is swallowed.
 
@@ -87,7 +92,7 @@ This project uses a numeric scrub (0.4 s on the pinned stage, 0.2 s after it) on
 1. **One clock for visuals.** Everything visual reads the scrubbed timeline's progress: DOM tweens, the 3D intro draft, and the Draft 2 handoff. Raw scroll progress is only remembered, for Draft/Look switch restores.
 2. **Jumps don't replay.** After a Draft/Look switch seeks the Story, `finishScrubCatchUp()` completes the scrub tween at once.
 
-A known side effect: the page indicator and the nav "current" state follow raw scroll, so they can lead the visuals by up to 1.2 s.
+A known side effect: the page indicator and the nav "current" state follow raw scroll, so they can lead the visuals by up to the `weight` scrub (0.4 s).
 
 ## GSAP timeline attributes
 
@@ -107,7 +112,6 @@ Used by `gsap.timeline().to(...)` and `gsap.set(...)`.
 | `opacity` | CSS opacity from `0` to `1`. |
 | `autoAlpha` | GSAP helper that changes opacity and toggles `visibility`. |
 | `force3D` | Encourages GPU-backed transforms when supported. |
-| `boxShadow` | Animatable CSS shadow value. Used for the target pocket hit. |
 
 ### Timeline methods
 
@@ -136,7 +140,7 @@ Used by `gsap.timeline().to(...)` and `gsap.set(...)`.
 
 ## Header navigation
 
-`goToPage()` resolves a Page ID through the Story schedule and sends its normalized target to the browser adapter. Header controls and page dots use that same interface, so `Projects`, `Contact`, and `Top` keep identical transition locking and easing.
+`goToPage()` resolves a Page ID through the Story schedule and sends its normalized target to the browser adapter. The header links, the Page keys and the Contact board use that same interface. Top, the wordmark and Home are the exception: `replay()` in `src/App.jsx` fades `.cut-cover` up, calls `goToPage( 'intro', { immediate: true } )`, and fades it away.
 
 ```js
 goToPage( 'projects' )
@@ -145,28 +149,8 @@ goToPage( 'intro' )
 ```
 
 - Page IDs are the public interface; numeric indices stay inside Story navigation.
-- A Story gesture can start at most one Page transition; incoming gestures are ignored until the adapter completes or the watchdog releases the lock.
+- A Story gesture can start at most one Page glide. Input along a glide is swallowed until the adapter completes (or the watchdog releases the lock); input against it takes the page back (see **Scrolling**).
 - `window.__storyNavigationBenchmark` exists only on `?benchmark=...` URLs for deterministic browser sampling. There is no production `window.lenis` global.
-
-## Scroll weight tuning
-
-There is no active `acceleration` option in this project. Scroll acceleration is the combined result of input scale, interpolation duration, and easing.
-
-| Desired result | Change |
-| --- | --- |
-| Less distance per wheel tick | Lower `wheel`. |
-| More coast / heavier settle | Lower `glide`. |
-| More immediate response | Raise `glide` (1 = no coast). |
-| More animation catch-up delay | Raise `weight`. |
-| Calmer or bolder page changes | Lower or raise `depth`. |
-| Try values live | Open the site with `?tune`, drag the sliders, then "Copy values" into `STORY_SETTINGS`. |
-
-## Important distinction
-
-- Lenis `duration` is measured in seconds.
-- GSAP tween `duration` is measured in timeline units and is mapped to scroll distance by ScrollTrigger.
-- `wheel` changes input distance; it does not change animation speed directly.
-- `acceleration` is not a configured GSAP, ScrollTrigger, or Lenis property here.
 
 ## Flow choreography (after the pinned stage)
 
@@ -178,6 +162,7 @@ Built by `createFlowMotion()` in `src/motion/flowMotion.js`, inside the Story's 
 | Projects run | `#projects` `top top` → `+= run distance` | `.projects-sticky` stays put (CSS sticky) while `.projects-track` slides left by track width minus rail width, measured on every `refreshInit` into `--run-distance`. Boards get `--lift` (0 to 1) as they cross the centre (`containerAnimation`); the title drifts and the wall pushes in. |
 | Projects → Contact reveal | `#contact` `top bottom` → `top top` | `.contact-inner` settles from `-contactRevealOffsetPercent` to 0 and `.contact-shade` lifts, so Contact seems to lie under Projects. The shade is a static mask (a band under Projects' bottom edge, 40% at depth 1, gone a third of the way down); only its opacity animates. Rows fade in (opacity only, so links stay focusable). |
 | Titles | per section | Each look's own Studio letter entrance, scrubbed. |
+| Closing shot | `#contact` `top 70%` → `top 2%` | The 8-ball (`.contact-pocket-ball`) rolls in (`xPercent` −520 → 0, `rotation` −540 → 0) and drops into the pocket (`scale` 0.64, darkened). The CSS rest state is the last frame, so reduced motion shows it too. |
 | Header section | `createNavSections()`, header line `top+=64` | `data-nav-section` on `.experience` (stage, projects, contact) drives the header ink and `<meta name="theme-color">`. Runs with reduced motion too. |
 
 Velocity skew (`src/motion/velocitySkew.js`): only the `.skew-layer-x` Projects track leans `skewX` with Lenis velocity (fixed gain 0.35, clamped to `skew`, eased over 0.4 s). Titles, Contact, the pinned stage and the fixed chrome never lean, and nothing leans during a Story navigation glide.

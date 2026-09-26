@@ -21,11 +21,17 @@ class FakeAdapter
     this.refreshCount = 0
     this.updateCount = 0
     this.cancelCount = 0
+    this.syncCount = 0
     this.destroyed = false
   }
 
   // Like Lenis, a cancelled glide never reports completion by itself; pendingCompletion is kept so a
   // test can fire the stale completion and prove it is ignored.
+  syncLimits ()
+  {
+    this.syncCount += 1
+  }
+
   cancelGlide ()
   {
     this.cancelCount += 1
@@ -180,6 +186,7 @@ const createFixture = ( options = {} ) =>
     gestureResetMs: 120,
     prefersReducedMotion: options.prefersReducedMotion || ( () => false ),
     autoplaySpan: options.autoplaySpan || null,
+    isLayoutResize: options.isLayoutResize,
     onPageChange: ( page ) => changedPages.push( page ),
     onIndicatorPageChange: ( page ) => indicatorPages.push( page ),
     onTransitionChange: ( isTransitioning ) => transitionStates.push( isTransitioning ),
@@ -637,4 +644,40 @@ test( 'autoplay span: one swipe on the Intro glides to Studio; taps pass through
   assert.equal( fixture.adapter.virtualScroll( { deltaY: 0, event: move.event } ), false )
   assert.equal( move.wasPrevented(), true )
   assert.equal( fixture.adapter.scrollCalls.at( -1 ).targetY, 300 )
+} )
+
+test( 'a mobile address-bar resize only syncs the scroll limit: no refresh, no position restore', () =>
+{
+  const fixture = createFixture( { position: 400, isLayoutResize: () => false } )
+  fixture.eventTarget.dispatch( 'resize', {} )
+  fixture.clock.advance( 1000 )
+
+  assert.equal( fixture.adapter.syncCount, 1 )
+  assert.equal( fixture.adapter.refreshCount, 0 )
+  assert.equal( fixture.adapter.scrollCalls.length, 0 )
+} )
+
+test( 'a touch pulling past the top or the bottom is held still (no rubber band)', () =>
+{
+  const touchMove = ( deltaY ) =>
+  {
+    let prevented = false
+    const event = { type: 'touchmove', cancelable: true, touches: [ { clientY: 300 } ], preventDefault: () => { prevented = true } }
+    return { event, deltaY, wasPrevented: () => prevented }
+  }
+  const top = createFixture( { position: 0 } )
+  const pullDown = touchMove( -30 )
+  assert.equal( top.adapter.virtualScroll( { deltaY: pullDown.deltaY, event: pullDown.event } ), false )
+  assert.equal( pullDown.wasPrevented(), true )
+
+  const bottom = createFixture( { position: 1000 } )
+  const pushUp = touchMove( 30 )
+  assert.equal( bottom.adapter.virtualScroll( { deltaY: pushUp.deltaY, event: pushUp.event } ), false )
+  assert.equal( pushUp.wasPrevented(), true )
+
+  // Inside the Story a touch scrolls freely.
+  const middle = createFixture( { position: 700 } )
+  const move = touchMove( 30 )
+  assert.equal( middle.adapter.virtualScroll( { deltaY: move.deltaY, event: move.event } ), true )
+  assert.equal( move.wasPrevented(), false )
 } )

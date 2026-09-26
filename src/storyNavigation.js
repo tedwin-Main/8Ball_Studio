@@ -203,6 +203,9 @@ export function createStoryNavigation ( {
   // { from, to } Page ids whose span plays by itself (the Intro break). One gesture
   // inside it glides the whole way to the Page it points at, instead of scrubbing the span by hand.
   autoplaySpan = null,
+  // Whether a resize is a real layout change (true) or only the mobile browser chrome sliding
+  // (false). Chrome slides only update the scroller's limit: no refresh, no position restore.
+  isLayoutResize = () => true,
   onPageChange,
   onIndicatorPageChange,
   onTransitionChange,
@@ -641,6 +644,16 @@ export function createStoryNavigation ( {
     return true
   }
 
+  // True when touch input would scroll beyond either end of the Story (deltaY > 0 scrolls down).
+  const pullsPastEdge = ( deltaY ) =>
+  {
+    const metrics = getMetrics()
+    const y = adapter.getScrollPosition()
+    if ( !metrics || !Number.isFinite( y ) || !Number.isFinite( deltaY ) || deltaY === 0 ) return false
+    if ( deltaY < 0 ) return y <= metrics.top + 1
+    return y >= metrics.top + metrics.range - 1
+  }
+
   const handleVirtualScroll = ( scrollInput = {} ) =>
   {
     const { deltaY = 0, event } = scrollInput
@@ -653,6 +666,14 @@ export function createStoryNavigation ( {
     // The page scrolls freely, except inside the autoplay span and while a Page glide holds it.
     const autoplayResult = autoplaySpan ? handleAutoplayInput( { deltaY, event, eventType, isTouch } ) : null
     if ( autoplayResult !== null ) return autoplayResult
+
+    // A finger pulling past the top or the bottom of the Story would stretch the page (the mobile
+    // rubber band). Hold it still there instead.
+    if ( isTouch && eventType === 'touchmove' && pullsPastEdge( deltaY ) )
+    {
+      preventDefault( event )
+      return false
+    }
     if ( !transitioning ) return true
 
     // A glide never takes the page away from the visitor: input against it takes the page back.
@@ -755,6 +776,11 @@ export function createStoryNavigation ( {
   const handleResize = () =>
   {
     if ( destroyed ) return
+    if ( !isLayoutResize() )
+    {
+      adapter.syncLimits?.()
+      return
+    }
     // Capture before the adapter's resize observers can rewrite the pixel scroll position.
     if ( resizeTimer === null )
     {

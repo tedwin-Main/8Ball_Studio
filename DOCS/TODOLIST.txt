@@ -1,1 +1,0 @@
-add gradient fades to the background where the image sits

@@ -3,6 +3,7 @@ import { createStoryNavigation } from '../storyNavigation'
 import { createStoryScrollAdapter } from '../storyNavigationBrowser'
 import { easeStoryTransition } from '../storyStage'
 import { getTuning } from '../motion/runtimeTuning'
+import { createLayoutResizeFilter } from '../viewportResize'
 
 // Glide seconds back up to the Intro and between the other Pages; a wheel burst ends after a pause
 // this long, and a gesture must move this far to count. The rewind is quick: the visitor asked for it.
@@ -50,8 +51,9 @@ const getTransition = ( { fromPage, toPage } ) =>
     }
   }
 
-  // Every other glide leaves at speed and settles softly (expo ease-out), like a camera landing on
-  // its mark; its length follows the distance.
+  // Every other glide leaves at speed and settles softly (quart ease-out), like a camera landing on
+  // its mark; its length follows the distance. Expo was too abrupt: it covered half the way in the
+  // first ~80 ms, which reads as a jump on phones.
   const range = getStoryMetrics().range
   const screens = fromPage && range > 0
     ? Math.abs( toPage.targetProgress - fromPage.targetProgress ) * range / Math.max( 1, window.innerHeight )
@@ -62,8 +64,8 @@ const getTransition = ( { fromPage, toPage } ) =>
   }
 }
 
-// Expo ease-out, exact at both ends.
-const easeGlideOut = ( t ) => ( t >= 1 ? 1 : 1 - Math.pow( 2, -10 * Math.max( 0, t ) ) )
+// Quart ease-out: half the way in the first 16% of the time, then a long soft landing.
+const easeGlideOut = ( t ) => 1 - Math.pow( 1 - Math.min( 1, Math.max( 0, t ) ), 4 )
 
 /**
  * Thin React adapter for the deep Story navigation module. It mirrors stable
@@ -114,6 +116,8 @@ export function useStoryPager ( {
       gestureResetMs: GESTURE_RESET_MS,
       // One gesture on the Intro plays the whole break to Studio (and back up from Studio).
       autoplaySpan: { from: 'intro', to: 'studio' },
+      // Mobile address-bar slides must not refresh and snap the Story mid-glide.
+      isLayoutResize: createLayoutResizeFilter( window ),
       onPageChange: ( pageId ) =>
       {
         targetPageRef.current = pageId

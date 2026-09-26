@@ -9,6 +9,8 @@ gsap.registerPlugin( ScrollTrigger )
 // 200 ms resize refresh from racing the normalized-progress restore.
 ScrollTrigger.config( {
   autoRefreshEvents: 'visibilitychange,DOMContentLoaded,load',
+  // A mobile address bar sliding in or out is not a layout change (the Story is sized in svh).
+  ignoreMobileResize: true,
 } )
 
 const NATIVE_INPUT_EVENTS = [ 'wheel', 'touchstart', 'touchmove', 'touchend', 'touchcancel' ]
@@ -242,6 +244,13 @@ export function createStoryScrollAdapter ( {
     }
   }
 
+  // After the mobile browser chrome slides, only the scroll limit moves: re-measure Lenis alone,
+  // without a ScrollTrigger refresh or a position restore.
+  const syncLimits = () =>
+  {
+    lenis?.resize()
+  }
+
   const refresh = () =>
   {
     // Recompute Lenis limits before ScrollTrigger measures the Story range.
@@ -288,6 +297,7 @@ export function createStoryScrollAdapter ( {
     stop,
     start,
     setFeel,
+    syncLimits,
     refresh,
     destroy,
     get isFallback () { return !lenis },

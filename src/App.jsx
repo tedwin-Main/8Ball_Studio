@@ -12,6 +12,7 @@ import { DEFAULT_LOOK_ID, getLookConfig, getRevealVars, getThemeColor, normalize
 import { createFlowMotion, createNavSections } from './motion/flowMotion'
 import { createVelocitySkew } from './motion/velocitySkew'
 import { createIntroEntrance } from './motion/introEntrance'
+import { createLayoutResizeFilter } from './viewportResize'
 import { REBUILD_KEYS, getTuning, subscribeTuning } from './motion/runtimeTuning'
 import { PoolPovDraft } from './drafts/PoolPovDraft'
 import PhotorealPoolDraft from './drafts/PhotorealPoolDraft'
@@ -518,11 +519,14 @@ function App ()
   {
     measureStoryLayout()
     ScrollTrigger.addEventListener( 'refresh', measureStoryLayout )
-    window.addEventListener( 'resize', measureStoryLayout )
+    // Mobile address-bar slides are skipped: re-measuring then re-renders the whole Story mid-glide.
+    const isLayoutResize = createLayoutResizeFilter( window )
+    const onResize = () => { if ( isLayoutResize() ) measureStoryLayout() }
+    window.addEventListener( 'resize', onResize )
     return () =>
     {
       ScrollTrigger.removeEventListener( 'refresh', measureStoryLayout )
-      window.removeEventListener( 'resize', measureStoryLayout )
+      window.removeEventListener( 'resize', onResize )
     }
   }, [ measureStoryLayout ] )
 

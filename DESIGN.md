@@ -187,7 +187,7 @@ Every look shares this system. Values live in `src/storyTiming.js` (`scroll`, `p
 - **The run:** Projects pins while its cards slide sideways, and each card lifts as it crosses the centre. The title drifts against the cards for depth.
 - **Projects → Contact reveal:** Projects scrolls away and Contact is uncovered from beneath it. Contact is acid from its first pixel. Its content settles from 25% up while the shadow under Projects' edge lifts.
 - **Velocity skew:** only the Projects cards lean with the scroll's speed (up to 1.5°) and settle upright. Titles and Contact stand still, and nothing leans during a glide.
-- **Glides:** header links and Page keys glide on an expo ease-out, 0.7 s plus 0.14 s per screen (at most 1.5 s). Top, the wordmark and Home return to the Intro as a cut, never a rewind.
+- **Glides:** header links and Page keys glide on a quart ease-out, 0.7 s plus 0.14 s per screen (at most 1.5 s). Top, the wordmark and Home return to the Intro as a cut, never a rewind.
 - **Closing shot:** as Contact settles, the 8-ball rolls in from the left and drops into the pocket beside the title, the break's last beat. At rest, and with reduced motion, it lies in the pocket.
 - **Reduced motion:** there is no Lenis, skew, run, or handoff. Each Page shows its own palette, and the cards wrap into a grid.
 
