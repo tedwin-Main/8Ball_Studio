@@ -31,6 +31,9 @@ gsap.registerPlugin( ScrollTrigger, CustomEase )
 // The scroll-feel panel is a dev tool: it exists only on ?tune URLs and ships as its own chunk.
 const TunePanel = lazy( () => import( './components/TunePanel' ) )
 const TUNE_REQUESTED = typeof window !== 'undefined' && new URLSearchParams( window.location.search ).has( 'tune' )
+// The Draft and Look pickers are review tools for the owner: visitors see one confident site (Main,
+// Draft 01). They show only on ?review URLs; ?draft= and ?look= still select a treatment directly.
+const REVIEW_REQUESTED = typeof window !== 'undefined' && new URLSearchParams( window.location.search ).has( 'review' )
 
 // The one motion signature of the Cyc Wall world: a studio light snapping on fast,
 // then settling with a long tail, like a tungsten head reaching full output.
@@ -113,7 +116,8 @@ const NEXT_BOARDS = [
   {
     id: 'contact',
     title: 'Your brand, next',
-    caption: 'Start a project',
+    // One label per action across the site: every way to reach the studio says "Contact us".
+    caption: 'Contact us',
     href: '#contact',
     cursor: 'Contact',
   },
@@ -138,14 +142,15 @@ const HERO_WORDS = HERO_TITLE.split( ' ' )
 // after this long anyway, so the Intro is never left held at the shot's start.
 const INTRO_ENTRANCE_FALLBACK_MS = 4000
 
+// The one primary way to reach the studio: local brands message on WhatsApp first.
+const PRIMARY_CONTACT = {
+  label: 'Message us on WhatsApp',
+  number: '+60 12-783 7511',
+  href: 'https://wa.me/60127837511',
+}
+
+// The other channels, set smaller under the primary action.
 const CONTACT_ITEMS = [
-  {
-    icon: 'whatsapp',
-    title: 'WhatsApp',
-    description: '+60 12-783 7511',
-    action: 'Message',
-    href: 'https://wa.me/60127837511',
-  },
   {
     icon: 'instagram',
     title: 'Instagram',
@@ -276,6 +281,9 @@ function App ()
   const [ activeLook, setActiveLook ] = useState( getInitialLook )
   const [ activePage, setActivePage ] = useState( 'intro' )
   const [ indicatorPage, setIndicatorPage ] = useState( 'intro' )
+  // The latest indicator Page for event handlers (the Top cut) without re-binding them per render.
+  const indicatorPageRef = useRef( indicatorPage )
+  indicatorPageRef.current = indicatorPage
   // Measured positions of the pinned stage and the sections after it; null until first layout.
   const [ storyLayout, setStoryLayout ] = useState( null )
   // The part of the Story under the header (stage, projects, contact): drives the header ink and
@@ -932,8 +940,41 @@ function App ()
     }
   }, [ activeLook, tuneVersion, getVelocity, scrollToY, subscribeScroll ] )
 
-  // Top is an intentional direct jump, so it targets the Intro Page.
-  const replay = () => goToPage( 'intro' )
+  // Top (and the wordmark, and Home) returns to the Intro as a clean cut: the night fades up, the
+  // page jumps, and the Intro fades back in. Gliding back would play the whole break in reverse.
+  const cutCoverRef = useRef( null )
+  const replay = useCallback( () =>
+  {
+    const cover = cutCoverRef.current
+    const reduceMotion = window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches
+    if ( indicatorPageRef.current === 'intro' || !cover || reduceMotion )
+    {
+      goToPage( 'intro', { immediate: reduceMotion } )
+      return
+    }
+    gsap.killTweensOf( cover )
+    gsap.timeline()
+      .to( cover, { autoAlpha: 1, duration: 0.28, ease: 'power2.in' } )
+      .call( () => goToPage( 'intro', { immediate: true } ) )
+      .to( cover, { autoAlpha: 0, duration: 0.6, ease: 'power2.out' }, '+=0.12' )
+  }, [ goToPage ] )
+
+  // Home is the keyboard's Top: it takes the same cut instead of Story navigation's glide back.
+  useEffect( () =>
+  {
+    const onKey = ( event ) =>
+    {
+      if ( event.key !== 'Home' || event.ctrlKey || event.metaKey || event.altKey ) return
+      if ( event.target?.matches?.( 'input, textarea, select, [contenteditable="true"]' ) ) return
+      if ( indicatorPageRef.current === 'intro' ) return
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      replay()
+    }
+    // Capture, so this runs before Story navigation's own Home handler.
+    window.addEventListener( 'keydown', onKey, true )
+    return () => window.removeEventListener( 'keydown', onKey, true )
+  }, [ replay ] )
 
   return (
     <main
@@ -1082,7 +1123,7 @@ function App ()
           <div className="cyc-wall" aria-hidden="true" />
           <LookScenery look={ activeLook } page="projects" />
           <div className="projects-content">
-            <h2 id="projects-title" className="projects-title cyc-title skew-layer" aria-label="Our Projects">
+            <h2 id="projects-title" className="projects-title cyc-title" aria-label="Our Projects">
               <CueLine className="projects-title-line" text="Our" />
               <CueLine className="projects-title-line" text="Projects" />
             </h2>
@@ -1135,13 +1176,33 @@ function App ()
         <div className="contact-inner">
           <div className="cyc-wall" aria-hidden="true" />
           <LookScenery look={ activeLook } page="contact" />
-          <div className="contact-content skew-layer">
+          <div className="contact-content">
             <h2 id="contact-title" className="contact-title cyc-title" aria-label="Contact Us">
               <CueLine className="contact-title-line" text="Contact" />
               <CueLine className="contact-title-line" text="Us" />
             </h2>
+            {/* The closing shot: as Contact settles, the 8-ball rolls in and drops into a pocket, the
+                break's last beat (flowMotion.js). At rest (and with reduced motion) it lies in the pocket. */}
+            <div className="contact-pocket" aria-hidden="true">
+              <span className="contact-pocket-hole" />
+              <img className="contact-pocket-ball" src={ brandLogo } alt="" />
+            </div>
             <div className="call-sheet">
-              <ul className="contact-list">
+              <p className="contact-lead">Tell us about your brand.</p>
+              <a
+                className="contact-primary"
+                href={ PRIMARY_CONTACT.href }
+                target="_blank"
+                rel="noreferrer"
+                data-cursor="Message"
+                aria-label={ `${PRIMARY_CONTACT.label}: ${PRIMARY_CONTACT.number}` }
+              >
+                <span className="contact-primary-icon"><ContactIcon type="whatsapp" /></span>
+                <span className="contact-primary-label">{ PRIMARY_CONTACT.label }</span>
+                <span className="contact-primary-number">{ PRIMARY_CONTACT.number }</span>
+                <svg className="contact-primary-arrow" viewBox="0 0 20 12" aria-hidden="true"><path d="M1 6h17M13 1l5 5-5 5" /></svg>
+              </a>
+              <ul className="contact-list" aria-label="Other channels">
                 { CONTACT_ITEMS.map( ( item ) => (
                   <li key={ item.title }>
                     <a
@@ -1163,12 +1224,12 @@ function App ()
                   </li>
                 ) ) }
               </ul>
-              {/* The foot line also carries the Look choice: a whole-site setting, kept at the end of
-                  the Story instead of floating over every Page. */}
+              {/* On review URLs the foot line also carries the Look choice, kept at the end of the Story
+                  instead of floating over every Page. */}
               <div className="call-sheet-foot">
                 <span>8 Ball Studio</span>
                 <span>Greater Kuala Lumpur</span>
-                <LookSwitcher activeLook={ activeLook } onChange={ switchLook } />
+                { REVIEW_REQUESTED && <LookSwitcher activeLook={ activeLook } onChange={ switchLook } /> }
               </div>
             </div>
           </div>
@@ -1177,8 +1238,11 @@ function App ()
         <div className="contact-shade" aria-hidden="true" />
       </section>
 
-      {/* Drafts are treatments of the Intro: styles.css shows this only while the Intro is settled. */}
-      <DraftSwitcher activeDraft={ activeDraft } onChange={ switchDraft } />
+      {/* Review only. Drafts are treatments of the Intro: styles.css shows this only while the Intro is settled. */}
+      { REVIEW_REQUESTED && <DraftSwitcher activeDraft={ activeDraft } onChange={ switchDraft } /> }
+
+      {/* The Top cut: the night fades up over everything, the page jumps to the Intro, and it fades away. */}
+      <div className="cut-cover" ref={ cutCoverRef } aria-hidden="true" />
 
       {/* Mouse and trackpad only: a cue ball replaces the pointer. */}
       <CursorBall />

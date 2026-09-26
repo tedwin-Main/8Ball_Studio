@@ -48,13 +48,13 @@ All motion settings are the six dials in `STORY_SETTINGS` (`src/storyTiming.js`)
 | `weight` | `0.4` | GSAP `scrub` seconds on the Intro and Studio; Projects and Contact use half. |
 | `introSeconds` | `3` | The one-scroll Intro glide to Studio. |
 | `depth` | `1` | Scales every handoff and reveal amount (rise, shrink, dim, Contact offset and shade, Studio drift and push-in); 0 is flat. |
-| `skew` | `4` | Most degrees content leans at speed. |
+| `skew` | `1.5` | Most degrees the Projects cards lean at speed. |
 
 The stage's fixed choreography (break phases, Studio cue, hold, handoff) lives in `src/storyStage.js`; small fixed values sit as constants next to the code that uses them (Intro beats in `App.jsx`, glide times and gesture thresholds in `useStoryPager.js`, skew gain in `velocitySkew.js`, cursor lag, preloader times).
 
 ### Scrolling
 
-Wheel and touch scroll the page freely through Lenis. Header links and the Page keys (PageUp, PageDown, Home, End) glide to a Page (1.2 s); the arrows and Space scroll natively, so the Projects run is never skipped, and Space on a focused button presses it. A glide never takes the page away: input along it is swallowed, but input against it (past the 14 px gesture threshold) takes the page back. Outside the break the glide stops where it is (`cancelGlide` in `src/storyNavigationBrowser.js`) and the page scrolls freely from there.
+Wheel and touch scroll the page freely through Lenis. Header links and the Page keys (PageUp, PageDown, Home, End) glide to a Page on an expo ease-out (0.7 s plus 0.14 s per screen travelled, at most 1.5 s); Top, the wordmark and Home return to the Intro as a cut (the night fades up, the page jumps, it fades away), never a rewind through the break; the arrows and Space scroll natively, so the Projects run is never skipped, and Space on a focused button presses it. A glide never takes the page away: input along it is swallowed, but input against it (past the 14 px gesture threshold) takes the page back. Outside the break the glide stops where it is (`cancelGlide` in `src/storyNavigationBrowser.js`) and the page scrolls freely from there.
 
 The Intro is the exception: the span from Intro to Studio is an autoplay span (`autoplaySpan` in `src/storyNavigation.js`). One wheel burst, swipe, ArrowDown or Space there glides the whole break to Studio in `introSeconds` on a smooth-step ease, with the `weight` scrub trailing it, so the 8-ball starts slowly and rolls in heavy. Playing it back needs more intent: upward input at Studio must add up to 120 px (`rewindThresholdPx`; separate gestures add up while each follows the last within 800 ms), so trackpad drift or one stray notch never rewinds; then the break plays back in 1 s. Input against either glide turns it around to the other end, taking the matching share of its time, so the break is never left half-played. A flick or key step up from further down that would carry into the break stops on Studio. The rest of a gesture that started a glide is swallowed.
 
@@ -180,6 +180,6 @@ Built by `createFlowMotion()` in `src/motion/flowMotion.js`, inside the Story's 
 | Titles | per section | Each look's own Studio letter entrance, scrubbed. |
 | Header section | `createNavSections()`, header line `top+=64` | `data-nav-section` on `.experience` (stage, projects, contact) drives the header ink and `<meta name="theme-color">`. Runs with reduced motion too. |
 
-Velocity skew (`src/motion/velocitySkew.js`): every `.skew-layer` leans `skewY` and the `.skew-layer-x` track leans `skewX` with Lenis velocity (fixed gain 0.35, clamped to `skew`, eased over 0.4 s). The pinned stage and the fixed chrome never skew.
+Velocity skew (`src/motion/velocitySkew.js`): only the `.skew-layer-x` Projects track leans `skewX` with Lenis velocity (fixed gain 0.35, clamped to `skew`, eased over 0.4 s). Titles, Contact, the pinned stage and the fixed chrome never lean, and nothing leans during a Story navigation glide.
 
 Keyboard focus on a board link glides the run until that board sits at the centre (`getRunScrollTarget`).

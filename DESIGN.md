@@ -140,7 +140,7 @@ The Story has a pinned stage (Intro, then Studio) followed by two choreographed 
 
 - **Studio:** the title is centred on a box min(90vw, 1320px) wide. A footer rule sits near the bottom: numbered services on the left, the location on the right.
 - **Projects:** the title sits top-left. A rail at the bottom carries the client cards (7:5) and two closing cards, which run sideways while the section is pinned.
-- **Contact:** the title sits top-left above a ruled three-column list of channels (one column on phones), with a foot line under it.
+- **Contact:** the title sits top-left, with the pocket holding the 8-ball at top right. Under it: one lead line, the WhatsApp action as a full-width ink bar, then Instagram and email in a ruled two-column list (one column on phones), and a foot line.
 
 The compact breakpoint is `max-width: 768px` or `max-height: 540px`. Safe-area insets are respected on edge controls.
 
@@ -161,10 +161,10 @@ The 8-ball mark sits at left. On the right are plain links: Our projects, Contac
 Client cards are white and 4px-cornered; HaruPlate's is ink, because its mark is drawn for dark grounds. Each has a small caption underneath. The run ends with two link cards that are next steps, never invented work: "Your brand, next" is cut from acid and opens Contact; "More on Instagram" is cut from ink and opens the studio's real profile.
 
 ### Channel list (Contact)
-The list is ruled in ink at 24%. Each row has a ringed icon, the channel name, the detail at 500, and an action label with an arrow. On hover or focus the row takes a 7% ink wash and the icon fills ink with an acid glyph.
+Above the list, WhatsApp is the one primary action: a full-width ink bar with the acid WhatsApp glyph, the label, the number, and an arrow that steps forward on hover. The list below holds Instagram and email, ruled in ink at 24%. Each row has a ringed icon, the channel name, the detail at 500, and an action label with an arrow. On hover or focus the row takes a 7% ink wash and the icon fills ink with an acid glyph.
 
 ### Controls
-The Draft switcher is a dark pill, and the active Draft is filled acid. Drafts belong to the Intro, so the switcher shows only while a visitor is settled there: it fades out as the break starts and returns once a glide settles on the Intro. Nothing floats over the later Pages but the header.
+The Draft and Look pickers are owner review tools, shown only on `?review` URLs; visitors see Main with Draft 01. The Draft switcher is a dark pill, and the active Draft is filled acid. Drafts belong to the Intro, so the switcher shows only while a visitor is settled there: it fades out as the break starts and returns once a glide settles on the Intro. Nothing floats over the later Pages but the header.
 
 The Look choice sits inline in Contact's foot line, in the foot's own type: "Look" at 72%, the chosen Look at full ink and underlined, with a small caret. It is a native select, so it works with keyboard, screen readers, and phones.
 
@@ -186,7 +186,9 @@ Every look shares this system. Values live in `src/storyTiming.js` (`scroll`, `p
 - **Studio → Projects handoff** (scrub 0.6 s): Projects rises over the held Studio, which shrinks to 0.965, lifts 2%, and dims.
 - **The run:** Projects pins while its cards slide sideways, and each card lifts as it crosses the centre. The title drifts against the cards for depth.
 - **Projects → Contact reveal:** Projects scrolls away and Contact is uncovered from beneath it. Contact is acid from its first pixel. Its content settles from 25% up while the shadow under Projects' edge lifts.
-- **Velocity skew:** everything in flow leans with the scroll's speed (up to 4°) and settles upright. The pinned stage never leans.
+- **Velocity skew:** only the Projects cards lean with the scroll's speed (up to 1.5°) and settle upright. Titles and Contact stand still, and nothing leans during a glide.
+- **Glides:** header links and Page keys glide on an expo ease-out, 0.7 s plus 0.14 s per screen (at most 1.5 s). Top, the wordmark and Home return to the Intro as a cut, never a rewind.
+- **Closing shot:** as Contact settles, the 8-ball rolls in from the left and drops into the pocket beside the title, the break's last beat. At rest, and with reduced motion, it lies in the pocket.
 - **Reduced motion:** there is no Lenis, skew, run, or handoff. Each Page shows its own palette, and the cards wrap into a grid.
 
 ## Alternate looks

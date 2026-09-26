@@ -402,7 +402,8 @@
   display: grid;
   border-top: 1px solid rgb(7 9 8 / 0.24);
   border-bottom: 1px solid rgb(7 9 8 / 0.24);
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* Instagram and email: the smaller channels under the WhatsApp action. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .experience[data-look='acid'] .contact-list li + li {
@@ -682,11 +683,30 @@
   }
 
   .experience[data-look='acid'] .contact-list {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .experience[data-look='acid'] .contact-list li + li {
     border-top: 0;
     border-left: 1px solid rgb(7 9 8 / 0.18);
   }
+}
+
+/* ---------- Contact's primary action and closing shot on acid ---------- */
+.experience[data-look='acid'] .contact-lead {
+  color: var(--an-ink);
+}
+
+.experience[data-look='acid'] .contact-primary {
+  background: var(--an-ink);
+  color: var(--an-paper);
+}
+
+.experience[data-look='acid'] .contact-primary-icon {
+  color: var(--an-acid);
+}
+
+.experience[data-look='acid'] .contact-primary:focus-visible {
+  outline: 2px solid var(--an-ink);
+  outline-offset: 4px;
 }

@@ -1999,3 +1999,152 @@ button.tape:focus-visible {
     animation: none;
   }
 }
+
+/* ---------- Contact: one primary action, the closing shot, the Top cut (every look) ---------- */
+/* The lead line and the primary action sit above the smaller channels. */
+.contact-lead {
+  margin: 0 0 14px;
+  font-family: var(--ui-font);
+  font-size: clamp(18px, 1.6vw, 24px);
+  font-stretch: var(--ui-stretch);
+  font-weight: var(--ui-weight);
+  letter-spacing: -0.02em;
+}
+
+/* WhatsApp, the one primary way in: a full-width ink bar, 4px corners like the cards. */
+.contact-primary {
+  display: grid;
+  min-height: 64px;
+  margin-bottom: 18px;
+  padding: clamp(16px, 1.8vw, 24px) clamp(18px, 2.2vw, 30px);
+  align-items: center;
+  column-gap: clamp(12px, 1.4vw, 18px);
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  border-radius: 4px;
+  background: var(--gaffer);
+  color: var(--sheet);
+  font-family: var(--ui-font);
+  font-stretch: var(--ui-stretch);
+  font-weight: var(--ui-weight);
+  letter-spacing: var(--ui-tracking);
+  text-decoration: none;
+  transition:
+    translate 200ms var(--ease-out),
+    box-shadow 200ms var(--ease-out);
+}
+
+.contact-primary:is(:hover, :focus-visible) {
+  translate: 0 -2px;
+  box-shadow: 0 14px 28px rgb(0 0 0 / 0.18);
+}
+
+.contact-primary:active {
+  translate: 0 0;
+  box-shadow: none;
+}
+
+.contact-primary-icon {
+  display: grid;
+  width: 36px;
+  aspect-ratio: 1;
+  place-items: center;
+}
+
+.contact-primary-icon svg {
+  width: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.contact-primary-label {
+  font-size: clamp(20px, 2vw, 30px);
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.contact-primary-number {
+  opacity: 0.72;
+  font-size: var(--ui-size);
+  font-weight: var(--ui-weight-soft);
+  white-space: nowrap;
+}
+
+.contact-primary-arrow {
+  width: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+  transition: translate 200ms var(--ease-out);
+}
+
+.contact-primary:is(:hover, :focus-visible) .contact-primary-arrow {
+  translate: 4px 0;
+}
+
+/* The closing shot (flowMotion.js): the 8-ball ends lying in a pocket beside the title. It is out of
+   the page flow, so it never takes a grid cell or pushes the channels. */
+.contact-pocket {
+  position: absolute;
+  top: clamp(104px, 16vh, 180px);
+  right: var(--gutter);
+  width: clamp(84px, 11vw, 168px);
+  aspect-ratio: 1;
+  pointer-events: none;
+}
+
+.contact-pocket-hole {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 42%, #000 0 55%, rgb(7 9 8 / 0.92) 70%, rgb(7 9 8 / 0.6) 100%);
+  box-shadow: inset 0 10px 18px rgb(0 0 0 / 0.6), 0 0 0 clamp(4px, 0.5vw, 7px) rgb(7 9 8 / 0.14);
+}
+
+/* At rest the ball has dropped: smaller and shaded, inside the pocket. */
+.contact-pocket-ball {
+  position: absolute;
+  inset: 12%;
+  width: 76%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  object-fit: cover;
+  transform: scale(0.64);
+  filter: brightness(0.55);
+  will-change: transform;
+}
+
+@media (max-width: 768px) {
+  .contact-pocket {
+    top: max(84px, 11vh);
+    width: 64px;
+  }
+
+  .contact-primary {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    row-gap: 2px;
+  }
+
+  .contact-primary-number {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .contact-primary-arrow {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+}
+
+/* The Top cut: above everything, even the header, while the page jumps back to the Intro. */
+.cut-cover {
+  position: fixed;
+  z-index: 90;
+  inset: 0;
+  background: var(--preloader-bg, var(--hall));
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+}

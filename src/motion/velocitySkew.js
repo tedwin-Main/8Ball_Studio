@@ -37,7 +37,9 @@ export function createVelocitySkew ( { root, subscribeScroll, getVelocity } )
   let idle = null
   const onScroll = () =>
   {
-    leanTo( skewFromVelocity( getVelocity(), { gain: GAIN, maxDeg: getTuning().skew } ) )
+    // A Story navigation glide is the site moving itself, not the visitor's hand: nothing leans.
+    const gliding = root.dataset.storyTransitioning === 'true'
+    leanTo( gliding ? 0 : skewFromVelocity( getVelocity(), { gain: GAIN, maxDeg: getTuning().skew } ) )
     idle?.kill()
     idle = gsap.delayedCall( IDLE_SECONDS, () => leanTo( 0 ) )
   }

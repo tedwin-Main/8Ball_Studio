@@ -206,7 +206,7 @@ export function createFlowMotion ( { root, motion, charRest, compact, scrub, dep
   revealTitle( projects, '.projects-title .cue-char', 'top 80%', 'top 15%' )
   revealTitle( contact, '.contact-title .cue-char', 'top 75%', 'top 10%' )
 
-  const rows = contact.querySelectorAll( '.contact-list li, .call-sheet-foot' )
+  const rows = contact.querySelectorAll( '.contact-lead, .contact-primary, .contact-list li, .call-sheet-foot' )
   if ( rows.length )
   {
     gsap.fromTo( rows, { y: 20, opacity: 0 }, {
@@ -216,6 +216,22 @@ export function createFlowMotion ( { root, motion, charRest, compact, scrub, dep
       stagger: 0.12,
       scrollTrigger: { trigger: contact, start: 'top 60%', end: 'top 5%', scrub },
     } )
+  }
+
+  // ---- 5. The closing shot: the break's last beat. As Contact settles, the 8-ball rolls in from
+  // the left, turning, reaches the pocket, and drops into it (it shrinks and darkens as it sinks).
+  // The CSS rest state is the ball lying in the pocket, so reduced motion shows the same last frame.
+  const ball = contact.querySelector( '.contact-pocket-ball' )
+  if ( ball )
+  {
+    gsap.timeline( { scrollTrigger: { trigger: contact, start: 'top 70%', end: 'top 2%', scrub } } )
+      .fromTo( ball, { xPercent: -520 * reach, rotation: -540, scale: 1, filter: 'brightness(1)' }, {
+        xPercent: 0,
+        rotation: 0,
+        duration: 0.7,
+        ease: 'power2.out',
+      } )
+      .to( ball, { scale: 0.64, filter: 'brightness(0.55)', duration: 0.3, ease: 'power2.in' } )
   }
 
   return () => cleanups.forEach( ( cleanup ) => cleanup() )

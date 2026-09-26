@@ -7,7 +7,11 @@ import { getTuning } from '../motion/runtimeTuning'
 // Glide seconds back up to the Intro and between the other Pages; a wheel burst ends after a pause
 // this long, and a gesture must move this far to count. The rewind is quick: the visitor asked for it.
 const REWIND_SECONDS = 1
-const PAGE_GLIDE_SECONDS = 1.2
+// Page glides take a base time plus a little per screen travelled, capped: a short hop is quick,
+// a long one is unhurried, and none drags.
+const GLIDE_BASE_SECONDS = 0.7
+const GLIDE_SECONDS_PER_SCREEN = 0.14
+const GLIDE_MAX_SECONDS = 1.5
 const GESTURE_RESET_MS = 120
 const GESTURE_THRESHOLD_PX = 14
 
@@ -46,11 +50,20 @@ const getTransition = ( { fromPage, toPage } ) =>
     }
   }
 
+  // Every other glide leaves at speed and settles softly (expo ease-out), like a camera landing on
+  // its mark; its length follows the distance.
+  const range = getStoryMetrics().range
+  const screens = fromPage && range > 0
+    ? Math.abs( toPage.targetProgress - fromPage.targetProgress ) * range / Math.max( 1, window.innerHeight )
+    : 1
   return {
-    duration: PAGE_GLIDE_SECONDS,
-    easing: easeStoryTransition,
+    duration: Math.min( GLIDE_MAX_SECONDS, GLIDE_BASE_SECONDS + GLIDE_SECONDS_PER_SCREEN * screens ),
+    easing: easeGlideOut,
   }
 }
+
+// Expo ease-out, exact at both ends.
+const easeGlideOut = ( t ) => ( t >= 1 ? 1 : 1 - Math.pow( 2, -10 * Math.max( 0, t ) ) )
 
 /**
  * Thin React adapter for the deep Story navigation module. It mirrors stable

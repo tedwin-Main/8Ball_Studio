@@ -5,7 +5,7 @@ import { STAGE, easeStoryTransition, easeWeightedProgress, toStoryProgress, toTi
 
 test( 'the settings are six dials, one per kind of feel', () =>
 {
-  assert.deepEqual( STORY_SETTINGS, { glide: 0.1, wheel: 0.7, weight: 0.4, introSeconds: 3, depth: 1, skew: 4 } )
+  assert.deepEqual( STORY_SETTINGS, { glide: 0.1, wheel: 0.7, weight: 0.4, introSeconds: 3, depth: 1, skew: 1.5 } )
   assert.equal( Object.isFrozen( STORY_SETTINGS ), true )
 } )
 

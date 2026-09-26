@@ -10,6 +10,6 @@ export const STORY_SETTINGS = Object.freeze( {
   introSeconds: 3,
   // How dramatic the page changes are: 1 as designed, 0 flat.
   depth: 1,
-  // Most degrees content leans when you scroll fast.
-  skew: 4,
+  // Most degrees the Projects cards lean when you scroll fast: a hint of weight, never a wobble.
+  skew: 1.5,
 } )
