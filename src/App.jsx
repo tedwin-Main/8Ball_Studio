@@ -749,6 +749,15 @@ function App ()
               ease: 'none',
               duration: 0.8,
             }, 0 )
+          // A look can move its Studio set piece in the cue too (Pool Table: the camera rise to the lamp).
+          if ( motion.scenery )
+          {
+            studioCue.fromTo( '.title-screen .look-scenery', motion.scenery.from, {
+              ...motion.scenery.to,
+              duration: 0.6,
+            }, 0 )
+          }
+          studioCue
             .fromTo( '.final-title .cue-char', motion.entrance, {
               ...charRest,
               duration: 0.34,

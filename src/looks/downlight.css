@@ -10,7 +10,8 @@
    ========================================================================== */
 .experience[data-look='downlight'] {
   /* Cards laid on the cloth: a little smaller than the other looks' boards, the table is framed in. */
-  --board-size: clamp(170px, min(18vw, 30svh), 250px);
+  /* Cards take at most 27% of the screen height, so they sit below the Projects title on short screens. */
+  --board-size: clamp(170px, min(18vw, 27svh), 250px);
   /* Small text in the title face (see --ui-* in styles.css): Schibsted Grotesk bold. The titles run
      at 860; 700 keeps the counters open at 15px. */
   --ui-font: 'Schibsted Grotesk', 'Archivo', sans-serif;
@@ -113,6 +114,139 @@
   content: '';
   mix-blend-mode: overlay;
   opacity: 0.5;
+}
+
+/* Pocket depth. The render draws each pocket as a near-flat black disc; from the lamp you see a little
+   of the leather liner's inner wall, so a warm ring sits just inside each rim, fading to black at the
+   bottom of the drop. Centres and radii are shares of the plate (measured on the 2880 × 1545 bake). */
+.experience[data-look='downlight'] .dl-table::before {
+  --pocket-wall: transparent 0 52%, rgb(92 58 34 / 0.34) 84%, rgb(120 78 46 / 0.2) 93%, transparent 100%;
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(2.78% 5.18% at 6.84% 11.13%, var(--pocket-wall)),
+    radial-gradient(2.78% 5.18% at 93.16% 11.13%, var(--pocket-wall)),
+    radial-gradient(2.78% 5.18% at 6.84% 88.87%, var(--pocket-wall)),
+    radial-gradient(2.78% 5.18% at 93.16% 88.87%, var(--pocket-wall)),
+    radial-gradient(2.6% 4.85% at 50% 9.51%, var(--pocket-wall)),
+    radial-gradient(2.6% 4.85% at 50% 90.49%, var(--pocket-wall));
+  content: '';
+  pointer-events: none;
+}
+
+/* The lamp's falloff, over everything on the table (balls included): full light in the middle of the
+   bed, darker toward the cushions and the rails, as under a real canopy lamp. It also darkens the
+   outer edges of the side rails, which the bake leaves lighter than the end rails. Darkening only, so
+   ivory type keeps its contrast on the cloth. */
+.experience[data-look='downlight'] .dl-table::after {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgb(0 0 0 / 0.34), transparent 6%, transparent 94%, rgb(0 0 0 / 0.34)),
+    radial-gradient(ellipse 64% 72% at 50% 50%, transparent 38%, rgb(0 0 0 / 0.36) 100%),
+    rgb(0 0 0 / 0.08);
+  content: '';
+  pointer-events: none;
+}
+
+@media (orientation: portrait) {
+  .experience[data-look='downlight'] .dl-table::before {
+    background:
+      radial-gradient(5.18% 2.78% at 11.13% 6.84%, var(--pocket-wall)),
+      radial-gradient(5.18% 2.78% at 88.87% 6.84%, var(--pocket-wall)),
+      radial-gradient(5.18% 2.78% at 11.13% 93.16%, var(--pocket-wall)),
+      radial-gradient(5.18% 2.78% at 88.87% 93.16%, var(--pocket-wall)),
+      radial-gradient(4.85% 2.6% at 9.51% 50%, var(--pocket-wall)),
+      radial-gradient(4.85% 2.6% at 90.49% 50%, var(--pocket-wall));
+  }
+
+  .experience[data-look='downlight'] .dl-table::after {
+    background:
+      linear-gradient(180deg, rgb(0 0 0 / 0.34), transparent 6%, transparent 94%, rgb(0 0 0 / 0.34)),
+      radial-gradient(ellipse 72% 64% at 50% 50%, transparent 38%, rgb(0 0 0 / 0.36) 100%),
+      rgb(0 0 0 / 0.08);
+  }
+}
+
+/* ---------- The break's resting balls on the Studio table (LookScenery.jsx, breakRest.js) ---------- */
+/* Laid on the same box as the cloth, so each ball's spot is a share of the cloth. */
+.experience[data-look='downlight'] .dl-balls {
+  position: absolute;
+  inset: var(--rail) var(--rail-x);
+}
+
+/* A ball seen from straight above: the lamp's highlight sits in the middle of the ball, the edge turns
+   away from the light, and the contact shadow spreads evenly around it. 2.76% is a 70 mm ball on the
+   2.54 m cloth. */
+.experience[data-look='downlight'] .dl-ball {
+  position: absolute;
+  width: 2.76%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  translate: -50% -50%;
+  background:
+    radial-gradient(circle at 50% 47%, rgb(255 250 238 / 0.75) 0 5%, rgb(255 250 238 / 0.16) 13%, transparent 24%),
+    radial-gradient(circle, transparent 52%, rgb(0 0 0 / 0.5) 100%),
+    var(--ball);
+  box-shadow: 0 0 7px 2px rgb(0 0 0 / 0.55);
+}
+
+/* A stripe: an ivory ball with a wide band of colour, turned the way it stopped. */
+.experience[data-look='downlight'] .dl-ball.is-stripe {
+  background:
+    radial-gradient(circle at 50% 47%, rgb(255 250 238 / 0.75) 0 5%, rgb(255 250 238 / 0.16) 13%, transparent 24%),
+    radial-gradient(circle, transparent 52%, rgb(0 0 0 / 0.5) 100%),
+    linear-gradient(var(--spin), var(--ivory) 0 24%, var(--ball) 24% 76%, var(--ivory) 76%);
+}
+
+/* The number spot, pushed off centre toward the way the ball turned. */
+.experience[data-look='downlight'] .dl-ball[data-number]::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  width: 44%;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ivory);
+  color: #0c1a13;
+  content: attr(data-number);
+  font: 800 clamp(6px, 0.55vw, 9px) / 1 var(--ui-font);
+  rotate: var(--spin);
+  translate: -50% -50%;
+  transform: translateY(-22%);
+}
+
+/* The striker is the studio's logo ball, the same image as the closing shot's 8-ball. */
+.experience[data-look='downlight'] .dl-ball.is-striker {
+  object-fit: cover;
+  filter: brightness(0.9);
+}
+
+/* Upright and small screens lay the table lengthways and put type across most of the cloth: the
+   table there is cleared, and the break's balls stay on wide screens only. */
+@media (orientation: portrait), (max-width: 768px), (max-height: 540px) {
+  .experience[data-look='downlight'] .dl-balls {
+    display: none;
+  }
+}
+
+/* ---------- One table under every Page (motion.handoff 'sameTable', src/motion/flowMotion.js) ---------- */
+/* Studio's type and resting balls clear off the cloth as Projects' content rises over it. The final
+   meta line's opacity belongs to the Studio cue, so it fades through a filter instead. */
+.experience[data-look='downlight'] .title-screen :is(.final-content, .studio-floor, .dl-balls) {
+  opacity: var(--studio-clear, 1);
+}
+
+.experience[data-look='downlight'] .title-screen .final-meta {
+  filter: opacity(var(--studio-clear, 1));
+}
+
+/* Projects' own hall and table show only while its sheet is still at the top of the screen: off
+   during the rise (Studio's table is there) and off during the Contact reveal (Contact's is). */
+.experience[data-look='downlight'] .projects-sticky > :is(.cyc-wall, .look-scenery) {
+  opacity: calc(var(--table-in, 1) * var(--table-out, 1));
 }
 
 /* ---------- Type: a clean grotesque in ivory, laid on the cloth ---------- */
@@ -304,8 +438,10 @@
   left: var(--inset-x);
 }
 
+/* Sized from the width and the height, whichever is smaller: on a wide, short laptop screen the
+   table's height is the limit, and a width-only size let the cards cover the title's second line. */
 .experience[data-look='downlight'] .projects-title {
-  font-size: clamp(52px, 7vw, 128px);
+  font-size: clamp(44px, min(7vw, 8svh), 128px);
 }
 
 /* The cards run across the cloth and slide under the cushions at either end. Clipped sideways only,
@@ -419,6 +555,52 @@
   background: none;
   box-shadow: none;
   rotate: 0deg;
+}
+
+/* WhatsApp, the Page's one primary action: an ivory chip with dark ink, like the Contact nav chip.
+   The base bar uses --gaffer on --sheet, and the call sheet above sets both to ivory. */
+.experience[data-look='downlight'] .contact-primary {
+  background: var(--ivory);
+  box-shadow: 0 0 18px 2px rgb(0 0 0 / 0.45);
+  color: #0c1a13;
+}
+
+.experience[data-look='downlight'] .contact-primary:is(:hover, :focus-visible) {
+  box-shadow: 0 0 26px 4px rgb(0 0 0 / 0.55), 0 0 0 1px rgb(243 238 226 / 0.6);
+}
+
+.experience[data-look='downlight'] .contact-primary:focus-visible {
+  outline: 2px solid var(--ivory);
+  outline-offset: 4px;
+}
+
+/* The closing shot drops the 8-ball into the table's own top-right corner pocket, not a drawn hole
+   beside the title. The pocket's centre and size are shares of the plate (see .dl-table::before),
+   measured from .contact-content, which starts at the cushion noses. The ball is sized to a table
+   ball, so at rest it is a ball lying in the drop. */
+.experience[data-look='downlight'] .contact-pocket {
+  top: calc(var(--plate-h) * 0.1113 - var(--rail));
+  right: auto;
+  left: calc(var(--plate-w) * 0.9316 - var(--rail-x));
+  width: calc(var(--plate-w) * 0.0556);
+  translate: -50% -50%;
+}
+
+.experience[data-look='downlight'] .contact-pocket-hole {
+  display: none;
+}
+
+.experience[data-look='downlight'] .contact-pocket-ball {
+  inset: 26%;
+  width: 48%;
+}
+
+@media (orientation: portrait) {
+  .experience[data-look='downlight'] .contact-pocket {
+    top: calc(var(--plate-h) * 0.0684 - var(--rail));
+    left: calc(var(--plate-w) * 0.8887 - var(--rail-x));
+    width: calc(var(--plate-w) * 0.1036);
+  }
 }
 
 .experience[data-look='downlight'] .contact-list li + li {

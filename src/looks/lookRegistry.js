@@ -74,8 +74,18 @@ export const LOOK_CONFIGS = Object.freeze( {
     // The lamp's pool of light on the cloth.
     keyLight: '.dl-cloth',
     motion: Object.freeze( {
-      reveal: 'canopy',
+      // Studio fades up while the Intro fades out, and the camera rises: see scenery below.
+      reveal: 'fade',
       origin: CYC_MOTION.origin,
+      // The camera rise from the Intro's player's-eye view to the lamp. The top-down table starts laid
+      // back as the player saw it, its far end tipped away toward the Intro's far rail, and swings flat
+      // to face the camera. Scrubbed in the Studio cue (App.jsx) on the Page's .look-scenery.
+      scenery: Object.freeze( {
+        from: Object.freeze( { rotationX: 58, scale: 1.3, yPercent: 6, transformPerspective: 900, transformOrigin: '50% 100%' } ),
+        to: Object.freeze( { rotationX: 0, scale: 1, yPercent: 0, ease: 'power2.out' } ),
+      } ),
+      // No 'sameTable' handoff: a table held still while only its type scrolls read as a stuck page.
+      // Each Page's table travels with its own sheet, so the table visibly moves with the scroll.
       // Letters roll onto the cloth from the left, turning as they come and stopping on friction.
       entrance: Object.freeze( { xPercent: -160, rotation: -200, autoAlpha: 0 } ),
       letterFrom: 'start',

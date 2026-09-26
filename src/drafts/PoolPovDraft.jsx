@@ -25,27 +25,13 @@ import {
   createLogoTexture,
   createNumberedBallTexture,
 } from './poolSurfaceTextures.js'
+import { BALL_COLORS, RACK_BALL_NUMBERS } from './rackLayout.js'
 
 const clamp = ( value, min = 0, max = 1 ) => Math.min( max, Math.max( min, value ) )
 const lerp = ( start, end, progress ) => start + ( end - start ) * progress
 
 // Match Draft 2's maximum backing density so Retina desktops do not pay excess fill rate.
 const DRAFT1_PIXEL_RATIO_CAP = 1.5
-
-const BALL_COLORS = [
-  '#f5b818', '#1b46a2', '#cb242a', '#59287a', '#e76317',
-  '#126d40', '#7a1d33', '#0a0c0a', '#f5b818', '#1b46a2',
-  '#cb242a', '#59287a', '#e76317', '#126d40', '#7a1d33',
-]
-
-// Keep the rack legal while placing the 7-ball on the right corner's sideways release path.
-const RACK_BALL_NUMBERS = [
-  1,
-  5, 11,
-  3, 8, 10,
-  4, 13, 14, 2,
-  9, 12, 15, 6, 7,
-]
 
 // Each plate stores its table, light, rail, and projected pocket measurements together.
 const PLATE_CALIBRATIONS = Object.freeze( {
@@ -257,6 +243,11 @@ const buildWorld = ( canvas, simulation, requestRender ) =>
   const decalMaterial = new THREE.MeshPhysicalMaterial( {
     map: logoTexture,
     color: '#ffffff',
+    // The glyph also glows a little in ivory, so the brand "8" reads ivory on the dim table and not
+    // khaki-grey after tone mapping. The hover response below changes emissiveIntensity.
+    emissive: '#f3eee2',
+    emissiveMap: logoTexture,
+    emissiveIntensity: 0.35,
     // The texture carries only the white glyph; the striker's resin shows through everywhere else.
     transparent: true,
     roughness: 0.12,
