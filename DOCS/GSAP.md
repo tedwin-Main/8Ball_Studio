@@ -19,13 +19,13 @@ The deep Story navigation module is `src/storyNavigation.js`. `src/storyNavigati
 ## Lenis options
 
 Configured in `new Lenis({ ... })` (`src/storyNavigationBrowser.js`), with `glide` and `wheel` from `STORY_SETTINGS` (live overrides from the `?tune` panel via `src/motion/runtimeTuning.js`).
-The feel follows hugeinc.com: Lenis near its defaults (lerp 0.1) and a short scrub, so there is one smoothing layer and the animations track the hand closely.
+The feel follows hugeinc.com: Lenis near its defaults (lerp 0.08) and a short scrub, so there is one smoothing layer and the animations track the hand closely.
 Lenis is created only when the visitor has not asked for reduced motion; with `prefers-reduced-motion: reduce` the adapter's native path scrolls the page (as hugeinc.com does).
 
 | Attribute | Current value | Purpose |
 | --- | ---: | --- |
-| `lerp` | `glide` (0.1) | Each 60fps frame closes 10% of the remaining distance: a short coast after input. |
-| `wheelMultiplier` | `wheel` (0.7) | Scales wheel input: one tick travels 0.7x its raw delta. |
+| `lerp` | `glide` (0.08) | Each 60fps frame closes 8% of the remaining distance: a short, weighted coast after input. |
+| `wheelMultiplier` | `wheel` (0.4) | Scales wheel input: one tick travels 0.4x its raw delta. |
 | `syncTouch` | `false` | Touch keeps native momentum, as the reference site does, so Lenis's touch options are left unset. |
 | `duration` / `easing` | unset | Deliberately unused: in Lenis they override `lerp` and turn every flick into a fixed-length glide. |
 | `infinite` | `false` | Prevents the page from looping after the scroll limit. |
@@ -36,15 +36,16 @@ Lenis is created only when the visitor has not asked for reduced motion; with `p
 
 ### Settings
 
-All motion settings are the six dials in `STORY_SETTINGS` (`src/storyTiming.js`), one per kind of feel, each a slider in the `?tune` panel:
+All motion settings are the seven dials in `STORY_SETTINGS` (`src/storyTiming.js`), one per kind of feel, each a slider in the `?tune` panel:
 
 | Setting | Default | What it sets |
 | --- | ---: | --- |
-| `glide` | `0.1` | Lenis `lerp`: how much the page coasts after a scroll (1 = no coast). |
-| `wheel` | `0.7` | Lenis `wheelMultiplier`: distance per wheel tick. |
+| `glide` | `0.08` | Lenis `lerp`: how much the page coasts after a scroll (1 = no coast). |
+| `wheel` | `0.4` | Lenis `wheelMultiplier`: distance per wheel tick. |
 | `weight` | `0.4` | GSAP `scrub` seconds on the Intro and Studio; Projects and Contact use half. |
 | `introSeconds` | `3` | The one-scroll Intro glide to Studio. |
-| `depth` | `1` | Scales every handoff and reveal amount (rise, shrink, dim, Contact offset and shade, Studio drift and push-in); 0 is flat. |
+| `depth` | `0.3` | Scales every handoff and reveal amount (rise, shrink, dim, Contact offset and shade, Studio drift and push-in); 0 is flat. |
+| `speedLimit` | `0.6` | Wheel and trackpad speed limit: the most screens the scroll target may run ahead of the page (`src/scrollLead.js`, applied in the Lenis `virtualScroll` hook). Lower = heavier; 0 = off. Touch keeps native momentum. |
 | `skew` | `1.5` | Most degrees the Projects cards lean at speed. |
 
 Notes:

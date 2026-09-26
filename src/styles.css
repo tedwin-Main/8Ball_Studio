@@ -1631,56 +1631,6 @@ button.tape:focus-visible {
   display: block;
 }
 
-/* The Draft switcher picks the Intro's treatment; it never changes Story navigation. Drafts belong to
-   the Intro, so the switcher shows only while a visitor is settled there: it fades out as the break
-   starts (any Story navigation glide) and returns once a glide settles on the Intro. Hidden, it also
-   leaves the tab order (visibility), so it never sits over the work on later Pages. */
-.draft-switcher {
-  position: fixed;
-  z-index: 45;
-  bottom: max(16px, env(safe-area-inset-bottom));
-  left: 50%;
-  transform: translateX(-50%);
-  transition:
-    opacity 320ms var(--ease-out),
-    translate 320ms var(--ease-out),
-    visibility 0s linear 0s;
-}
-
-.experience:is(:not([data-story-indicator-page='intro']), [data-story-state='transitioning']) .draft-switcher {
-  opacity: 0;
-  visibility: hidden;
-  translate: 0 10px;
-  pointer-events: none;
-  transition:
-    opacity 180ms ease,
-    translate 180ms ease,
-    visibility 0s linear 180ms;
-}
-
-.draft-switcher-options {
-  display: flex;
-  padding: 8px 6px;
-  gap: 8px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-}
-
-.draft-switcher-options::-webkit-scrollbar {
-  display: none;
-}
-
-.draft-switcher-button {
-  min-height: 34px;
-  font-size: var(--ui-size-xs);
-}
-
-.draft-switcher-button.is-active {
-  --tape-fill: var(--gaffer);
-  --tape-ink: var(--cyc);
-}
-
 /* Cinematic treatments: the 3D scenes supply the detail, the headline stays direct. */
 .experience.draft-cinematic .hero-copy {
   top: 10vh;
@@ -1695,16 +1645,6 @@ button.tape:focus-visible {
     top: max(68px, 10vh);
   }
 
-  .draft-switcher {
-    bottom: max(68px, calc(env(safe-area-inset-bottom) + 62px));
-    max-width: calc(100vw - 24px);
-  }
-
-  .draft-switcher-button {
-    min-height: 36px;
-    padding: 0 9px;
-  }
-
   .webgl-phase {
     right: 18px;
     bottom: max(136px, calc(env(safe-area-inset-bottom) + 126px));
@@ -1714,10 +1654,6 @@ button.tape:focus-visible {
 /* Touch screens: every control is at least a 44 × 44px target. The wordmark and Top grow inward
    from the gutters (the mark stays left, Top's word stays right), so nothing visibly moves. */
 @media (pointer: coarse) {
-  .draft-switcher-button {
-    min-height: 44px;
-  }
-
   .wordmark {
     min-width: 44px;
   }
@@ -1729,8 +1665,7 @@ button.tape:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .draft-layer,
-  .draft-switcher-button {
+  .draft-layer {
     transition: none;
   }
 }
@@ -1742,12 +1677,12 @@ button.tape:focus-visible {
 }
 
 /* The system pointer returns over the controls the ball would only get in the way of. */
-.experience.has-cursor-ball :is(.look-switcher, .draft-switcher, .tune-panel),
-.experience.has-cursor-ball :is(.look-switcher, .draft-switcher, .tune-panel) * {
+.experience.has-cursor-ball .tune-panel,
+.experience.has-cursor-ball .tune-panel * {
   cursor: auto;
 }
 
-.experience.has-cursor-ball :is(.look-switcher, .draft-switcher button, .tune-panel button, .tune-panel input) {
+.experience.has-cursor-ball :is(.tune-panel button, .tune-panel input, .tune-panel select) {
   cursor: pointer;
 }
 
@@ -1934,6 +1869,32 @@ button.tape:focus-visible {
 .tune-panel-row output {
   font-variant-numeric: tabular-nums;
   opacity: 0.8;
+}
+
+/* Draft and Look: a native select on the same row as its label, above a divider to the sliders. */
+.tune-panel-choice select {
+  min-height: 28px;
+  padding: 2px 6px;
+  border: 1px solid rgb(255 255 255 / 0.22);
+  border-radius: 4px;
+  background: rgb(255 255 255 / 0.06);
+  color: inherit;
+  font: inherit;
+}
+
+.tune-panel-choice select:focus-visible {
+  outline: 2px solid #b7d95b;
+  outline-offset: 1px;
+}
+
+.tune-panel-choice select option {
+  background: #0a0c0b;
+  color: #f2f1e9;
+}
+
+.tune-panel-choice + .tune-panel-row:not(.tune-panel-choice) {
+  padding-top: 10px;
+  border-top: 1px solid rgb(255 255 255 / 0.12);
 }
 
 .tune-panel-actions {

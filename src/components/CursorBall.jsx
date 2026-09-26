@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 
 // Where the system cursor comes back: controls the ball would only get in the way of.
-const NATIVE_CURSOR_ZONES = '.look-switcher, .draft-switcher, .tune-panel, select, input, textarea'
+const NATIVE_CURSOR_ZONES = '.tune-panel, select, input, textarea'
 // Anything clickable swells the ball a little, even without a label.
 const INTERACTIVE = 'a, button, [role="button"], label'
 // Seconds the ball takes to catch the pointer.

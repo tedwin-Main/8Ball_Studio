@@ -106,7 +106,7 @@ Density is low. Each Page holds one enormous title and one next move. Motion car
 
 - **Ink** (`#070908`): Studio's ground, and the type on paper and acid. It is also the fill for control pills and the Instagram card.
 - **Paper** (`#f2f1e9`): Projects' ground. It is also the type on ink.
-- **Acid** (`#b7d95b`): the signal colour. It is Contact's ground, and marks the second title line on ink, the active Draft pill, the service numbers, and the Contact card. On ink it is decoration and emphasis; on paper it never carries text.
+- **Acid** (`#b7d95b`): the signal colour. It is Contact's ground, and marks the second title line on ink, the service numbers, and the Contact card. On ink it is decoration and emphasis; on paper it never carries text.
 - **Felt** (`#0b5b3b`): the indented title line on paper and acid, where acid would vanish. It is also the nav accent there.
 - **Night** (`#07110d`): the page ground and preloader behind the Intro.
 - **Card** (`#ffffff`): client cards on paper.
@@ -146,7 +146,7 @@ The compact breakpoint is `max-width: 768px` or `max-height: 540px`. Safe-area i
 
 ## Elevation & Depth
 
-Depth comes from motion and soft shadow, never from glow. Client cards sit on `0 20px 45px` ink at 8%, deepening to 20% as they cross the centre of the run. The Draft pill floats on `0 12px 30px` black at 26%, with a 14px backdrop blur. As Contact is uncovered, Projects casts a shadow at its bottom edge: ink at 40%, eased to nothing a third of the way down the screen, lifting as Projects leaves. Everything else is flat.
+Depth comes from motion and soft shadow, never from glow. Client cards sit on `0 20px 45px` ink at 8%, deepening to 20% as they cross the centre of the run. As Contact is uncovered, Projects casts a shadow at its bottom edge: ink at 40%, eased to nothing a third of the way down the screen, lifting as Projects leaves. Everything else is flat.
 
 ## Shapes
 
@@ -164,9 +164,7 @@ Client cards are white and 4px-cornered; HaruPlate's is ink, because its mark is
 Above the list, WhatsApp is the one primary action: a full-width ink bar with the acid WhatsApp glyph, the label, the number, and an arrow that steps forward on hover. The list below holds Instagram and email, ruled in ink at 24%. Each row has a ringed icon, the channel name, the detail at 500, and an action label with an arrow. On hover or focus the row takes a 7% ink wash and the icon fills ink with an acid glyph.
 
 ### Controls
-The Draft and Look pickers are owner review tools, shown only on `?review` URLs; visitors see Main with Draft 01. The Draft switcher is a dark pill, and the active Draft is filled acid. Drafts belong to the Intro, so the switcher shows only while a visitor is settled there: it fades out as the break starts and returns once a glide settles on the Intro. Nothing floats over the later Pages but the header.
-
-The Look choice sits inline in Contact's foot line, in the foot's own type: "Look" at 72%, the chosen Look at full ink and underlined, with a small caret. It is a native select, so it works with keyboard, screen readers, and phones.
+Visitors get no Draft or Look controls: they see Main with Draft 01. The owner picks both in the `?tune` panel (a dev tool, with the scroll-feel sliders), which also writes `?draft=` and `?look=` to the URL. Nothing floats over the Pages but the header.
 
 On touch screens every control is a target of at least 44 × 44 px.
 

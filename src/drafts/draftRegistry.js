@@ -55,7 +55,7 @@ export function normalizeDraftId( queryValue )
   return 'cinematic'
 }
 
-// Returns the options list for DraftSwitcher navigation.
+// Returns the options list for the ?tune panel's Draft select.
 export function getDraftOptions()
 {
   const options = []

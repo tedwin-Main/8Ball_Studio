@@ -4,9 +4,10 @@ import { STORY_SETTINGS } from '../storyTiming.js'
 export const TUNING_FIELDS = Object.freeze( [
   Object.freeze( { key: 'glide', label: 'Glide (1 = no coast)', min: 0.02, max: 1, step: 0.01 } ),
   Object.freeze( { key: 'wheel', label: 'Wheel distance', min: 0.3, max: 2, step: 0.05 } ),
-  Object.freeze( { key: 'weight', label: 'Weight (s)', min: 0, max: 3, step: 0.05 } ),
+  Object.freeze( { key: 'weight', label: 'Weight (s, 0 = locked)', min: 0, max: 3, step: 0.05 } ),
   Object.freeze( { key: 'introSeconds', label: 'Intro (s)', min: 1, max: 6, step: 0.1 } ),
   Object.freeze( { key: 'depth', label: 'Depth', min: 0, max: 2, step: 0.05 } ),
+  Object.freeze( { key: 'speedLimit', label: 'Speed limit (screens, 0 = off)', min: 0, max: 2, step: 0.05 } ),
   Object.freeze( { key: 'skew', label: 'Skew (deg)', min: 0, max: 12, step: 0.5 } ),
 ] )
 

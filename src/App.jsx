@@ -3,8 +3,6 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { CustomEase } from 'gsap/CustomEase'
 import { useStoryPager } from './hooks/useStoryPager'
-import { DraftSwitcher } from './components/DraftSwitcher'
-import { LookSwitcher } from './components/LookSwitcher'
 import { CursorBall } from './components/CursorBall'
 import { Preloader } from './components/Preloader'
 import { LookScenery } from './looks/LookScenery'
@@ -29,12 +27,10 @@ import shopeeLogo from './assets/shopee-logo.svg'
 
 gsap.registerPlugin( ScrollTrigger, CustomEase )
 
-// The scroll-feel panel is a dev tool: it exists only on ?tune URLs and ships as its own chunk.
+// The ?tune panel is the owner's tool (Draft, Look, scroll feel): it exists only on ?tune URLs and
+// ships as its own chunk. Visitors see one site: Main with Draft 01, or ?draft= / ?look= if linked.
 const TunePanel = lazy( () => import( './components/TunePanel' ) )
 const TUNE_REQUESTED = typeof window !== 'undefined' && new URLSearchParams( window.location.search ).has( 'tune' )
-// The Draft and Look pickers are review tools for the owner: visitors see one confident site (Main,
-// Draft 01). They show only on ?review URLs; ?draft= and ?look= still select a treatment directly.
-const REVIEW_REQUESTED = typeof window !== 'undefined' && new URLSearchParams( window.location.search ).has( 'review' )
 
 // The one motion signature of the Cyc Wall world: a studio light snapping on fast,
 // then settling with a long tail, like a tungsten head reaching full output.
@@ -73,6 +69,10 @@ const BEATS = Object.freeze( {
 const DRAFT2_TRANSITION_READY_STORY_PROGRESS = toStoryProgress( STAGE.intro.draft2.transitionReady )
 // Cut the shared 8-ball before its old pocket-drop path starts; Draft 1 keeps its original animation.
 const DRAFT2_POCKET_CUT_STORY_PROGRESS = toStoryProgress( STAGE.intro.draft2.pocketCut )
+
+// GSAP scrub from the weight setting: seconds of catch-up lag, or true (locked exactly to the
+// Lenis-smoothed scroll, one smoothing layer) at 0. A bare 0 would turn scrubbing off entirely.
+const toScrub = ( seconds ) => ( seconds > 0 ? seconds : true )
 
 // Draft/Look switches jump the Story in one go; finish the GSAP scrub catch-up at once so the
 // new layer lands in place instead of replaying a weight-long slide from the old position.
@@ -800,7 +800,7 @@ function App ()
               start: 'top top',
               end: 'bottom bottom',
               // Seconds the animations take to catch up with the Lenis-smoothed scroll (extra weight).
-              scrub: tuning.weight,
+              scrub: toScrub( tuning.weight ),
               invalidateOnRefresh: true,
               onRefresh: ( self ) => syncStoryVisuals( self.animation ? self.animation.progress() : self.progress ),
             },
@@ -907,7 +907,7 @@ function App ()
             motion,
             charRest,
             compact: !desktop,
-            scrub: tuning.weight / 2,
+            scrub: toScrub( tuning.weight / 2 ),
             depth: tuning.depth,
             scrollToY,
           } )
@@ -1228,12 +1228,9 @@ function App ()
                   </li>
                 ) ) }
               </ul>
-              {/* On review URLs the foot line also carries the Look choice, kept at the end of the Story
-                  instead of floating over every Page. */}
               <div className="call-sheet-foot">
                 <span>8 Ball Studio</span>
                 <span>Greater Kuala Lumpur</span>
-                { REVIEW_REQUESTED && <LookSwitcher activeLook={ activeLook } onChange={ switchLook } /> }
               </div>
             </div>
           </div>
@@ -1241,9 +1238,6 @@ function App ()
         {/* The shadow Projects casts on Contact, lifting as Contact is uncovered. */}
         <div className="contact-shade" aria-hidden="true" />
       </section>
-
-      {/* Review only. Drafts are treatments of the Intro: styles.css shows this only while the Intro is settled. */}
-      { REVIEW_REQUESTED && <DraftSwitcher activeDraft={ activeDraft } onChange={ switchDraft } /> }
 
       {/* The Top cut: the night fades up over everything, the page jumps to the Intro, and it fades away. */}
       <div className="cut-cover" ref={ cutCoverRef } aria-hidden="true" />
@@ -1253,7 +1247,7 @@ function App ()
 
       { TUNE_REQUESTED && (
         <Suspense fallback={ null }>
-          <TunePanel />
+          <TunePanel activeDraft={ activeDraft } onDraftChange={ switchDraft } activeLook={ activeLook } onLookChange={ switchLook } />
         </Suspense>
       ) }
     </main>

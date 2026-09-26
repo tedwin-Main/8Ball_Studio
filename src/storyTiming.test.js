@@ -3,9 +3,9 @@ import assert from 'node:assert/strict'
 import { STORY_SETTINGS } from './storyTiming.js'
 import { STAGE, easeStoryTransition, easeWeightedProgress, toStoryProgress, toTimelineUnits } from './storyStage.js'
 
-test( 'the settings are six dials, one per kind of feel', () =>
+test( 'the settings are seven dials, one per kind of feel', () =>
 {
-  assert.deepEqual( STORY_SETTINGS, { glide: 0.1, wheel: 0.7, weight: 0.4, introSeconds: 3, depth: 1, skew: 1.5 } )
+  assert.deepEqual( STORY_SETTINGS, { glide: 0.08, wheel: 0.4, weight: 0.4, introSeconds: 3, depth: 0.3, speedLimit: 0.6, skew: 1.5 } )
   assert.equal( Object.isFrozen( STORY_SETTINGS ), true )
 } )
 

@@ -2,6 +2,7 @@ import gsap from 'gsap'
 import Lenis from 'lenis'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { getTuning } from './motion/runtimeTuning'
+import { limitScrollLead } from './scrollLead'
 
 gsap.registerPlugin( ScrollTrigger )
 
@@ -75,7 +76,18 @@ export function createStoryScrollAdapter ( {
       // Story navigation debounces viewport changes and calls refresh explicitly;
       // disabling Lenis's delayed observer prevents it from undoing progress retention.
       autoResize: false,
-      virtualScroll: ( input ) => virtualScrollHandler( input ),
+      virtualScroll: ( input ) =>
+      {
+        const allowed = virtualScrollHandler( input )
+        // The speed limit (src/scrollLead.js): Lenis reads input.deltaY after this hook returns, so
+        // trimming it here keeps a hard wheel or trackpad flick at a steady, heavy pace.
+        if ( allowed !== false && lenis && input.event?.type === 'wheel' )
+        {
+          const maxLead = getTuning().speedLimit * eventTarget.innerHeight
+          input.deltaY = limitScrollLead( input.deltaY, lenis.targetScroll - lenis.animatedScroll, maxLead )
+        }
+        return allowed
+      },
     } )
   }
   catch ( error )

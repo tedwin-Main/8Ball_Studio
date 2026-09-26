@@ -51,14 +51,14 @@ const waitForPreloader = ( page ) => page.waitForSelector( '.preloader', { state
 const sectionTop = ( page, selector ) =>
   page.evaluate( ( target ) => Math.round( document.querySelector( target ).getBoundingClientRect().top ), selector )
 
-test( 'Main is the default look; the Look select exists only on review URLs and lists the three looks', async ( { page } ) =>
+test( 'Main is the default look; the Draft and Look choices live only in the ?tune panel', async ( { page } ) =>
 {
   await page.goto( '/', { waitUntil: 'domcontentloaded' } )
   await expect( page.locator( '.experience' ) ).toHaveAttribute( 'data-look', 'acid' )
   // Visitors see one site: no Draft or Look pickers.
-  await expect( page.locator( '.look-switcher, .draft-switcher' ) ).toHaveCount( 0 )
-  await page.goto( '/?review', { waitUntil: 'domcontentloaded' } )
-  await expect( page.locator( '.look-switcher-select option' ) ).toHaveText( [ 'Main', 'Cyc Wall', 'Pool Table' ] )
+  await expect( page.locator( '.tune-panel' ) ).toHaveCount( 0 )
+  await page.goto( '/?tune', { waitUntil: 'domcontentloaded' } )
+  await expect( page.locator( '.tune-panel-choice' ).nth( 1 ).locator( 'option' ) ).toHaveText( [ 'Main', 'Cyc Wall', 'Pool Table' ] )
   // A retired look falls back to the default instead of rendering unstyled.
   await page.goto( '/?look=marker', { waitUntil: 'domcontentloaded' } )
   await expect( page.locator( '.experience' ) ).toHaveAttribute( 'data-look', 'acid' )

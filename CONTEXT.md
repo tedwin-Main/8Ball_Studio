@@ -17,7 +17,7 @@ A selectable visual treatment of the Intro page, such as Cinematic, WebGL, or Or
 _Avoid_: version, mode
 
 **Look**:
-A whole-site visual theme over the one shared markup and motion: Main (the default), Cyc Wall, or Pool Table. Chosen with `?look=`, or in the Look select in Contact's foot line on `?review` URLs.
+A whole-site visual theme over the one shared markup and motion: Main (the default), Cyc Wall, or Pool Table. Chosen with `?look=`, or in the `?tune` panel.
 _Avoid_: skin, theme (a look's per-Page palettes are its section themes)
 
 **Handoff**:
