@@ -67,9 +67,11 @@ const PLATE_CALIBRATIONS = Object.freeze( {
       rotation: Object.freeze( [ 0, 0, 0 ] ),
       scale: 1,
     } ),
+    // Rail and pockets as placed by the portrait .pool-pov-photo rule in styles.css (the plate zoomed
+    // 1.28x from its top edge, which brings the far cushion down onto the rack's back row).
     farRailAnchors: Object.freeze( {
-      left: Object.freeze( [ -0.01679, 0.30877 ] ),
-      right: Object.freeze( [ 1.01679, 0.30877 ] ),
+      left: Object.freeze( [ -0.16149, 0.39523 ] ),
+      right: Object.freeze( [ 1.16149, 0.39523 ] ),
     } ),
     projectedAnchors: Object.freeze( {
       rackApex: Object.freeze( [ 0.5, 0.38488 ] ),
@@ -77,12 +79,12 @@ const PLATE_CALIBRATIONS = Object.freeze( {
     } ),
     lightPosition: Object.freeze( [ 0, 1.82, -0.52 ] ),
     pocketProjection: Object.freeze( [
-      Object.freeze( [ -0.02088, 0.30795 ] ),
-      Object.freeze( [ 1.02088, 0.30795 ] ),
-      Object.freeze( [ -0.26938, 0.56218 ] ),
-      Object.freeze( [ 1.26938, 0.56218 ] ),
-      Object.freeze( [ -0.95393, 1.27181 ] ),
-      Object.freeze( [ 1.95393, 1.27181 ] ),
+      Object.freeze( [ -0.16673, 0.39418 ] ),
+      Object.freeze( [ 1.16673, 0.39418 ] ),
+      Object.freeze( [ -0.48481, 0.71959 ] ),
+      Object.freeze( [ 1.48481, 0.71959 ] ),
+      Object.freeze( [ -1.36103, 1.62792 ] ),
+      Object.freeze( [ 2.36103, 1.62792 ] ),
     ] ),
   } ),
 } )

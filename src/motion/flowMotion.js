@@ -9,7 +9,7 @@ const HEADER_LINE_PX = 64
 
 // The handoff and reveal amounts at depth 1; the depth setting scales them all together.
 // contactShade is the strength of the shadow Projects casts at its bottom edge onto Contact.
-const FLOW_AT_DEPTH_1 = { riseVh: 8, shrink: 0.035, liftPercent: 2, dim: 0.35, contactOffsetPercent: 25, contactShade: 0.4 }
+const FLOW_AT_DEPTH_1 = { riseVh: 8, contactOffsetPercent: 25, contactShade: 0.4 }
 
 /**
  * Tracks which part of the Story sits under the header: the pinned stage, Projects, or Contact.
@@ -61,12 +61,13 @@ export function createNavSections ( { root, onNavSection } )
 
 /**
  * The section choreography after the pinned stage, shared by every look:
- * 1. Studio → Projects: Projects rises over the held Studio, which shrinks back and dims.
+ * 1. Studio → Projects: one page scrolling on. Studio scrolls up with Projects directly below it,
+ *    with no fade, dim, or shrink.
  * 2. The Projects run: the section pins while its track of boards slides sideways, each board
  *    lifting (--lift) as it crosses the centre; the title drifts and the wall pushes in for depth.
  * 3. Projects → Contact: Projects scrolls away and Contact is uncovered from beneath it.
  *    A look with motion.handoff 'sameTable' (Pool Table) keeps one still table under all three
- *    Pages instead: Studio does not shrink or dim, and no sheet shows its own table while it moves.
+ *    Pages instead: Studio's type clears off the table, and no sheet shows its own table while it moves.
  * 4. Titles are set with the look's own letter entrance; Contact's rows settle in.
  *
  * Every sheet arrives in its final colour: nothing here changes a Page's ground while it moves, so
@@ -80,9 +81,6 @@ export function createFlowMotion ( { root, motion, charRest, compact, scrub, dep
   const d = Math.max( 0, depth )
   const flow = {
     riseVh: FLOW_AT_DEPTH_1.riseVh * d,
-    shrinkScale: 1 - FLOW_AT_DEPTH_1.shrink * d,
-    shrinkLiftPercent: FLOW_AT_DEPTH_1.liftPercent * d,
-    shrinkDim: Math.min( 1, FLOW_AT_DEPTH_1.dim * d ),
     contactRevealOffsetPercent: FLOW_AT_DEPTH_1.contactOffsetPercent * d,
     contactShade: Math.min( 1, FLOW_AT_DEPTH_1.contactShade * d ),
   }
@@ -94,7 +92,6 @@ export function createFlowMotion ( { root, motion, charRest, compact, scrub, dep
 
   const titleScreen = root.querySelector( '.title-screen' )
   const stageBackdrop = root.querySelector( '.stage-backdrop' )
-  const stageShade = root.querySelector( '.stage-shade' )
   const projectsContent = projects.querySelector( '.projects-content' )
   const projectsDepth = projects.querySelectorAll( ':scope .projects-sticky > .cyc-wall, :scope .projects-sticky > .look-scenery' )
   const contactInner = contact.querySelector( '.contact-inner' )
@@ -126,21 +123,32 @@ export function createFlowMotion ( { root, motion, charRest, compact, scrub, dep
     projects.style.removeProperty( '--run-distance' )
   } )
 
-  // ---- 1. Studio → Projects: rise over, shrink back. ----
-  // The backdrop fills the stage behind the shrinking Studio with the look's hall colour, so the
-  // frozen Intro scene never shows around its edges.
+  // ---- 1. Studio → Projects: one page scrolling on. ----
+  // The backdrop fills the stage behind Studio with the look's hall colour, so the frozen Intro
+  // scene never shows around its edges.
   const riseOver = gsap.timeline( {
     scrollTrigger: { trigger: projects, start: 'top bottom', end: 'top top', scrub, invalidateOnRefresh: true },
   } )
     .fromTo( stageBackdrop, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.001, ease: 'none' }, 0 )
+  if ( !sameTable )
+  {
+    // The pinned Studio screen scrolls up with Projects' top edge, so Studio and Projects read as
+    // one page: no fade, no dim, no shrink. scrub: true (not the weighted scrub) keeps it locked to
+    // the scroll position, the same one Projects' sheet moves by, so no gap opens between them.
+    gsap.fromTo( titleScreen, { y: 0 }, {
+      y: () => -window.innerHeight,
+      ease: 'none',
+      scrollTrigger: { trigger: projects, start: 'top bottom', end: 'top top', scrub: true, invalidateOnRefresh: true },
+    } )
+  }
+  if ( sameTable )
+  {
     // Projects' content arrives a little behind its surface, then catches up: the rise.
-    .fromTo( [ projectsContent, rail ], { y: () => window.innerHeight * flow.riseVh * reach / 100 }, {
+    riseOver.fromTo( [ projectsContent, rail ], { y: () => window.innerHeight * flow.riseVh * reach / 100 }, {
       y: 0,
       duration: 1,
       ease: 'power2.out',
     }, 0 )
-  if ( sameTable )
-  {
     // Studio's title, services, and resting balls clear off the cloth in the first half of the rise;
     // Studio's table stays, full size and fully lit, under Projects' incoming content. (A CSS
     // variable, read in downlight.css, so the Studio cue keeps sole use of these items' opacity.)
@@ -148,17 +156,6 @@ export function createFlowMotion ( { root, motion, charRest, compact, scrub, dep
       .fromTo( titleScreen, { '--studio-clear': 1 }, { '--studio-clear': 0, duration: 0.5, ease: 'power1.in' }, 0 )
       // Projects' own table switches on when its sheet reaches the top: exactly over Studio's.
       .fromTo( projects, { '--table-in': 0 }, { '--table-in': 1, duration: 0.001, ease: 'none' }, 0.999 )
-  }
-  else
-  {
-    riseOver
-      .fromTo( titleScreen, { scale: 1, yPercent: 0 }, {
-        scale: flow.shrinkScale,
-        yPercent: -flow.shrinkLiftPercent,
-        duration: 1,
-        ease: 'none',
-      }, 0 )
-      .fromTo( stageShade, { opacity: 0 }, { opacity: flow.shrinkDim, duration: 1, ease: 'none' }, 0 )
   }
 
   // ---- 2. The Projects run. ----

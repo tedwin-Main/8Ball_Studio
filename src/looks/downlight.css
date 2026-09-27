@@ -652,14 +652,39 @@
     font-size: clamp(42px, 12vw, 80px);
   }
 
+  /* The services sit back in the bottom-right corner of the cloth, as on desktop, right up to the
+     cushions: the base rule's right inset, and only a small gap above the bottom cushion. */
   .experience[data-look='downlight'] .studio-floor {
-    right: auto;
-    left: var(--inset-x);
-    bottom: calc(var(--tbl-bottom) + var(--rail) + 56px);
+    right: calc(var(--tbl-side) + var(--rail-x) + 12px);
+    bottom: calc(var(--tbl-bottom) + var(--rail) + clamp(10px, 2svh, 18px));
+    /* Never wider than the cloth (less the 12px gap on the right): on short phones the upright
+       table is narrow, and a long service name wraps under itself instead of running off the table. */
+    max-width: calc(var(--plate-w) - 2 * var(--rail-x) - 12px);
   }
 
+  .experience[data-look='downlight'] .studio-services .tape {
+    gap: 10px;
+    white-space: normal;
+  }
+
+  .experience[data-look='downlight'] .studio-services .tape::before {
+    width: 30px;
+  }
+
+  /* The title follows the table's width as well as the screen's, so it stays on the cloth when a
+     short screen makes the upright table narrow. */
+  .experience[data-look='downlight'] .final-title {
+    font-size: min(clamp(48px, 15vw, 96px), calc(var(--plate-w) * 0.17));
+  }
+
+  /* No room for the location line beside the services on a narrow table: it goes to the top of the
+     cloth, above the title, so it does not push the balls away from the bottom cushion. */
   .experience[data-look='downlight'] .final-meta {
-    bottom: calc(var(--tbl-bottom) + var(--rail) + 22px);
+    top: calc(var(--tbl-top) + var(--rail) + 16px);
+    bottom: auto;
+    /* One line that fits the cloth: the type steps down on a narrow table, since a second line
+       would run into the title below it. */
+    font-size: min(14px, calc(var(--plate-w) * 0.047));
   }
 
   .experience[data-look='downlight'] .header-meta .tape {
@@ -689,5 +714,31 @@
   .experience[data-look='downlight'] .cyc {
     --hall-top: 56px;
     --hall-bottom: 56px;
+  }
+
+  /* The cloth is wide and short here, so Studio lays out as on desktop: title top left, services
+     back in the bottom-right corner. The title is sized to the screen height so it clears the
+     services beside it, and the location line takes the empty top-right corner (bottom left, it
+     would run into the services). */
+  .experience[data-look='downlight'] .final-title {
+    font-size: clamp(34px, 11svh, 56px);
+  }
+
+  .experience[data-look='downlight'] .final-content {
+    top: calc(var(--tbl-top) + var(--rail) + clamp(10px, 3svh, 18px));
+  }
+
+  .experience[data-look='downlight'] .final-meta {
+    top: calc(var(--tbl-top) + var(--rail) + clamp(10px, 3svh, 18px));
+    right: calc(var(--tbl-side) + var(--rail-x) + 12px);
+    left: auto;
+  }
+
+  .experience[data-look='downlight'] .studio-services {
+    gap: 6px;
+  }
+
+  .experience[data-look='downlight'] .studio-services .tape::before {
+    width: 28px;
   }
 }

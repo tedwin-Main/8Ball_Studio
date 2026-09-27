@@ -364,8 +364,8 @@ a:focus-visible {
   transform: translateZ(25px);
 }
 
-/* Behind Studio while it shrinks back for Projects: the look's hall colour, so the frozen Intro
-   scene never shows around the receding Studio's edges (src/motion/flowMotion.js turns it on). */
+/* Behind Studio while it scrolls up for Projects: the look's hall colour, so the frozen Intro
+   scene never shows behind it (src/motion/flowMotion.js turns it on). */
 .stage-backdrop {
   position: absolute;
   z-index: 13;
@@ -373,17 +373,6 @@ a:focus-visible {
   background: var(--hall);
   pointer-events: none;
   visibility: hidden;
-  opacity: 0;
-  will-change: opacity;
-}
-
-/* Over Studio while Projects covers it: the held frame dims as it recedes. */
-.stage-shade {
-  position: absolute;
-  z-index: 16;
-  inset: 0;
-  background: var(--shade-color, #000);
-  pointer-events: none;
   opacity: 0;
   will-change: opacity;
 }
@@ -654,7 +643,7 @@ button.tape:focus-visible {
   visibility: visible;
 }
 
-/* Projects is pulled up over the stage's last screen (the handoff: it rises over the held Studio),
+/* Projects is pulled up over the stage's last screen (the handoff: Studio scrolls up with it),
    sits above both neighbours, and is as tall as one screen plus its horizontal run, during which
    its sticky screen stays put while the track of boards slides sideways. Overflow stays visible:
    clipping here would stop the sticky screen from sticking. */
@@ -1555,6 +1544,28 @@ button.tape:focus-visible {
   object-fit: cover;
   object-position: center;
   transform: translate(-50%, -50%);
+}
+
+/* The upright plate's camera looks down more steeply than the wide one, so with a plain cover fit its
+   far cushion sat well above the rack, with open cloth between. The plate is placed so that its cloth
+   edge (27.9% down the photo) lands at 35.7% of the screen height, right on the rack's back row as on
+   the wide plate. Phones zoom the photo from its top edge (128% of the screen height, top edge kept
+   covered); wider portrait screens, whose cover fit is already taller than that, shift it up instead.
+   The 3D balls do not move. PLATE_CALIBRATIONS.portrait in PoolPovDraft.jsx holds the plate's
+   measurements after this placement. */
+@media (orientation: portrait) {
+  .draft-layer-2d .pool-pov-visual {
+    container-type: size;
+  }
+
+  .pool-pov-photo {
+    /* 1536 × 2752: the plate's own shape, so the sizing below is the drawn image. */
+    top: min(0px, calc(35.7cqh - 50cqw));
+    width: auto;
+    height: max(128cqh, calc(100cqw * 2752 / 1536));
+    aspect-ratio: 1536 / 2752;
+    transform: translateX(-50%);
+  }
 }
 
 .pool-pov-vignette,

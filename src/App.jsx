@@ -1042,7 +1042,7 @@ function App ()
       </header>
 
       {/* Pinned stage: scroll range = timeline units × viewportsPerUnit screens, plus the sticky screen itself.
-          It holds the Intro break and Studio; in its last screen Projects rises over the held Studio. */}
+          It holds the Intro break and Studio; in its last screen Studio scrolls up with Projects below it. */}
       <section
         className="story"
         ref={ storyRef }
@@ -1097,7 +1097,7 @@ function App ()
             </div>
           </div>
 
-          {/* Fills the stage in the look's hall colour behind Studio while it shrinks back for Projects. */}
+          {/* Fills the stage in the look's hall colour behind Studio while it scrolls up for Projects. */}
           <div className="stage-backdrop" aria-hidden="true" />
 
           {/* Studio: the lights come up on a pink-gel cyc. */}
@@ -1118,12 +1118,10 @@ function App ()
             <p className="final-meta tape">Greater Kuala Lumpur, Malaysia</p>
           </section>
 
-          {/* Dims the held Studio as Projects covers it. */}
-          <div className="stage-shade" aria-hidden="true" />
         </div>
       </section>
 
-      {/* Projects rises over the held Studio, then pins while its boards run sideways across the screen.
+      {/* Projects scrolls on directly below Studio, then pins while its boards run sideways across the screen.
           Pulled up by the handoff screens; its height grows by the run (--run-distance, measured in JS). */}
       <section
         id="projects"

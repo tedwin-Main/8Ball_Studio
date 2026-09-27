@@ -21,7 +21,7 @@ A whole-site visual theme over the one shared markup and motion: Main (the defau
 _Avoid_: skin, theme (a look's per-Page palettes are its section themes)
 
 **Handoff**:
-The scroll-driven move from one Page to the next after the Intro: Projects rising over the held Studio, and Contact uncovered from beneath Projects.
+The scroll-driven move from one Page to the next after the Intro: Studio scrolling up with Projects directly below it (one page, no fade), and Contact uncovered from beneath Projects.
 _Avoid_: transition (reserved for Story navigation glides)
 
 **Run**:

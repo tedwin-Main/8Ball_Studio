@@ -38,7 +38,7 @@ const DEFAULT_RUN_SCREENS = 1
 
 // Where the Story's parts sit in the document, in one length unit (px in the browser).
 // The pinned stage scrolls through the Intro → Studio cue over pinnedRange. Projects is pulled up by
-// pages.handoffScreens so it rises over the held Studio, which puts its top exactly where the stage
+// pages.handoffScreens so it scrolls on right below Studio, which puts its top exactly where the stage
 // releases; it is one screen plus its horizontal run tall. Contact follows it and ends the page.
 // The default is measured in screens.
 export function getDefaultStoryLayout()

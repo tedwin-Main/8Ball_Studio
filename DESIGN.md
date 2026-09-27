@@ -114,7 +114,7 @@ Density is low. Each Page holds one enormous title and one next move. Motion car
 ### Named Rules
 **The Signal Rule.** Acid is the one colour off the ink/paper axis. Felt stands in for it wherever acid would lose contrast (on paper and acid grounds).
 
-**The Sheet Rule.** A Page's ground never changes while it moves. Each sheet is its final colour from its first pixel: Projects rises over Studio already paper, and Contact is uncovered already acid. The palette changes only at a sheet's edge, so a Handoff never shows a mid-tone between two palettes. Depth comes from the layer below (Studio shrinks and dims) and from the soft shadow a sheet casts at its edge. Only the header ink and the browser chrome change colour, as each section reaches the header line.
+**The Sheet Rule.** A Page's ground never changes while it moves. Each sheet is its final colour from its first pixel: Projects scrolls on below Studio already paper, and Contact is uncovered already acid. The palette changes only at a sheet's edge, so a Handoff never shows a mid-tone between two palettes. Depth comes from the soft shadow a sheet casts at its edge. Only the header ink and the browser chrome change colour, as each section reaches the header line.
 
 **The Header Rule.** The header follows the section under it: paper ink over the stage, ink over Projects and Contact. The browser chrome (`<meta name="theme-color">`) follows it too.
 
@@ -181,7 +181,7 @@ Every look shares this system. Values live in `src/storyTiming.js` (`scroll`, `p
 - **Glide:** Lenis lerp 0.1, wheel 0.7, animation lag 0.4 s (0.2 s after Studio). Touch keeps native momentum.
 - **Opening shot** (once per page load, as the preloader lifts or the Intro first shows): the active Draft's table settles from a 1.06 push-in (power2.out, 2.4 s); "Roll with us." rises out of its line word by word (power4.out, 1 s, 0.08 s apart), clipped only below the line so its soft shadow is never cut; the services settle under it; the scroll prompt arrives last. It moves only child elements, so the scrubbed Intro timeline keeps `.hero-copy` and `.scroll-prompt`. Reduced motion shows the Intro at rest. Code: `src/motion/introEntrance.js`.
 - **Intro → Studio** (pinned, scrub 1.2 s): one scroll plays the whole break by itself, a 3 s glide that starts slowly so the 8-ball rolls in heavy; scrolling up from Studio plays it back. The Studio cue then takes one screen of that glide, so its title lands at the pace of the Projects and Contact titles. Each look has its own reveal. In Main the opening composition fades into Studio while the title letters rise out of their line masks, left to right.
-- **Studio → Projects handoff** (scrub 0.6 s): Projects rises over the held Studio, which shrinks to 0.965, lifts 2%, and dims (except Pool Table, which keeps one still table).
+- **Studio → Projects handoff** (locked to scroll): Studio scrolls up with Projects directly below it, as one page. No fade, dim, or shrink.
 - **The run:** Projects pins while its cards slide sideways, and each card lifts as it crosses the centre. The title drifts against the cards for depth.
 - **Projects → Contact reveal:** Projects scrolls away and Contact is uncovered from beneath it. Contact is acid from its first pixel. Its content settles from 25% up while the shadow under Projects' edge lifts.
 - **Velocity skew:** only the Projects cards lean with the scroll's speed (up to 1.5°) and settle upright. Titles and Contact stand still, and nothing leans during a glide.
