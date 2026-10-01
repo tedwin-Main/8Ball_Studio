@@ -1,5 +1,5 @@
 {
-  "note": "Sample media for the Services timeline (placeholders until the studio's own work). All from Mixkit under the Mixkit Stock Video Free License (free for commercial use, no attribution required; not for standalone redistribution). Clips: centre square crop, 640px, first 6 s, no audio, H.264 CRF 30-34. Stills: the source clip's 720p thumbnail, centre square crop, 640px WebP. Posters: the reel's frame at 1 s.",
+  "note": "Sample media for the Services carousels (placeholders until the studio's own work). All from Mixkit under the Mixkit Stock Video Free License (free for commercial use, no attribution required; not for standalone redistribution). Clips: centre square crop, 640px, first 6 s, no audio, H.264 CRF 30-34. Stills: the source clip's 720p thumbnail, centre square crop, 640px WebP. Posters: the reel's frame at 1 s.",
   "license": "https://mixkit.co/license/#videoFree",
   "files": {
     "video-reel.mp4": "https://mixkit.co/free-stock-video/using-a-clapperboard-to-start-filming-a-shot-46353/",
@@ -13,7 +13,19 @@
     "web-reel.mp4": "https://mixkit.co/free-stock-video/creative-man-works-on-web-design-in-modern-office-13229/",
     "web-still.webp": "https://mixkit.co/free-stock-video/web-design-team-look-at-prototype-in-modern-office-13232/",
     "ai-reel.mp4": "https://mixkit.co/free-stock-video/going-through-a-space-tunnel-with-fractal-shapes-31562/",
-    "ai-still.webp": "https://mixkit.co/free-stock-video/traveling-to-the-dream-world-through-the-clouds-14165/"
+    "ai-still.webp": "https://mixkit.co/free-stock-video/traveling-to-the-dream-world-through-the-clouds-14165/",
+    "video-reel-2.mp4": "https://mixkit.co/free-stock-video/film-crew-preparing-show-for-tv-22973/",
+    "video-still-2.webp": "https://mixkit.co/free-stock-video/young-filmaker-with-a-retro-film-camera-on-a-sunny-49643/",
+    "design-reel-2.mp4": "https://mixkit.co/free-stock-video/designer-coloring-changing-of-drawing-utensil-29999/",
+    "design-still-2.webp": "https://mixkit.co/free-stock-video/colorful-design-on-tablet-921/",
+    "marketing-reel-2.mp4": "https://mixkit.co/free-stock-video/man-draws-strategy-for-digital-marketing-team-8850/",
+    "marketing-still-2.webp": "https://mixkit.co/free-stock-video/business-man-exposing-graphs-42648/",
+    "social-reel-2.mp4": "https://mixkit.co/free-stock-video/person-on-social-media-while-serving-coffee-4919/",
+    "social-still-2.webp": "https://mixkit.co/free-stock-video/happy-man-texting-on-his-smartphone-41174/",
+    "web-reel-2.mp4": "https://mixkit.co/free-stock-video/design-team-review-prototype-in-modern-minimalist-office-13325/",
+    "web-still-2.webp": "https://mixkit.co/free-stock-video/young-business-team-discuss-design-in-modern-office-13327/",
+    "ai-reel-2.mp4": "https://mixkit.co/free-stock-video/abstract-video-of-a-liquid-with-dark-ink-flowing-44818/",
+    "ai-still-2.webp": "https://mixkit.co/free-stock-video/traveling-through-a-tunnel-of-black-cubes-in-3d-31497/"
   },
   "createdAt": "2026-10-01T20:05:00.000Z"
 }

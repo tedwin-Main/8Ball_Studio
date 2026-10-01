@@ -146,19 +146,21 @@ const SERVICES = [ 'Social content management', 'Video & photography', 'Graphic 
 
 // The Services Page's running order (DOCS/TODOLIST.md): each service with one short line of what it
 // covers. Numbers come from the list's own counter in CSS, so reordering never needs renumbering.
-// Sample media for Main's Services timeline (src/assets/services, sources in SOURCES.json): per
-// service a short muted reel, its poster, and a still. Placeholders until the studio's own work.
+// Sample media for Main's Services carousels (src/assets/services, sources in SOURCES.json): per
+// service two short muted reels with their posters, and two stills. Placeholders until the studio's own work.
 const SERVICE_MEDIA_FILES = import.meta.glob( './assets/services/*.{mp4,webp}', { eager: true, import: 'default' } )
+const serviceFile = ( name ) => SERVICE_MEDIA_FILES[ `./assets/services/${name}` ]
+const serviceReel = ( name ) => ( { type: 'video', src: serviceFile( `${name}.mp4` ), poster: serviceFile( `${name}-poster.webp` ) } )
+const serviceStill = ( name ) => ( { type: 'image', src: serviceFile( `${name}.webp` ) } )
+// A service's carousel: reel, still, second reel, second still.
 const serviceMedia = ( slug ) => [
-  {
-    type: 'video',
-    src: SERVICE_MEDIA_FILES[ `./assets/services/${slug}-reel.mp4` ],
-    poster: SERVICE_MEDIA_FILES[ `./assets/services/${slug}-reel-poster.webp` ],
-  },
-  { type: 'image', src: SERVICE_MEDIA_FILES[ `./assets/services/${slug}-still.webp` ] },
+  serviceReel( `${slug}-reel` ),
+  serviceStill( `${slug}-still` ),
+  serviceReel( `${slug}-reel-2` ),
+  serviceStill( `${slug}-still-2` ),
 ]
 
-// media: the service's tiles in the timeline, a reel then a still.
+// media: the service's carousel in Main (four sample pieces).
 const SERVICE_ITEMS = [
   { name: 'Video production', detail: 'Brand films, reels and short-form edits', media: serviceMedia( 'video' ) },
   { name: 'Graphic design', detail: 'Brand assets, social posts and print', media: serviceMedia( 'design' ) },
@@ -1212,47 +1214,34 @@ function App ()
                 </li>
               ) ) }
             </ol>
-            {/* Main's Services timeline (after nickho-motorsports.nl's history): Services pins while a
-                column of tiles scrolls up through the centre; the service on the centre tile shows its
-                name on the left and its detail on the right (flowMotion.js sets the step). Other looks
-                and reduced motion show the ruled list above instead (CSS). The steps stay in reading
-                order for screen readers; inactive ones are faded, never hidden. */}
-            <div className="services-timeline">
-              <ol className="timeline-steps">
-                { SERVICE_ITEMS.map( ( service, index ) => (
-                  <li className={ `timeline-step${index === 0 ? ' is-active' : ''}` } key={ service.name }>
-                    <h3 className="timeline-name">
-                      <span className="timeline-number">{ toStepNumber( index ) }</span>
-                      <span className="timeline-name-text">{ service.name }</span>
-                    </h3>
-                    <p className="timeline-detail">{ service.detail }</p>
-                  </li>
-                ) ) }
-              </ol>
-              <div className="timeline-window" aria-hidden="true">
-                {/* Every service's media in order; data-step names the service a tile belongs to, so
-                    its name stays up until the column has run past all of that service's tiles.
-                    Reels load and play only while centred (flowMotion.js). */}
-                <div className="timeline-track">
-                  { SERVICE_ITEMS.flatMap( ( service, index ) => service.media.map( ( item, mediaIndex ) => (
-                    <figure
-                      className={ `timeline-tile${index === 0 && mediaIndex === 0 ? ' is-active' : ''}` }
-                      data-step={ index }
-                      key={ `${service.name}-${mediaIndex}` }
-                    >
-                      { item.type === 'video'
-                        ? <video className="timeline-media" src={ item.src } poster={ item.poster } muted loop playsInline preload="none" />
-                        : <img className="timeline-media" src={ item.src } alt="" loading="lazy" decoding="async" /> }
-                      <span className="timeline-tile-number">{ toStepNumber( index ) }</span>
-                    </figure>
-                  ) ) ) }
-                </div>
-              </div>
-              <div className="timeline-progress" aria-hidden="true">
-                <span className="timeline-count">01</span>
-                <span className="timeline-bar"><span className="timeline-bar-fill" /></span>
-                <span className="timeline-total">{ toStepNumber( SERVICE_ITEMS.length - 1 ) }</span>
-              </div>
+            {/* Main's Services panels: one per service, its title on the left and a carousel of its
+                work on the right. Each panel pins while its carousel runs sideways to the end, then
+                the next service scrolls up (flowMotion.js). Other looks and reduced motion show the
+                ruled list above instead (CSS). Reels load and play only while their panel runs. */}
+            <div className="service-panels">
+              { SERVICE_ITEMS.map( ( service, index ) => (
+                <article className="service-panel" key={ service.name } aria-labelledby={ `service-${index}` }>
+                  <div className="service-panel-sticky">
+                    <div className="service-panel-text">
+                      <span className="service-panel-number">{ toStepNumber( index ) } / { toStepNumber( SERVICE_ITEMS.length - 1 ) }</span>
+                      <h3 className="service-panel-name" id={ `service-${index}` }>{ service.name }</h3>
+                      <p className="service-panel-detail">{ service.detail }</p>
+                      <span className="service-panel-bar" aria-hidden="true"><span className="service-panel-bar-fill" /></span>
+                    </div>
+                    <div className="service-panel-window" aria-hidden="true">
+                      <div className="service-panel-track">
+                        { service.media.map( ( item, mediaIndex ) => (
+                          <figure className="service-tile" key={ mediaIndex }>
+                            { item.type === 'video'
+                              ? <video className="service-media" src={ item.src } poster={ item.poster } muted loop playsInline preload="none" />
+                              : <img className="service-media" src={ item.src } alt="" loading="lazy" decoding="async" /> }
+                          </figure>
+                        ) ) }
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              ) ) }
             </div>
           </div>
         </div>

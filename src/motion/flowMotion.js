@@ -11,133 +11,61 @@ const HEADER_LINE_PX = 64
 // contactShade is the strength of the shadow Projects casts at its bottom edge onto Contact.
 const FLOW_AT_DEPTH_1 = { riseVh: 8, shrink: 0.035, liftPercent: 2, dim: 0.35, contactOffsetPercent: 25, contactShade: 0.4 }
 
-// Scroll per tile of the Services timeline, in screens: each reel or still holds the centre this long.
-const TIMELINE_TILE_SCREENS = 0.55
-// How far each tile's media drifts inside its frame (yPercent), the parallax of the column.
-const TIMELINE_PARALLAX_PERCENT = 8
+// Scroll per pixel of a Services carousel's sideways run (1 = the carousel moves with the scroll).
+const SERVICE_RUN_RATE = 1
 
 /**
- * Main's Services timeline (App.jsx, acid.css), after nickho-motorsports.nl's history: Services pins
- * while its column of media tiles (each service's reel, then its still) scrolls up through the centre.
- * The tile at the centre is active: it comes forward, and its reel plays. Each tile names its service
- * (data-step), so a service's name, detail and count stay up until the column has run past every one
- * of its tiles, and only then does the next service take over. Services' height grows by the
- * timeline's scroll (--timeline-distance), the way Projects grows by its run. Returns a cleanup.
+ * Main's Services panels (App.jsx, acid.css): one per service, its title on the left and a carousel
+ * of its work on the right. Each panel pins (CSS sticky) while its carousel runs sideways to its last
+ * piece, and only then does the next service scroll up: the visitor sees every piece of one service
+ * before the next begins. Each panel grows by its run (--panel-distance), the way Projects grows by
+ * its run. Reels play only while their panel is on screen. Returns a cleanup.
  */
-function createServicesTimeline ( { services, timeline, scrub } )
+function createServicePanels ( { panels, scrub } )
 {
-  const track = timeline.querySelector( '.timeline-track' )
-  const windowEl = timeline.querySelector( '.timeline-window' )
-  const tiles = gsap.utils.toArray( '.timeline-tile', timeline )
-  const steps = gsap.utils.toArray( '.timeline-step', timeline )
-  const count = timeline.querySelector( '.timeline-count' )
-  const fill = timeline.querySelector( '.timeline-bar-fill' )
-  if ( !track || !windowEl || tiles.length < 2 ) return () => {}
-
-  const last = tiles.length - 1
-  const stepOf = tiles.map( ( tile ) => Number( tile.dataset.step ) || 0 )
-  const videos = tiles.map( ( tile ) => tile.querySelector( 'video' ) )
-  // Each tile's media drifts against the column's move (quickSetter: no tween per frame).
-  const setDrift = tiles.map( ( tile ) => gsap.quickSetter( tile.querySelector( '.timeline-media' ), 'yPercent' ) )
-
-  let distance = 0
-  const measure = () =>
+  const cleanups = []
+  panels.forEach( ( panel ) =>
   {
-    distance = Math.round( last * TIMELINE_TILE_SCREENS * window.innerHeight )
-    services.style.setProperty( '--timeline-distance', `${distance}px` )
-  }
-  measure()
-  ScrollTrigger.addEventListener( 'refreshInit', measure )
+    const windowEl = panel.querySelector( '.service-panel-window' )
+    const track = panel.querySelector( '.service-panel-track' )
+    const fill = panel.querySelector( '.service-panel-bar-fill' )
+    const videos = [ ...panel.querySelectorAll( 'video' ) ]
+    if ( !windowEl || !track ) return
 
-  // The track's offset that puts a tile's centre on the window's centre (read at each refresh).
-  const centreOn = ( index ) => () =>
-    windowEl.clientHeight / 2 - ( tiles[ index ].offsetTop + tiles[ index ].offsetHeight / 2 )
-
-  // Only the centred reel plays, and only while Services is on screen; the next two start loading
-  // so they are ready when they arrive.
-  let onScreen = false
-  const playOnly = ( index ) =>
-  {
-    if ( !onScreen ) return
-    videos.forEach( ( video, videoIndex ) =>
+    let distance = 0
+    const measure = () =>
     {
-      if ( !video ) return
-      if ( videoIndex === index )
+      distance = Math.max( 0, track.scrollWidth - windowEl.clientWidth )
+      panel.style.setProperty( '--panel-distance', `${Math.round( distance * SERVICE_RUN_RATE )}px` )
+    }
+    measure()
+    ScrollTrigger.addEventListener( 'refreshInit', measure )
+
+    const trigger = { trigger: panel, start: 'top top', end: () => `+=${Math.max( 1, distance * SERVICE_RUN_RATE )}`, scrub, invalidateOnRefresh: true }
+    gsap.to( track, { x: () => -distance, ease: 'none', scrollTrigger: trigger } )
+    if ( fill ) gsap.fromTo( fill, { scaleX: 0 }, { scaleX: 1, ease: 'none', scrollTrigger: { ...trigger } } )
+
+    // The panel's reels play while any of it is on screen, and load only then.
+    const playback = ScrollTrigger.create( {
+      trigger: panel,
+      start: 'top bottom',
+      end: 'bottom top',
+      onToggle: ( self ) => videos.forEach( ( video ) =>
       {
-        video.play()?.catch( () => {} )
-        return
-      }
-      if ( !video.paused ) video.pause()
-      if ( videoIndex > index && videoIndex <= index + 2 ) video.preload = 'auto'
+        if ( self.isActive ) video.play()?.catch( () => {} )
+        else video.pause()
+      } ),
     } )
-  }
 
-  // Only touch the DOM when the centred tile changes, not on every scrubbed frame.
-  let currentTile = -1
-  let currentStep = -1
-  const setTile = ( next ) =>
-  {
-    if ( next === currentTile ) return
-    tiles[ currentTile ]?.classList.remove( 'is-active' )
-    currentTile = next
-    tiles[ currentTile ].classList.add( 'is-active' )
-    playOnly( currentTile )
-    const step = stepOf[ currentTile ]
-    if ( step === currentStep ) return
-    steps[ currentStep ]?.classList.remove( 'is-active' )
-    currentStep = step
-    steps[ currentStep ]?.classList.add( 'is-active' )
-    if ( count ) count.textContent = String( currentStep + 1 ).padStart( 2, '0' )
-  }
-  // The markup starts with the first tile and step active.
-  tiles.forEach( ( tile, index ) => tile.classList.toggle( 'is-active', index === 0 ) )
-  steps.forEach( ( step, index ) => step.classList.toggle( 'is-active', index === 0 ) )
-  currentTile = 0
-  currentStep = 0
-
-  // Tiles are evenly spaced, so a linear move keeps every tile the same length of scroll.
-  // The scrubbed progress (not raw scroll) picks the tile, so text swaps in time with the column.
-  const trigger = { trigger: services, start: 'top top', end: () => `+=${Math.max( 1, distance )}`, scrub, invalidateOnRefresh: true }
-  const syncTimeline = ( progress ) =>
-  {
-    const position = progress * last
-    setTile( Math.round( position ) )
-    setDrift.forEach( ( set, index ) => set( gsap.utils.clamp( -1, 1, index - position ) * TIMELINE_PARALLAX_PERCENT ) )
-  }
-  const column = gsap.fromTo( track, { y: centreOn( 0 ) }, {
-    y: centreOn( last ),
-    ease: 'none',
-    // A refresh can land the column anywhere (a restored scroll spot, a resize): re-read it then too.
-    scrollTrigger: { ...trigger, onRefresh: ( self ) => syncTimeline( self.animation?.progress() ?? self.progress ) },
-    onUpdate () { syncTimeline( this.progress() ) },
-  } )
-  // The bar fills with the column, from one tile's share to full at the last tile.
-  if ( fill ) gsap.fromTo( fill, { scaleX: 1 / tiles.length }, { scaleX: 1, ease: 'none', scrollTrigger: { ...trigger } } )
-  syncTimeline( column.progress() )
-
-  // Reels stop when Services is off screen.
-  const visibility = ScrollTrigger.create( {
-    trigger: services,
-    start: 'top bottom',
-    end: 'bottom top',
-    onToggle: ( self ) =>
+    cleanups.push( () =>
     {
-      onScreen = self.isActive
-      if ( onScreen ) playOnly( currentTile )
-      else videos.forEach( ( video ) => video?.pause() )
-    },
+      ScrollTrigger.removeEventListener( 'refreshInit', measure )
+      panel.style.removeProperty( '--panel-distance' )
+      playback.kill()
+      videos.forEach( ( video ) => video.pause() )
+    } )
   } )
-
-  return () =>
-  {
-    ScrollTrigger.removeEventListener( 'refreshInit', measure )
-    services.style.removeProperty( '--timeline-distance' )
-    visibility.kill()
-    videos.forEach( ( video ) => video?.pause() )
-    tiles.forEach( ( tile, index ) => tile.classList.toggle( 'is-active', index === 0 ) )
-    steps.forEach( ( step, index ) => step.classList.toggle( 'is-active', index === 0 ) )
-    if ( count ) count.textContent = '01'
-  }
+  return () => cleanups.forEach( ( cleanup ) => cleanup() )
 }
 
 /**
@@ -233,6 +161,14 @@ export function createFlowMotion ( { root, motion, charRest, compact, touch = fa
   const servicesInner = services.querySelector( '.services-inner' )
   const servicesContent = services.querySelector( '.services-content' )
   const servicesShade = services.querySelector( '.services-shade' )
+  // Main's service panels, when shown (display: none in other looks and reduced motion).
+  const panelList = services.querySelector( '.service-panels' )
+  const servicePanels = panelList && window.getComputedStyle( panelList ).display !== 'none'
+    ? gsap.utils.toArray( '.service-panel', panelList )
+    : []
+  // What shrinks back as Projects rises: the whole Page, or, when Services is a tall run of panels,
+  // the last panel's screen (shrinking the tall Page from its top would slide the visible part up).
+  const servicesBack = servicePanels.at( -1 )?.querySelector( '.service-panel-sticky' ) ?? servicesInner
 
   const titleScreen = root.querySelector( '.title-screen' )
   const stageBackdrop = root.querySelector( '.stage-backdrop' )
@@ -323,7 +259,7 @@ export function createFlowMotion ( { root, motion, charRest, compact, touch = fa
   else
   {
     riseOverServices
-      .fromTo( servicesInner, { scale: 1, yPercent: 0 }, {
+      .fromTo( servicesBack, { scale: 1, yPercent: 0 }, {
         scale: flow.shrinkScale,
         yPercent: -flow.shrinkLiftPercent,
         duration: 1,
@@ -445,12 +381,8 @@ export function createFlowMotion ( { root, motion, charRest, compact, touch = fa
     } )
   }
 
-  // Main shows the running order as a pinned timeline instead of the list (hidden by CSS elsewhere).
-  const servicesTimeline = services.querySelector( '.services-timeline' )
-  if ( servicesTimeline && window.getComputedStyle( servicesTimeline ).display !== 'none' )
-  {
-    cleanups.push( createServicesTimeline( { services, timeline: servicesTimeline, scrub: pinnedScrub } ) )
-  }
+  // Main shows each service as a pinned panel with its own carousel instead of the list (hidden by CSS elsewhere).
+  if ( servicePanels.length ) cleanups.push( createServicePanels( { panels: servicePanels, scrub: pinnedScrub } ) )
   revealTitle( contact, '.contact-title .cue-char', 'top 75%', 'top 10%' )
 
   const rows = contact.querySelectorAll( '.contact-lead, .contact-primary, .contact-list li, .call-sheet-foot' )

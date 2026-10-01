@@ -102,8 +102,15 @@
   border-bottom: 1px solid color-mix(in srgb, var(--nav-ink) 20%, transparent);
   color: var(--nav-ink);
   transition:
+    background-color 300ms ease,
     border-color 500ms ease,
     color 500ms ease;
+}
+
+/* After the stage every Page is black and scrolls (Services' panels, the Projects run, Contact's
+   table): the header takes the same black, so nothing scrolling under it shows through the nav. */
+.experience[data-look='acid']:not([data-nav-section='stage']) .site-header {
+  background: #000;
 }
 
 .experience[data-look='acid'] .brand-logo {
@@ -247,7 +254,7 @@
   padding-top: 18px;
 }
 
-/* ---------- Services: black, its running order as a timeline ---------- */
+/* ---------- Services: black, one panel per service ---------- */
 /* Black from its first pixel, like nickho-motorsports.nl's history timeline. Black on Studio's ink
    would hide the sheet's edge as it rises, so a paper hairline marks the edge. Type is paper and the
    numbers take the acid signal (the yellow of the reference). */
@@ -288,218 +295,152 @@
   }
 }
 
-/* ---------- Services timeline (after nickho-motorsports.nl's history) ---------- */
-/* Services pins while a column of tiles scrolls up through the centre, one tile per service
-   (flowMotion.js moves the column and marks the active step). The section grows by the timeline's
-   scroll (--timeline-distance); its inner screen sticks for that long. clip, not hidden, on both:
-   a hidden box is a scroll container, and the sticky screen would stop sticking. */
+/* ---------- Services panels: the title on the left, its carousel on the right ---------- */
+/* After the Page title, each service is a panel one screen tall plus its carousel's run
+   (--panel-distance, flowMotion.js). Its screen sticks while the carousel slides sideways to its
+   last piece, then the next panel scrolls up: every piece of one service before the next begins.
+   clip, not hidden, on the Page: a hidden box is a scroll container, and the panels would not stick. */
 .experience[data-look='acid'] .services-screen.cyc-flow {
-  height: calc(100svh + var(--timeline-distance, 0px));
+  height: auto;
   min-height: 100svh;
   overflow: clip;
 }
 
 .experience[data-look='acid'] .services-inner {
-  position: sticky;
-  top: 0;
-  height: 100svh;
-  min-height: 0;
   overflow: clip;
 }
 
 .experience[data-look='acid'] .services-content {
-  height: 100svh;
+  display: block;
   min-height: 0;
-  align-content: start;
+  padding: clamp(96px, 13vh, 140px) 0 0;
 }
 
 .experience[data-look='acid'] .services-title {
-  z-index: 1;
-  grid-column: 1 / 6;
-  /* Small enough that "SERVICES", indented, ends before the tile column. */
-  font-size: clamp(52px, 5.8vw, 112px);
+  padding: 0 var(--gutter);
+  font-size: clamp(64px, 9vw, 160px);
 }
 
-/* The ruled list is the timeline's reduced-motion fallback (below). */
+/* The ruled list is the panels' fallback for reduced motion (below). */
 .experience[data-look='acid'] .services-list {
   display: none;
 }
 
-/* Three columns on the 12-column grid: the active name bottom-left, the tile column in the middle
-   (full height, faded at top and bottom), the counter and detail bottom-right. */
-.experience[data-look='acid'] .services-timeline {
-  --tl-pad-top: clamp(96px, 13vh, 140px);
-  --tl-pad-bottom: clamp(48px, 9vh, 96px);
-  position: absolute;
-  inset: 0;
+.experience[data-look='acid'] .service-panels {
+  display: block;
+  margin-top: clamp(32px, 7vh, 80px);
+}
+
+.experience[data-look='acid'] .service-panel {
+  position: relative;
+  height: calc(100svh + var(--panel-distance, 0px));
+}
+
+/* Each panel's screen is opaque black, so the next one covers it cleanly as it scrolls up. */
+.experience[data-look='acid'] .service-panel-sticky {
+  position: sticky;
+  top: 0;
   display: grid;
+  height: 100svh;
+  align-items: center;
   column-gap: clamp(16px, 2vw, 32px);
-  row-gap: 18px;
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  grid-template-rows: minmax(0, 1fr) auto auto;
-  padding: var(--tl-pad-top) var(--gutter) var(--tl-pad-bottom);
-  pointer-events: none;
+  padding: clamp(84px, 11vh, 110px) 0 clamp(40px, 7vh, 72px) var(--gutter);
+  border-top: 1px solid rgb(242 241 233 / 0.14);
+  background: #000;
+  transform-origin: 50% 0;
 }
 
-/* Each step's name and detail are grid items of the timeline itself, so all six names share one
-   cell and all six details another; only the active pair is shown. */
-.experience[data-look='acid'] :is(.timeline-steps, .timeline-step) {
-  display: contents;
+.experience[data-look='acid'] .service-panel-text {
+  display: grid;
+  align-content: center;
+  gap: 18px;
+  grid-column: 1 / 5;
 }
 
-.experience[data-look='acid'] :is(.timeline-name, .timeline-detail) {
+.experience[data-look='acid'] :is(.service-panel-number, .service-panel-detail) {
   margin: 0;
-  opacity: 0;
-  translate: 0 0.6em;
-  transition:
-    opacity 260ms ease,
-    translate 600ms var(--ease-out);
+  font-family: var(--ui-font);
+  font-stretch: var(--ui-stretch);
+  font-weight: var(--ui-weight);
+  letter-spacing: var(--ui-tracking);
 }
 
-.experience[data-look='acid'] .timeline-step.is-active :is(.timeline-name, .timeline-detail) {
-  opacity: 1;
-  translate: 0 0;
-  transition-delay: 120ms;
+.experience[data-look='acid'] .service-panel-number {
+  color: var(--an-acid);
+  font-size: var(--ui-size);
+  font-variant-numeric: tabular-nums;
 }
 
-.experience[data-look='acid'] .timeline-name {
-  align-self: end;
-  grid-column: 1 / 6;
-  grid-row: 2 / 4;
+.experience[data-look='acid'] .service-panel-name {
+  margin: 0;
   color: var(--an-paper);
   font-family: var(--font);
-  font-size: clamp(40px, 5.2vw, 100px);
+  font-size: clamp(44px, 4.8vw, 92px);
   font-stretch: 62%;
   font-weight: 900;
   line-height: 0.86;
   text-transform: uppercase;
 }
 
-.experience[data-look='acid'] .timeline-number {
-  display: block;
-  margin-bottom: 14px;
-  color: var(--an-acid);
-  font-family: var(--ui-font);
-  font-size: var(--ui-size);
-  font-stretch: var(--ui-stretch);
-  font-weight: var(--ui-weight);
-  letter-spacing: var(--ui-tracking);
-}
-
-.experience[data-look='acid'] .timeline-detail {
-  align-self: end;
-  grid-column: 9 / 13;
-  grid-row: 3;
-  color: rgb(242 241 233 / 0.82);
-  font-family: var(--ui-font);
+.experience[data-look='acid'] .service-panel-detail {
+  max-width: 22em;
+  color: rgb(242 241 233 / 0.78);
   font-size: clamp(17px, 1.4vw, 22px);
-  font-stretch: var(--ui-stretch);
-  font-weight: var(--ui-weight);
-  letter-spacing: var(--ui-tracking);
   line-height: 1.3;
 }
 
-/* 01 ——— 06: the running order's progress, the bar filling as the column scrolls. */
-.experience[data-look='acid'] .timeline-progress {
-  display: flex;
-  align-items: center;
-  grid-column: 9 / 13;
-  grid-row: 2;
-  gap: 14px;
-  color: rgb(242 241 233 / 0.6);
-  font-family: var(--ui-font);
-  font-size: var(--ui-size-sm);
-  font-stretch: var(--ui-stretch);
-  font-weight: var(--ui-weight);
-  font-variant-numeric: tabular-nums;
-}
-
-.experience[data-look='acid'] .timeline-count {
-  color: var(--an-acid);
-}
-
-.experience[data-look='acid'] .timeline-bar {
+/* How far this service's carousel has run. */
+.experience[data-look='acid'] .service-panel-bar {
   position: relative;
+  width: min(100%, 240px);
   height: 1px;
-  flex: 1;
+  margin-top: 8px;
   background: rgb(242 241 233 / 0.24);
 }
 
-.experience[data-look='acid'] .timeline-bar-fill {
+.experience[data-look='acid'] .service-panel-bar-fill {
   position: absolute;
   inset: 0;
   background: var(--an-acid);
-  transform: scaleX(0.1667);
+  transform: scaleX(0);
   transform-origin: 0 50%;
 }
 
-/* The tile column runs the full height of the screen, behind the header, faded at both ends. */
-.experience[data-look='acid'] .timeline-window {
-  grid-column: 6 / 9;
-  grid-row: 1 / -1;
-  margin: calc(-1 * var(--tl-pad-top)) 0 calc(-1 * var(--tl-pad-bottom));
+/* The carousel runs to the screen's right edge; its track slides left (flowMotion.js). */
+.experience[data-look='acid'] .service-panel-window {
+  grid-column: 5 / -1;
   overflow: clip;
-  -webkit-mask-image: linear-gradient(transparent, #000 22%, #000 78%, transparent);
-  mask-image: linear-gradient(transparent, #000 22%, #000 78%, transparent);
 }
 
-.experience[data-look='acid'] .timeline-track {
-  position: relative;
+.experience[data-look='acid'] .service-panel-track {
   display: flex;
-  align-items: center;
-  flex-direction: column;
-  gap: clamp(20px, 3.4vh, 40px);
+  width: max-content;
+  gap: clamp(16px, 2.2vw, 32px);
+  padding-right: var(--gutter);
   will-change: transform;
 }
 
-/* A tile per piece of work: the service's reel, then its still, square and full-bleed (the
-   reference's 1:1 photos). The media sits taller than its frame and drifts inside it as the column
-   moves (flowMotion.js). Tiles off the centre sit back and dim; the active one comes forward.
-   (Sample media until the studio's own work: src/assets/services/SOURCES.json.) */
-.experience[data-look='acid'] .timeline-tile {
+/* Portrait 4:5 tiles, full-bleed media. (Sample media until the studio's own work:
+   src/assets/services/SOURCES.json.) */
+.experience[data-look='acid'] .service-tile {
   position: relative;
-  width: min(100%, 46svh);
+  height: clamp(240px, 58svh, 560px);
   margin: 0;
-  aspect-ratio: 1;
+  aspect-ratio: 4 / 5;
   flex: none;
   overflow: hidden;
   border-radius: 4px;
   background: #111;
-  opacity: 0.35;
-  scale: 0.84;
-  transition:
-    opacity 500ms ease,
-    scale 700ms var(--ease-out);
 }
 
-.experience[data-look='acid'] .timeline-tile.is-active {
-  opacity: 1;
-  scale: 1;
-}
-
-.experience[data-look='acid'] .timeline-media {
+.experience[data-look='acid'] .service-media {
   position: absolute;
-  top: -10%;
-  left: 0;
+  inset: 0;
   display: block;
   width: 100%;
-  height: 120%;
+  height: 100%;
   object-fit: cover;
-  will-change: transform;
-}
-
-/* The service's number on its media, on a soft shade so it reads over any frame. */
-.experience[data-look='acid'] .timeline-tile-number {
-  position: absolute;
-  inset: 0 0 auto;
-  padding: 7% 8% 14%;
-  background: linear-gradient(rgb(0 0 0 / 0.45), transparent);
-  color: var(--an-acid);
-  font-family: var(--ui-font);
-  font-size: var(--ui-size-sm);
-  font-stretch: var(--ui-stretch);
-  font-weight: var(--ui-weight);
-  letter-spacing: var(--ui-tracking);
 }
 
 /* ---------- Projects: black, the clients' logos run past in white (after airrlabs.com) ---------- */
@@ -926,132 +867,78 @@
   }
 }
 
-/* ---------- Services timeline on phones and short screens ---------- */
-/* Phones stack it: the title, then the tile column (in its own window between the title and the
-   text), then the counter, the active name, and its detail. */
-@media (max-width: 768px), (max-height: 540px) {
-  .experience[data-look='acid'] .services-content {
+/* ---------- Services panels on phones and short screens ---------- */
+/* Upright phones stack each panel: the service's number, name and detail, then its carousel. */
+@media (max-width: 768px) and (orientation: portrait) {
+  .experience[data-look='acid'] .service-panel-sticky {
     display: flex;
+    align-items: stretch;
     flex-direction: column;
-    gap: clamp(14px, 2.4svh, 24px);
-    padding-bottom: max(28px, calc(env(safe-area-inset-bottom) + 20px));
+    justify-content: center;
+    gap: clamp(18px, 3svh, 28px);
+    padding: max(76px, 10svh) 0 max(24px, calc(env(safe-area-inset-bottom) + 16px));
   }
 
-  .experience[data-look='acid'] .services-timeline {
-    position: relative;
-    inset: auto;
-    min-height: 0;
-    flex: 1;
-    row-gap: 12px;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto auto auto;
-    padding: 0;
+  .experience[data-look='acid'] .service-panel-text {
+    gap: 10px;
+    padding: 0 var(--gutter);
   }
 
-  .experience[data-look='acid'] .timeline-window {
-    grid-column: 1;
-    grid-row: 1;
-    margin: 0;
-    -webkit-mask-image: linear-gradient(transparent, #000 16%, #000 84%, transparent);
-    mask-image: linear-gradient(transparent, #000 16%, #000 84%, transparent);
-  }
-
-  .experience[data-look='acid'] .timeline-tile {
-    width: min(64vw, 30svh);
-  }
-
-  .experience[data-look='acid'] .timeline-progress {
-    grid-column: 1;
-    grid-row: 2;
-  }
-
-  .experience[data-look='acid'] .timeline-name {
-    grid-column: 1;
-    grid-row: 3;
+  .experience[data-look='acid'] .service-panel-name {
     font-size: clamp(34px, 10vw, 56px);
   }
 
-  .experience[data-look='acid'] .timeline-number {
-    display: none;
+  .experience[data-look='acid'] .service-panel-detail {
+    font-size: var(--ui-size);
   }
 
-  .experience[data-look='acid'] .timeline-detail {
-    grid-column: 1;
-    grid-row: 4;
-    min-height: 2.6em;
-    font-size: var(--ui-size);
+  .experience[data-look='acid'] .service-panel-track {
+    padding-left: var(--gutter);
+  }
+
+  .experience[data-look='acid'] .service-tile {
+    height: min(80vw, 46svh);
   }
 }
 
-/* Short landscape screens have width but little height: back to the three columns, beside the title. */
+/* Short landscape screens keep the side-by-side panel, sized to the height. */
 @media (max-height: 540px) and (orientation: landscape) {
   .experience[data-look='acid'] .services-content {
-    display: grid;
     padding-top: 64px;
   }
 
-  .experience[data-look='acid'] .services-title {
-    grid-column: 1 / 6;
+  .experience[data-look='acid'] .service-panel-sticky {
+    padding: 60px 0 max(14px, env(safe-area-inset-bottom));
+    padding-left: var(--gutter);
   }
 
-  .experience[data-look='acid'] .services-timeline {
-    --tl-pad-top: 64px;
-    --tl-pad-bottom: max(16px, env(safe-area-inset-bottom));
-    position: absolute;
-    inset: 0;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    grid-template-rows: minmax(0, 1fr) auto auto;
-    padding: var(--tl-pad-top) var(--gutter) var(--tl-pad-bottom);
+  .experience[data-look='acid'] .service-panel-text {
+    gap: 8px;
   }
 
-  .experience[data-look='acid'] .timeline-window {
-    grid-column: 6 / 9;
-    grid-row: 1 / -1;
-    margin: calc(-1 * var(--tl-pad-top)) 0 calc(-1 * var(--tl-pad-bottom));
+  .experience[data-look='acid'] .service-panel-name {
+    font-size: clamp(26px, 9svh, 44px);
   }
 
-  .experience[data-look='acid'] .timeline-tile {
-    width: min(100%, 52svh);
-  }
-
-  .experience[data-look='acid'] .timeline-progress {
-    grid-column: 9 / 13;
-    grid-row: 2;
-  }
-
-  .experience[data-look='acid'] .timeline-name {
-    grid-column: 1 / 6;
-    grid-row: 2 / 4;
-    font-size: clamp(28px, 10svh, 48px);
-  }
-
-  .experience[data-look='acid'] .timeline-detail {
-    grid-column: 9 / 13;
-    grid-row: 3;
-    min-height: 0;
+  .experience[data-look='acid'] .service-panel-detail {
     font-size: var(--ui-size-sm);
+  }
+
+  .experience[data-look='acid'] .service-tile {
+    height: 66svh;
   }
 }
 
 /* Reduced motion: nothing pins, so Services is the ruled list again, one screen tall. */
 @media (prefers-reduced-motion: reduce) {
-  .experience[data-look='acid'] .services-screen.cyc-flow {
-    height: auto;
-  }
-
-  .experience[data-look='acid'] .services-inner {
-    position: relative;
-    height: auto;
-    min-height: 100svh;
-  }
-
   .experience[data-look='acid'] .services-content {
     display: grid;
-    height: auto;
     min-height: 100svh;
+    padding: clamp(96px, 13vh, 140px) var(--gutter) clamp(48px, 8vh, 96px);
   }
 
   .experience[data-look='acid'] .services-title {
+    padding: 0;
     grid-column: 1 / -1;
   }
 
@@ -1059,7 +946,7 @@
     display: block;
   }
 
-  .experience[data-look='acid'] .services-timeline {
+  .experience[data-look='acid'] .service-panels {
     display: none;
   }
 }

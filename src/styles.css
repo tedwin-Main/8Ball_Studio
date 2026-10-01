@@ -971,8 +971,9 @@ button.tape:focus-visible {
   text-align: right;
 }
 
-/* The Services timeline is Main's alone (acid.css); every other look shows the ruled list. */
-.services-timeline {
+/* The Services panels (one carousel per service) are Main's alone (acid.css); every other look
+   shows the ruled list. */
+.service-panels {
   display: none;
 }
 
