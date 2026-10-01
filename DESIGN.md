@@ -1,6 +1,6 @@
 ---
 name: 8 Ball Studio
-description: Main. After the pool break, the Story runs ink, then black, then paper, then the pool table under its lamp, and every Page moves with a heavy, cinematic scroll.
+description: Main. After the pool break, the Story runs ink, then black twice, then the pool table under its lamp, and every Page moves with a heavy, cinematic scroll.
 colors:
   ink: "#070908"
   paper: "#f2f1e9"
@@ -101,12 +101,12 @@ The site ships three **Looks** over one markup and one motion system. **Main** i
 
 **Creative North Star: "Main"** (formerly Acid Night; id `acid`)
 
-This is the studio's original single look (commit 91fcc52), restored, now set in the Cyc Wall's face. It pairs near-black ink with warm paper and uses one acid-green signal. Titles are Archivo condensed caps, set large; every smaller word is the same family, bold and in sentence case. After the pool break the Story changes palette as it goes. Studio is ink, lit by a faint acid glow. Services is black, like nickho-motorsports.nl's history timeline, its running order a pinned column of reels and stills. Projects is paper, and its ink client cards, every logo pure white, run past like a reel. Contact is the Pool Table look's table under its lamp, in the black hall: the Story ends where the break began. Each Page is a sheet in its own colour, and the palette changes at a sheet's edge as it slides over or lifts off the one below, like a cut in film.
+This is the studio's original single look (commit 91fcc52), restored, now set in the Cyc Wall's face. It pairs near-black ink with warm paper and uses one acid-green signal. Titles are Archivo condensed caps, set large; every smaller word is the same family, bold and in sentence case. After the pool break the Story changes palette as it goes. Studio is ink, lit by a faint acid glow. Services is black, like nickho-motorsports.nl's history timeline, its running order a pinned column of reels and stills. Projects is black too, a partner wall after airrlabs.com: no cards, each client's logo alone in pure white, running past like a reel. Contact is the Pool Table look's table under its lamp, in the black hall: the Story ends where the break began. Each Page is a sheet in its own colour, and the palette changes at a sheet's edge as it slides over or lifts off the one below, like a cut in film.
 
 Density is low. Each Page holds one enormous title and one next move. Motion carries the brand: the studio sells video, so how the site moves is the demonstration.
 
 **Key Characteristics:**
-- Four grounds on one Story: ink → black → paper → the lamp-lit table, each on its own sheet, changing at the sheet's edge.
+- Four grounds on one Story: ink → black → black → the lamp-lit table, each on its own sheet, changing at the sheet's edge.
 - Archivo 900 caps at 62% width (line-height 0.8, the Cyc Wall's setting), with the second line indented 15vw and set in the signal colour.
 - One family for everything: Archivo 700 at 85% width in sentence case, 13–15px, for nav, services, captions, controls, and counts.
 - Thin orbit rings behind Studio, on the ink only; no other ornament.
@@ -120,15 +120,15 @@ Density is low. Each Page holds one enormous title and one next move. Motion car
 - **Felt** (`#0b5b3b`): the indented title line on paper, where acid would vanish, the nav accent there, and the glyphs on Contact's ivory chips.
 - **Black** (`#000000`): Services' ground, with a paper hairline at its top edge so it reads as it rises over the ink Studio.
 - **Night** (`#07110d`): the page ground and preloader behind the Intro.
-- **Card** (Ink `#070908`): client cards on paper, each logo pure white on it.
+- **Projects** (`#000000`): black like Services, the client logos pure white on it, no cards.
 - **Hall** (`#030403`) and **Ivory** (`#f3eee2`): Contact's black hall around the Pool Table look's table, and the type on its cloth.
 
 ### Named Rules
 **The Signal Rule.** Acid is the one colour off the ink/paper axis. Felt stands in for it wherever acid would lose contrast (on paper and acid grounds).
 
-**The Sheet Rule.** A Page's ground never changes while it moves. Each sheet is its final colour from its first pixel: Services rises over Studio already black, Projects rises over Services already paper, and Contact is uncovered already the black hall with its table. The palette changes only at a sheet's edge, so a Handoff never shows a mid-tone between two palettes. Depth comes from the layer below (Studio shrinks and dims) and from the soft shadow a sheet casts at its edge. Only the header ink and the browser chrome change colour, as each section reaches the header line.
+**The Sheet Rule.** A Page's ground never changes while it moves. Each sheet is its final colour from its first pixel: Services rises over Studio already black, Projects rises over Services already black (both with a paper hairline at the edge), and Contact is uncovered already the black hall with its table. The palette changes only at a sheet's edge, so a Handoff never shows a mid-tone between two palettes. Depth comes from the layer below (Studio shrinks and dims) and from the soft shadow a sheet casts at its edge. Only the header ink and the browser chrome change colour, as each section reaches the header line.
 
-**The Header Rule.** The header follows the section under it: paper ink over the stage, Services and Contact, ink over Projects. The browser chrome (`<meta name="theme-color">`) follows it too.
+**The Header Rule.** Every Page after the break is dark, so the header stays paper ink throughout; the current Page is underlined in acid. The browser chrome (`<meta name="theme-color">`) follows it too.
 
 ## Typography
 
@@ -171,7 +171,7 @@ Cards have 4px corners. Controls are pills. Circles are for round things only: t
 The 8-ball mark sits at left. On the right are plain links: Our services (hidden under 560px wide), Our projects, Contact us (with its arrow), and Top. A hairline in the current nav ink runs under the header. The current Page is underlined in the nav accent (acid on ink, felt on paper and acid).
 
 ### Client cards and closing cards (Projects)
-Client cards are ink and 4px-cornered, and every client's logo is pure white on them, like a partner run on a dark reel (after airrlabs.com). Logos are flattened to white by a filter; Artigusto's solid badge uses its lettering alone (`artigusto-gelato-white.webp`). Each has a small caption underneath. The run ends with two link cards that are next steps, never invented work: "Your brand, next" is cut from acid and opens Contact; "More on Instagram" is cut from ink and opens the studio's real profile.
+There are no client cards: each client is its logo alone, small and pure white on black, like airrlabs.com's partner wall. Logos are flattened to white by a filter; Artigusto's solid badge uses its lettering alone (`artigusto-gelato-white.webp`). A logo runs at half strength and comes up to full as it crosses the centre (full strength on touch screens); the name lives in its alt text, with no caption. Each has a small caption underneath. The run ends with two link cards that are next steps, never invented work: "Your brand, next" is cut from acid and opens Contact; "More on Instagram" is cut from ink and opens the studio's real profile.
 
 ### Channel list (Contact)
 Laid on the table's cloth in ivory. Above the list, WhatsApp is the one primary action: an ivory chip with a felt WhatsApp glyph, the label, the number, and an arrow that steps forward on hover. The list below holds Instagram and email, ruled in ivory at 18%. Each row has a ringed icon, the channel name (an acid rub on hover), the detail at 500, and an action label with an arrow. On hover or focus the icon fills ivory with a felt glyph.
@@ -182,7 +182,7 @@ Visitors get no Draft or Look controls: they see Main with Draft 01. The owner p
 On touch screens every control is a target of at least 44 × 44 px.
 
 ### Cue-ball cursor
-This applies to mouse and trackpad only. A small lit ball replaces the pointer and trails it by 0.18 s. Over links it swells; over elements with `data-cursor` it shows the action as a pill ("Message", "Contact"...). On ink, black and the Contact hall the ball is paper with an acid label; on paper it is ink. The system pointer returns over the controls.
+This applies to mouse and trackpad only. A small lit ball replaces the pointer and trails it by 0.18 s. Over links it swells; over elements with `data-cursor` it shows the action as a pill ("Message", "Contact"...). After the break every Page is dark, so the ball is paper with an acid label. The system pointer returns over the controls.
 
 ### Preloader
 It covers the Intro only while the faces and the active Draft load, once per session. The 8-ball rolls in place while a count runs in acid. The count creeps toward 90 and reaches 100 only when everything is ready. The cover then lifts away like a sheet pulled up. On a reload in the same session there is no cover; the Intro simply shows once it is ready.
@@ -199,6 +199,7 @@ Every look shares this system. Values live in `src/storyTiming.js` (`scroll`, `p
 - **Services → Projects handoff:** Projects rises over Services, which shrinks, lifts, and dims the same way.
 - **The run:** Projects pins while its cards slide sideways, and each card lifts as it crosses the centre. The title drifts against the cards for depth.
 - **Projects → Contact reveal:** Projects scrolls away and Contact is uncovered from beneath it. Contact is the hall and its table from its first pixel. Its content settles from 25% up while the shadow under Projects' edge lifts.
+- **Touch screens:** the Projects run and the Services timeline lock to the scroll position (no catch-up lag over native momentum), and there is no velocity skew or per-card lift, so the run keeps pace with the finger.
 - **Velocity skew:** only the Projects cards lean with the scroll's speed (up to 1.5°) and settle upright. Titles and Contact stand still, and nothing leans during a glide.
 - **Glides:** header links and Page keys glide on a quart ease-out, 0.7 s plus 0.14 s per screen (at most 1.5 s). Top, the wordmark and Home return to the Intro as a cut, never a rewind.
 - **Closing shot:** as Contact settles, the 8-ball rolls in from the left and drops into the table's top-right pocket, the break's last beat. At rest, and with reduced motion, it lies in the pocket.

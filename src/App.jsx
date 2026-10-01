@@ -79,8 +79,13 @@ const toScrub = ( seconds ) => ( seconds > 0 ? seconds : true )
 
 // Draft/Look switches jump the Story in one go; finish the GSAP scrub catch-up at once so the
 // new layer lands in place instead of replaying a weight-long slide from the old position.
+// Triggers locked to the scroll (scrub: true, the touch-screen run) have no catch-up tween to finish.
 const finishScrubCatchUp = () =>
-  ScrollTrigger.getAll().forEach( ( trigger ) => trigger.getTween()?.progress( 1 ) )
+  ScrollTrigger.getAll().forEach( ( trigger ) =>
+  {
+    const catchUp = trigger.getTween?.()
+    if ( typeof catchUp?.progress === 'function' ) catchUp.progress( 1 )
+  } )
 
 // The page's full scroll range in px: the pinned stage plus the normal-scroll sections after it.
 const getDocumentRange = () => Math.max( 1, document.documentElement.scrollHeight - window.innerHeight )
@@ -729,6 +734,8 @@ function App ()
           compact: '(max-width: 768px), (max-height: 540px)',
           portrait: '(orientation: portrait)',
           landscape: '(orientation: landscape)',
+          // Touch screens: the sideways run and the timeline follow the finger with no catch-up lag.
+          touch: '(pointer: coarse)',
         },
         ( context ) =>
         {
@@ -952,16 +959,20 @@ function App ()
 
           // After the stage: the Studio → Projects handoff, the Projects run, the Contact reveal,
           // and the velocity lean on everything in flow. Shared by every look; reverted with this branch.
+          const touch = context.conditions.touch
           const stopFlowMotion = createFlowMotion( {
             root,
             motion,
             charRest,
             compact: !desktop,
+            touch,
             scrub: toScrub( tuning.weight / 2 ),
             depth: tuning.depth,
             scrollToY,
           } )
-          const stopVelocitySkew = createVelocitySkew( {
+          // Touch screens skip the lean: native momentum already carries the run, and a per-event
+          // lean on top of it made the Projects run stutter on phones.
+          const stopVelocitySkew = touch ? () => {} : createVelocitySkew( {
             root,
             subscribeScroll,
             getVelocity,

@@ -36,12 +36,12 @@ const CYC_MOTION = Object.freeze( {
 export const LOOK_CONFIGS = Object.freeze( {
   // The original single look (commit 91fcc52): near-black ink, paper, and one acid-green signal, set in
   // the Cyc Wall's Archivo throughout: condensed caps titles, bold sentence-case small text. The only look whose palette
-  // changes per Page: the Story runs ink (Studio) → black (Services) → paper (Projects) → the Pool Table's lamp-lit
+  // changes per Page: the Story runs ink (Studio) → black (Services) → black (Projects, white client logos) → the Pool Table's lamp-lit
   // table in the black hall (Contact), each sheet arriving in its own colour.
   acid: Object.freeze( {
     id: 'acid',
     label: 'Main',
-    themeColors: Object.freeze( { intro: '#07110d', studio: '#070908', services: '#000000', projects: '#f2f1e9', contact: '#030403' } ),
+    themeColors: Object.freeze( { intro: '#07110d', studio: '#070908', services: '#000000', projects: '#000000', contact: '#030403' } ),
     // The elements that read the pointer key light (--lx / --ly): only Studio's wall glow.
     keyLight: '.title-screen > .cyc-wall',
     motion: Object.freeze( {

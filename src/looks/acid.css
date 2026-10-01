@@ -5,7 +5,7 @@
    every smaller word is Archivo 700 at 85% width, in sentence case. Thin orbit rings hang
    behind Studio.
    It is the one look whose palette changes along the Story: Studio is ink, Services is black,
-   Projects is paper, and Contact is the Pool Table look's table under its lamp, in the black hall.
+   Projects is black with the clients' logos in white, and Contact is the Pool Table look's table under its lamp, in the black hall.
    Each Page is a sheet in its own colour from its first pixel, so a Handoff
    cuts cleanly at the sheet's edge and never shows a mid-tone (the Sheet Rule in DESIGN.md).
    ========================================================================== */
@@ -39,14 +39,6 @@
   background: var(--an-night);
   color: var(--an-paper);
   font-family: var(--font);
-}
-
-/* Paper Projects takes ink in the header; Contact's black hall keeps the paper ink of the stage. */
-.experience[data-look='acid'][data-nav-section='projects'] {
-  --nav-ink: var(--an-ink);
-  --nav-accent: var(--an-felt);
-  /* Focus rings in the header follow its ink. */
-  --ink: var(--an-ink);
 }
 
 .experience[data-look='acid'] ::selection {
@@ -510,31 +502,27 @@
   letter-spacing: var(--ui-tracking);
 }
 
-/* ---------- Projects: paper, and the boards run past like the original's card reel ---------- */
+/* ---------- Projects: black, the clients' logos run past in white (after airrlabs.com) ---------- */
+/* Black from its first pixel, like a partner wall: no cards, just each client's logo, minimal and
+   pure white, sliding by in the run. A paper hairline marks the sheet's edge as it rises over the
+   black Services. Type is paper, the indented title line acid, as on the other dark Pages. */
 .experience[data-look='acid'] .projects-screen {
-  /* Focus rings inside Projects are ink: they sit on paper. */
-  --ink: var(--an-ink);
-  color: var(--an-ink);
+  --ink: var(--an-paper);
+  color: var(--an-paper);
 }
 
-/* Projects is a paper sheet from its first pixel: it rises over the ink Studio with a clean edge. */
 .experience[data-look='acid'] .projects-screen .cyc-wall {
-  background:
-    radial-gradient(circle at 86% 16%, rgb(183 217 91 / 0.22), transparent 24%),
-    var(--an-paper);
+  background: #000;
+  box-shadow: inset 0 1px rgb(242 241 233 / 0.14);
 }
 
 .experience[data-look='acid'] .projects-title {
-  color: var(--an-ink);
-}
-
-/* On paper the indented line takes the felt green: the signal colour would vanish there. */
-.experience[data-look='acid'] .projects-title > span + span {
-  color: var(--an-felt);
-}
-
-.experience[data-look='acid'] .projects-title {
+  color: var(--an-paper);
   font-size: clamp(64px, 13vw, 220px);
+}
+
+.experience[data-look='acid'] .projects-title > span + span {
+  color: var(--an-acid);
 }
 
 .experience[data-look='acid'] .project-card {
@@ -542,77 +530,76 @@
   gap: 12px;
 }
 
-/* Cards on paper, square-shouldered at 4px, lifted on a soft shadow as they cross the centre. */
+/* Every board keeps the run's 7:5 box, so the logos are spaced evenly; the closing boards fill it. */
 .experience[data-look='acid'] .project-board {
   width: 100%;
   aspect-ratio: 7 / 5;
-  border: 1px solid rgb(7 9 8 / 0.12);
+  border: 0;
   border-radius: 4px;
-  background: #fff;
-  box-shadow: 0 20px 45px rgb(7 9 8 / 0.08);
-  transform: none;
-  translate: 0 calc(var(--lift, 0) * -14px + var(--hover-lift, 0px));
-}
-
-/* The deeper shadow of a lifted card is drawn once and faded in with the lift, so crossing the
-   centre changes an opacity, never a blurred shadow that would repaint on every frame. */
-.experience[data-look='acid'] .project-board::after {
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  height: auto;
-  border-radius: inherit;
   background: none;
-  box-shadow: 0 34px 60px rgb(7 9 8 / 0.2);
-  opacity: var(--lift, 0);
-  will-change: opacity;
+  box-shadow: none;
+  transform: none;
+  translate: 0 calc(var(--lift, 0) * -10px + var(--hover-lift, 0px));
 }
 
+.experience[data-look='acid'] .project-board::after {
+  display: none;
+}
+
+/* A client is its logo alone: flattened to a pure-white silhouette by the filter, set small in its
+   box, and brought up from half strength as it crosses the centre of the run. Artigusto's solid
+   badge uses its white lettering instead (App.jsx, whiteSrc), or it would turn into a disc. The
+   client's name stays as the image's alt text; the caption is dropped. */
+.experience[data-look='acid'] .project-card:not(.is-next) .project-board img {
+  inset: 30% 18%;
+  width: 64%;
+  height: 40%;
+  filter: brightness(0) invert(1);
+  opacity: calc(0.5 + var(--lift, 0) * 0.5);
+  transition: opacity 300ms ease;
+}
+
+.experience[data-look='acid'] .project-card:not(.is-next) .tape {
+  display: none;
+}
+
+.experience[data-look='acid'] .project-card:not(.is-next):is(:hover, :focus-within) .project-board img {
+  opacity: 1;
+}
+
+/* Touch screens have no lift (flowMotion.js skips it there for a smooth run): logos at full strength. */
+@media (pointer: coarse) {
+  .experience[data-look='acid'] .project-card:not(.is-next) .project-board img {
+    opacity: 1;
+    transition: none;
+  }
+}
+
+.experience[data-look='acid'] .projects-track:hover .project-card:not(:hover) .project-board {
+  filter: none;
+}
+
+/* The closing boards' captions, in paper on black. */
 .experience[data-look='acid'] .project-card .tape {
   --tilt: 0deg;
   min-height: 0;
   padding: 0;
   background: none;
   box-shadow: none;
-  color: rgb(7 9 8 / 0.72);
+  color: rgb(242 241 233 / 0.6);
 }
 
-/* Client cards are ink, and every client's logo is pure white on them, like a partner run on a
-   dark reel (after airrlabs.com). The filter flattens any logo to its silhouette in white; Artigusto's
-   solid badge uses its white lettering instead (App.jsx, whiteSrc), or it would turn into a disc. */
-.experience[data-look='acid'] .project-card:not(.is-next) .project-board {
-  border-color: transparent;
-  background: var(--an-ink);
-}
-
-.experience[data-look='acid'] .project-board img {
-  filter: brightness(0) invert(1);
-}
-
-/* The white lettering is a wide wordmark, not a round badge: it takes the wordmarks' box. */
-.experience[data-look='acid'] .project-card.is-artigusto .project-board img {
-  inset: 25% 14%;
-  width: 72%;
-  height: 50%;
-}
-
-.experience[data-look='acid'] .projects-track:hover .project-card:not(:hover) .project-board {
-  filter: saturate(0.85) brightness(0.96);
-}
-
-/* The two closing boards: Contact is cut from acid, Instagram from ink. */
+/* The two closing boards: Contact is cut from acid, Instagram drawn as a paper outline. */
 .experience[data-look='acid'] .project-next {
   color: var(--an-ink);
 }
 
 .experience[data-look='acid'] .project-card.is-next-contact .project-board {
-  border-color: transparent;
   background: var(--an-acid);
 }
 
 .experience[data-look='acid'] .project-card.is-next-instagram .project-board {
-  border-color: transparent;
-  background: var(--an-ink);
+  box-shadow: inset 0 0 0 1px rgb(242 241 233 / 0.3);
   color: var(--an-paper);
 }
 
@@ -632,7 +619,7 @@
 }
 
 .experience[data-look='acid'] .project-next:focus-visible {
-  outline-color: var(--an-ink);
+  outline-color: var(--an-paper);
 }
 
 /* ---------- Contact: the Pool Table look's table under its lamp ---------- */
@@ -779,13 +766,6 @@
   --cursor-ring: rgb(0 0 0 / 0.3);
   --cursor-label-bg: var(--an-acid);
   --cursor-label-ink: var(--an-ink);
-}
-
-.experience[data-look='acid'] .cursor-ball[data-section='projects'] {
-  --cursor-fill: var(--an-ink);
-  --cursor-ring: rgb(255 255 255 / 0.28);
-  --cursor-label-bg: var(--an-ink);
-  --cursor-label-ink: var(--an-paper);
 }
 
 .experience[data-look='acid'] .preloader-count {

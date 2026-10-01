@@ -39,10 +39,10 @@ test( 'every look names its chrome colour per Page', () =>
       assert.match( getThemeColor( id, pageId ), /^#[0-9a-f]{6}$/, `${id} ${pageId}` )
     } )
   } )
-  // Main runs ink → black → paper → the Pool Table's black hall.
+  // Main runs ink → black → black → the Pool Table's black hall.
   assert.deepEqual(
     [ 'studio', 'services', 'projects', 'contact' ].map( ( pageId ) => getThemeColor( 'acid', pageId ) ),
-    [ '#070908', '#000000', '#f2f1e9', '#030403' ],
+    [ '#070908', '#000000', '#000000', '#030403' ],
   )
 } )
 

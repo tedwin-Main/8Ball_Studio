@@ -208,8 +208,12 @@ export function createNavSections ( { root, onNavSection } )
  * Call it inside the Story's gsap.context / matchMedia callback: every tween and ScrollTrigger made
  * here is reverted with it. The returned cleanup undoes what GSAP cannot (listeners, custom props).
  */
-export function createFlowMotion ( { root, motion, charRest, compact, scrub, depth = 1, scrollToY } )
+export function createFlowMotion ( { root, motion, charRest, compact, touch = false, scrub, depth = 1, scrollToY } )
 {
+  // Scrub for the pinned sideways moves (the Projects run, the Services timeline). On touch screens
+  // they lock to the scroll position (true): native momentum is already smooth, and a catch-up lag
+  // on top of the finger read as the run lagging behind it on phones.
+  const pinnedScrub = touch ? true : scrub
   const d = Math.max( 0, depth )
   const flow = {
     riseVh: FLOW_AT_DEPTH_1.riseVh * d,
@@ -333,7 +337,7 @@ export function createFlowMotion ( { root, motion, charRest, compact, scrub, dep
     trigger: projects,
     start: 'top top',
     end: () => `+=${Math.max( 1, runDistance )}`,
-    scrub,
+    scrub: pinnedScrub,
     invalidateOnRefresh: true,
   } )
   const run = gsap.to( track, { x: () => -runDistance, ease: 'none', scrollTrigger: runTrigger() } )
@@ -343,7 +347,9 @@ export function createFlowMotion ( { root, motion, charRest, compact, scrub, dep
   if ( projectsDepth.length && !sameTable ) gsap.fromTo( projectsDepth, { scale: 1 }, { scale: 1.04, ease: 'none', scrollTrigger: runTrigger() } )
 
   // Each board lifts as it crosses the centre; every look turns --lift into its own gesture.
-  gsap.utils.toArray( '.project-card', track ).forEach( ( card ) =>
+  // Not on touch screens: a custom property written on every card each frame re-styled the whole
+  // track while the finger moved. There the boards rest unlifted (Main shows its logos at full strength).
+  if ( !touch ) gsap.utils.toArray( '.project-card', track ).forEach( ( card ) =>
   {
     const setLift = ( self ) => card.style.setProperty( '--lift', liftAt( self.progress ).toFixed( 3 ) )
     ScrollTrigger.create( {
@@ -443,7 +449,7 @@ export function createFlowMotion ( { root, motion, charRest, compact, scrub, dep
   const servicesTimeline = services.querySelector( '.services-timeline' )
   if ( servicesTimeline && window.getComputedStyle( servicesTimeline ).display !== 'none' )
   {
-    cleanups.push( createServicesTimeline( { services, timeline: servicesTimeline, scrub } ) )
+    cleanups.push( createServicesTimeline( { services, timeline: servicesTimeline, scrub: pinnedScrub } ) )
   }
   revealTitle( contact, '.contact-title .cue-char', 'top 75%', 'top 10%' )
 
