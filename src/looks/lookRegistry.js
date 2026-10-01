@@ -1,7 +1,7 @@
 // Central registry for the site's visual "looks": whole-site themes that share one markup and
 // one scroll story, and differ in material, type, lighting, and how Studio is lit.
 // Every look shares the same motion system (src/motion/flowMotion.js): the Intro → Studio cue on the
-// pinned stage, then the Studio → Projects handoff, the Projects run, and the Contact reveal.
+// pinned stage, then the Studio → Services and Services → Projects handoffs, the Projects run, and the Contact reveal.
 // A look supplies only its tokens (CSS), its Studio cue (motion), and the browser chrome colour per Page.
 // A look is selected with ?look=<id> or the Look dropdown, and switched live like the intro Drafts.
 
@@ -35,12 +35,13 @@ const CYC_MOTION = Object.freeze( {
 
 export const LOOK_CONFIGS = Object.freeze( {
   // The original single look (commit 91fcc52): near-black ink, paper, and one acid-green signal, set in
-  // Space Grotesk throughout: caps titles, bold sentence-case small text. The only look whose palette changes per Page: the Story
-  // runs ink (Studio) → paper (Projects) → full acid (Contact), each sheet arriving in its own colour.
+  // the Cyc Wall's Archivo throughout: condensed caps titles, bold sentence-case small text. The only look whose palette
+  // changes per Page: the Story runs ink (Studio) → felt (Services) → paper (Projects) → the Pool Table's lamp-lit
+  // table in the black hall (Contact), each sheet arriving in its own colour.
   acid: Object.freeze( {
     id: 'acid',
     label: 'Main',
-    themeColors: Object.freeze( { intro: '#07110d', studio: '#070908', projects: '#f2f1e9', contact: '#b7d95b' } ),
+    themeColors: Object.freeze( { intro: '#07110d', studio: '#070908', services: '#0b5b3b', projects: '#f2f1e9', contact: '#030403' } ),
     // The elements that read the pointer key light (--lx / --ly): only Studio's wall glow.
     keyLight: '.title-screen > .cyc-wall',
     motion: Object.freeze( {
@@ -59,7 +60,7 @@ export const LOOK_CONFIGS = Object.freeze( {
   cyc: Object.freeze( {
     id: 'cyc',
     label: 'Cyc Wall',
-    themeColors: Object.freeze( { intro: '#0a0e0c', studio: '#ef3f86', projects: '#16a597', contact: '#f59e1b' } ),
+    themeColors: Object.freeze( { intro: '#0a0e0c', studio: '#ef3f86', services: '#2f6fe4', projects: '#16a597', contact: '#f59e1b' } ),
     // Every lit cyc: its wall hotspot and the shadows its letters cast (styles.css, --cast-x / --cast-y).
     keyLight: '.cyc',
     motion: CYC_MOTION,
@@ -70,7 +71,7 @@ export const LOOK_CONFIGS = Object.freeze( {
   downlight: Object.freeze( {
     id: 'downlight',
     label: 'Pool Table',
-    themeColors: Object.freeze( { intro: '#030403', studio: '#030403', projects: '#030403', contact: '#030403' } ),
+    themeColors: Object.freeze( { intro: '#030403', studio: '#030403', services: '#030403', projects: '#030403', contact: '#030403' } ),
     // The lamp's pool of light on the cloth.
     keyLight: '.dl-cloth',
     motion: Object.freeze( {

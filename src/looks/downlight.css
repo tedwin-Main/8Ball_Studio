@@ -5,8 +5,8 @@
    lacquered walnut rails, leather-lined pockets, pearl diamond sights and the cloth under one
    rectangular canopy lamp. The table keeps its real proportions, centred in the black hall; the
    Page's type is laid on its cloth. Shadows sit directly under things, soft on every side.
-   Controls are balls: each nav link is led by the ball it would be on the table (the 2 for
-   Projects, the 8 for Contact, the cue ball for the top), and the services are the rack's first three.
+   Controls are balls: each nav link is led by the ball it would be on the table (the 1 for Services,
+   the 2 for Projects, the 8 for Contact, the cue ball for the top), and the services are the rack's first three.
    ========================================================================== */
 .experience[data-look='downlight'] {
   /* Cards laid on the cloth: a little smaller than the other looks' boards, the table is framed in. */
@@ -40,10 +40,11 @@
   color: var(--ivory);
 }
 
-/* Where the table lies on every Page. The rendered plate keeps its real proportions and is as large
+/* Where the table lies on every Page (and on Main's Contact, which borrows this table). The rendered plate keeps its real proportions and is as large
    as the clear space allows (the header above, the Draft and Look controls below, a side margin),
    centred in it. Everything laid on the cloth anchors to these values. */
-.experience[data-look='downlight'] .cyc {
+.experience[data-look='downlight'] .cyc,
+.experience[data-look='acid'] .contact-screen {
   --hall-top: clamp(84px, 11vh, 112px);
   --hall-bottom: clamp(64px, 9vh, 84px);
   --hall-side: clamp(14px, 3vw, 48px);
@@ -63,7 +64,8 @@
 
 /* Upright screens get the table turned lengthways (1280 × 2386). */
 @media (orientation: portrait) {
-  .experience[data-look='downlight'] .cyc {
+  .experience[data-look='downlight'] .cyc,
+  .experience[data-look='acid'] .contact-screen {
     --plate-ratio: 0.5365;
     --rail-x: calc(var(--plate-w) * 0.1132);
     --rail: calc(var(--plate-h) * 0.0682);
@@ -78,7 +80,9 @@
 }
 
 /* ---------- The table: the rendered plate, and the cloth laid over its bed ---------- */
-.experience[data-look='downlight'] .dl-table {
+/* Set-piece classes exist only where LookScenery draws the table: every Pool Table Page, and Main's
+   Contact (acid.css lays Main's Contact type on it), so the selectors name both looks. */
+.experience:is([data-look='downlight'], [data-look='acid']) .dl-table {
   position: absolute;
   top: var(--tbl-top);
   left: var(--tbl-side);
@@ -90,7 +94,7 @@
 }
 
 @media (orientation: portrait) {
-  .experience[data-look='downlight'] .dl-table {
+  .experience:is([data-look='downlight'], [data-look='acid']) .dl-table {
     background-image: url('../assets/looks/downlight/table-portrait.webp');
   }
 }
@@ -98,7 +102,7 @@
 /* The playing bed inside the cushion noses. The render already holds the lamp's light and the
    cushions' shadows; the page adds the cloth's fine nap, and the pointer sways a faint warm
    hotspot across it the way a lamp sways over play (soft-light, so it never lifts the dark). */
-.experience[data-look='downlight'] .dl-cloth {
+.experience:is([data-look='downlight'], [data-look='acid']) .dl-cloth {
   position: absolute;
   inset: var(--rail) var(--rail-x);
   background: radial-gradient(ellipse 34% 40% at calc(50% + (var(--lx, 50) - 50) * 0.2%) calc(50% + (var(--ly, 50) - 50) * 0.16%), rgb(255 236 200 / 0.2), transparent 72%);
@@ -107,7 +111,7 @@
 
 /* Worsted nap: a neutral grey tile baked from the Intro's own felt material (fibre plus faint dye
    mottle; see felt-nap.webp.json), overlaid 1:1 on the rendered cloth. */
-.experience[data-look='downlight'] .dl-cloth::after {
+.experience:is([data-look='downlight'], [data-look='acid']) .dl-cloth::after {
   position: absolute;
   inset: 0;
   background: url('../assets/looks/downlight/felt-nap.webp') 0 0 / 512px 512px;
@@ -119,7 +123,7 @@
 /* Pocket depth. The render draws each pocket as a near-flat black disc; from the lamp you see a little
    of the leather liner's inner wall, so a warm ring sits just inside each rim, fading to black at the
    bottom of the drop. Centres and radii are shares of the plate (measured on the 2880 × 1545 bake). */
-.experience[data-look='downlight'] .dl-table::before {
+.experience:is([data-look='downlight'], [data-look='acid']) .dl-table::before {
   --pocket-wall: transparent 0 52%, rgb(92 58 34 / 0.34) 84%, rgb(120 78 46 / 0.2) 93%, transparent 100%;
   position: absolute;
   inset: 0;
@@ -138,7 +142,7 @@
    bed, darker toward the cushions and the rails, as under a real canopy lamp. It also darkens the
    outer edges of the side rails, which the bake leaves lighter than the end rails. Darkening only, so
    ivory type keeps its contrast on the cloth. */
-.experience[data-look='downlight'] .dl-table::after {
+.experience:is([data-look='downlight'], [data-look='acid']) .dl-table::after {
   position: absolute;
   inset: 0;
   background:
@@ -150,7 +154,7 @@
 }
 
 @media (orientation: portrait) {
-  .experience[data-look='downlight'] .dl-table::before {
+  .experience:is([data-look='downlight'], [data-look='acid']) .dl-table::before {
     background:
       radial-gradient(5.18% 2.78% at 11.13% 6.84%, var(--pocket-wall)),
       radial-gradient(5.18% 2.78% at 88.87% 6.84%, var(--pocket-wall)),
@@ -160,7 +164,7 @@
       radial-gradient(4.85% 2.6% at 90.49% 50%, var(--pocket-wall));
   }
 
-  .experience[data-look='downlight'] .dl-table::after {
+  .experience:is([data-look='downlight'], [data-look='acid']) .dl-table::after {
     background:
       linear-gradient(180deg, rgb(0 0 0 / 0.34), transparent 6%, transparent 94%, rgb(0 0 0 / 0.34)),
       radial-gradient(ellipse 72% 64% at 50% 50%, transparent 38%, rgb(0 0 0 / 0.36) 100%),
@@ -170,7 +174,7 @@
 
 /* ---------- The break's resting balls on the Studio table (LookScenery.jsx, breakRest.js) ---------- */
 /* Laid on the same box as the cloth, so each ball's spot is a share of the cloth. */
-.experience[data-look='downlight'] .dl-balls {
+.experience:is([data-look='downlight'], [data-look='acid']) .dl-balls {
   position: absolute;
   inset: var(--rail) var(--rail-x);
 }
@@ -178,7 +182,7 @@
 /* A ball seen from straight above: the lamp's highlight sits in the middle of the ball, the edge turns
    away from the light, and the contact shadow spreads evenly around it. 2.76% is a 70 mm ball on the
    2.54 m cloth. */
-.experience[data-look='downlight'] .dl-ball {
+.experience:is([data-look='downlight'], [data-look='acid']) .dl-ball {
   position: absolute;
   width: 2.76%;
   aspect-ratio: 1;
@@ -192,7 +196,7 @@
 }
 
 /* A stripe: an ivory ball with a wide band of colour, turned the way it stopped. */
-.experience[data-look='downlight'] .dl-ball.is-stripe {
+.experience:is([data-look='downlight'], [data-look='acid']) .dl-ball.is-stripe {
   background:
     radial-gradient(circle at 50% 47%, rgb(255 250 238 / 0.75) 0 5%, rgb(255 250 238 / 0.16) 13%, transparent 24%),
     radial-gradient(circle, transparent 52%, rgb(0 0 0 / 0.5) 100%),
@@ -200,7 +204,7 @@
 }
 
 /* The number spot, pushed off centre toward the way the ball turned. */
-.experience[data-look='downlight'] .dl-ball[data-number]::after {
+.experience:is([data-look='downlight'], [data-look='acid']) .dl-ball[data-number]::after {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -219,7 +223,7 @@
 }
 
 /* The striker is the studio's logo ball, the same image as the closing shot's 8-ball. */
-.experience[data-look='downlight'] .dl-ball.is-striker {
+.experience:is([data-look='downlight'], [data-look='acid']) .dl-ball.is-striker {
   object-fit: cover;
   filter: brightness(0.9);
 }
@@ -227,7 +231,7 @@
 /* Upright and small screens lay the table lengthways and put type across most of the cloth: the
    table there is cleared, and the break's balls stay on wide screens only. */
 @media (orientation: portrait), (max-width: 768px), (max-height: 540px) {
-  .experience[data-look='downlight'] .dl-balls {
+  .experience:is([data-look='downlight'], [data-look='acid']) .dl-balls {
     display: none;
   }
 }
@@ -244,9 +248,14 @@
 }
 
 /* Projects' own hall and table show only while its sheet is still at the top of the screen: off
-   during the rise (Studio's table is there) and off during the Contact reveal (Contact's is). */
+   during the rise (Services' table is there) and off during the Contact reveal (Contact's is). */
 .experience[data-look='downlight'] .projects-sticky > :is(.cyc-wall, .look-scenery) {
   opacity: calc(var(--table-in, 1) * var(--table-out, 1));
+}
+
+/* Services' own hall and table show once its sheet reaches the top, exactly over Studio's. */
+.experience[data-look='downlight'] .services-inner > :is(.cyc-wall, .look-scenery) {
+  opacity: var(--table-in, 1);
 }
 
 /* ---------- Type: a clean grotesque in ivory, laid on the cloth ---------- */
@@ -380,6 +389,11 @@
   box-shadow: 0 0 5px 1px rgb(0 0 0 / 0.35);
 }
 
+/* Services is the 1, the first ball of the rack. */
+.experience[data-look='downlight'] .header-meta .tape-services {
+  --ball-plate: url('../assets/looks/downlight/ball-1.webp');
+}
+
 /* Top is the cue ball. */
 .experience[data-look='downlight'] .header-meta .top-link {
   --ball-plate: url('../assets/looks/downlight/ball-cue.webp');
@@ -396,6 +410,7 @@
   translate: 3px 0;
 }
 
+.experience[data-look='downlight'][data-story-indicator-page='services'] .header-meta .tape-services,
 .experience[data-look='downlight'][data-story-indicator-page='projects'] .header-meta .tape-projects,
 .experience[data-look='downlight'][data-story-indicator-page='contact'] .header-meta .tape-contact {
   color: var(--ivory);
@@ -430,6 +445,42 @@
 
 .experience[data-look='downlight'] .hero-services li + li::before {
   content: none;
+}
+
+/* ---------- Services: the running order chalked onto the cloth ---------- */
+/* One table-sized screen: the title and the list lie inside the cushion noses, like Contact. */
+.experience[data-look='downlight'] .services-screen.cyc-flow,
+.experience[data-look='downlight'] .services-inner {
+  height: 100svh;
+  min-height: 0;
+}
+
+.experience[data-look='downlight'] .services-content {
+  --gaffer: var(--ivory);
+  --gaffer-soft: var(--ivory-soft);
+  position: absolute;
+  inset: calc(var(--tbl-top) + var(--rail)) calc(var(--tbl-side) + var(--rail-x)) calc(var(--tbl-bottom) + var(--rail));
+  min-height: 0;
+  gap: clamp(14px, 3vh, 32px) clamp(12px, 1.6vw, 24px);
+  padding: clamp(18px, 4.5vh, 48px) clamp(20px, 4vw, 70px);
+}
+
+.experience[data-look='downlight'] .services-title {
+  font-size: clamp(40px, min(6.4vw, 7.4svh), 118px);
+}
+
+.experience[data-look='downlight'] .services-list {
+  border-top-color: rgb(243 238 226 / 0.28);
+}
+
+.experience[data-look='downlight'] .service-row {
+  padding-block: clamp(6px, 1.3vh, 14px);
+  border-bottom-color: rgb(243 238 226 / 0.2);
+  text-shadow: 0 0 10px rgb(0 0 0 / 0.35);
+}
+
+.experience[data-look='downlight'] .service-name {
+  font-size: clamp(17px, min(1.9vw, 3svh), 32px);
 }
 
 /* ---------- Projects: client cards laid flat on the cloth, lit from straight above ---------- */
@@ -523,10 +574,6 @@
   box-shadow: 0 0 44px 10px rgb(0 0 0 / 0.55);
   opacity: var(--lift, 0);
   will-change: opacity;
-}
-
-.experience[data-look='downlight'] .project-card.is-haruplate .project-board {
-  background: #101512;
 }
 
 .experience[data-look='downlight'] .project-card .tape {
@@ -638,7 +685,8 @@
   }
 
   /* Phones: the header is shorter and the Draft and Look controls stack below the table. */
-  .experience[data-look='downlight'] .cyc {
+  .experience[data-look='downlight'] .cyc,
+  .experience[data-look='acid'] .contact-screen {
     --hall-top: 76px;
     --hall-side: 10px;
     --hall-bottom: 132px;
@@ -650,6 +698,25 @@
 
   .experience[data-look='downlight'] :is(.projects-title, .contact-title) {
     font-size: clamp(42px, 12vw, 80px);
+  }
+
+  /* Services has six rows to fit on the upright cloth, so its title steps down further. */
+  .experience[data-look='downlight'] .services-title {
+    font-size: min(clamp(36px, 10vw, 64px), calc(var(--plate-w) * 0.12));
+  }
+
+  /* The upright cloth is narrow: the running order is the numbered names alone, each on one line. */
+  .experience[data-look='downlight'] .service-row {
+    grid-template-columns: 1.9em minmax(0, 1fr);
+    padding-block: clamp(7px, 1.4svh, 11px);
+  }
+
+  .experience[data-look='downlight'] .service-name {
+    font-size: min(clamp(15px, 4.2vw, 19px), calc(var(--plate-w) * 0.062));
+  }
+
+  .experience[data-look='downlight'] .service-detail {
+    display: none;
   }
 
   /* The services sit back in the bottom-right corner of the cloth, as on desktop, right up to the
@@ -711,7 +778,8 @@
 
 /* Short landscape screens: the controls sit beside the table, so it keeps the height. */
 @media (max-height: 540px) and (orientation: landscape) {
-  .experience[data-look='downlight'] .cyc {
+  .experience[data-look='downlight'] .cyc,
+  .experience[data-look='acid'] .contact-screen {
     --hall-top: 56px;
     --hall-bottom: 56px;
   }
@@ -740,5 +808,29 @@
 
   .experience[data-look='downlight'] .studio-services .tape::before {
     width: 28px;
+  }
+  /* Services: a small title in the top-left of the short cloth, the six names ruled beside it, and
+     each service's detail left off so all six fit between the cushions. */
+  .experience[data-look='downlight'] .services-content {
+    align-content: center;
+    gap: 6px 12px;
+    padding: clamp(8px, 3svh, 16px) clamp(16px, 3vw, 32px);
+  }
+
+  .experience[data-look='downlight'] .services-title {
+    grid-column: 1 / 6;
+    font-size: clamp(20px, 7.4svh, 34px);
+  }
+
+  .experience[data-look='downlight'] .services-list {
+    grid-column: 6 / -1;
+  }
+
+  .experience[data-look='downlight'] .service-row {
+    padding-block: clamp(2px, 1svh, 6px);
+  }
+
+  .experience[data-look='downlight'] .service-name {
+    font-size: clamp(13px, 4.4svh, 18px);
   }
 }

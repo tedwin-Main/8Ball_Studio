@@ -20,6 +20,8 @@
   --tape: #f4f2eb;              /* paper tape */
   --gel-studio: #ef3f86;        /* Bright Pink gel */
   --gel-studio-deep: #7a0d3c;
+  --gel-services: #2f6fe4;      /* Blue gel */
+  --gel-services-deep: #0f2a66;
   --gel-projects: #16a597;      /* Teal gel */
   --gel-projects-deep: #054a42;
   --gel-contact: #f59e1b;       /* Amber gel */
@@ -364,8 +366,8 @@ a:focus-visible {
   transform: translateZ(25px);
 }
 
-/* Behind Studio while it scrolls up for Projects: the look's hall colour, so the frozen Intro
-   scene never shows behind it (src/motion/flowMotion.js turns it on). */
+/* Behind Studio while it shrinks back for Projects: the look's hall colour, so the frozen Intro
+   scene never shows around the receding Studio's edges (src/motion/flowMotion.js turns it on). */
 .stage-backdrop {
   position: absolute;
   z-index: 13;
@@ -373,6 +375,17 @@ a:focus-visible {
   background: var(--hall);
   pointer-events: none;
   visibility: hidden;
+  opacity: 0;
+  will-change: opacity;
+}
+
+/* Over Studio while Projects covers it: the held frame dims as it recedes. */
+.stage-shade {
+  position: absolute;
+  z-index: 16;
+  inset: 0;
+  background: var(--shade-color, #000);
+  pointer-events: none;
   opacity: 0;
   will-change: opacity;
 }
@@ -455,6 +468,11 @@ button.tape:focus-visible {
 }
 
 /* Nav tapes are cut from the gel of the Page they lead to. */
+.tape-services {
+  --tape-fill: var(--gel-services);
+  --tape-ink: var(--cyc);
+}
+
 .tape-projects {
   --tape-fill: var(--gel-projects);
 }
@@ -486,7 +504,15 @@ button.tape:focus-visible {
   translate: 4px 0;
 }
 
+/* Narrow phones have room for three header links, not four: Services stays one Story gesture away. */
+@media (max-width: 560px) {
+  .header-meta .tape-services {
+    display: none;
+  }
+}
+
 /* The nav tape for the Page you are on is re-cut in gaffer, so it never disappears into its own gel. */
+.experience[data-story-indicator-page='services'] .tape-services,
 .experience[data-story-indicator-page='projects'] .tape-projects,
 .experience[data-story-indicator-page='contact'] .tape-contact {
   --tape-fill: var(--gaffer);
@@ -625,6 +651,11 @@ button.tape:focus-visible {
   z-index: 14;
 }
 
+.services-screen {
+  --gel: var(--gel-services);
+  --gel-deep: var(--gel-services-deep);
+}
+
 .projects-screen {
   --gel: var(--gel-projects);
   --gel-deep: var(--gel-projects-deep);
@@ -643,14 +674,40 @@ button.tape:focus-visible {
   visibility: visible;
 }
 
-/* Projects is pulled up over the stage's last screen (the handoff: Studio scrolls up with it),
-   sits above both neighbours, and is as tall as one screen plus its horizontal run, during which
-   its sticky screen stays put while the track of boards slides sideways. Overflow stays visible:
-   clipping here would stop the sticky screen from sticking. */
-.projects-screen.cyc-flow {
+/* Services is pulled up over the stage's last screen (the handoff: it rises over the held Studio).
+   It is at least one screen tall and grows if its running order needs more room (short screens). */
+.services-screen.cyc-flow {
   z-index: 3;
-  height: calc(100svh + var(--run-distance, 0px));
+  height: auto;
+  min-height: 100svh;
   margin-top: calc(var(--handoff-screens, 1) * -100svh);
+}
+
+/* Everything Services shows, shrunk back as a whole while Projects rises over it (flowMotion.js). */
+.services-inner {
+  position: relative;
+  min-height: 100svh;
+  transform-origin: 50% 0;
+  will-change: transform;
+}
+
+/* Dims Services as Projects covers it, like the stage shade over Studio. */
+.services-shade {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  background: var(--shade-color, #000);
+  pointer-events: none;
+  opacity: 0;
+  will-change: opacity;
+}
+
+/* Projects rises over Services, sits above both neighbours, and is as tall as one screen plus its
+   horizontal run, during which its sticky screen stays put while the track of boards slides
+   sideways. Overflow stays visible: clipping here would stop the sticky screen from sticking. */
+.projects-screen.cyc-flow {
+  z-index: 4;
+  height: calc(100svh + var(--run-distance, 0px));
   overflow: visible;
 }
 
@@ -778,6 +835,12 @@ button.tape:focus-visible {
     calc(var(--cast-x) * 1.6) calc(var(--cast-y) * 1.6) 26px color-mix(in oklab, var(--gel-deep) 18%, transparent);
 }
 
+/* The capital that starts the second word of a joined name ("8ightBall"): a small gap before it, so
+   tight title tracking never fuses it to the lowercase letter before (every look). */
+.cue-char.is-joined-cap {
+  margin-left: 0.07em;
+}
+
 /* Studio: the name stands on the cove line, services taped to the floor in front of it. */
 .final-content {
   position: absolute;
@@ -833,6 +896,160 @@ button.tape:focus-visible {
   bottom: clamp(24px, 4.5vh, 44px);
   left: clamp(20px, 5vw, 80px);
   margin: 0;
+}
+
+/* Services: the title across the top-left, and the numbered running order ruled beneath it, offset
+   to the right on a 12-column grid so the page reads as one asymmetric editorial spread. */
+.services-content {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  min-height: 100svh;
+  align-content: center;
+  gap: clamp(26px, 5vh, 56px) clamp(16px, 2vw, 32px);
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  padding: clamp(96px, 13vh, 140px) var(--gutter) clamp(48px, 8vh, 96px);
+  will-change: transform;
+}
+
+.services-title {
+  grid-column: 1 / -1;
+  font-size: clamp(60px, 9vw, 150px);
+}
+
+.services-list {
+  grid-column: 5 / -1;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid color-mix(in oklab, var(--gaffer) 30%, transparent);
+  counter-reset: service;
+  list-style: none;
+}
+
+/* One row per service: its number, its name, and one line of what it covers, on a hairline rule. */
+.service-row {
+  display: grid;
+  align-items: baseline;
+  column-gap: clamp(14px, 1.6vw, 26px);
+  row-gap: 4px;
+  grid-template-areas: 'number name detail';
+  grid-template-columns: 2.2em minmax(0, auto) minmax(0, 1fr);
+  padding: clamp(12px, 2.1vh, 22px) 0;
+  border-bottom: 1px solid color-mix(in oklab, var(--gaffer) 30%, transparent);
+  color: var(--gaffer);
+  font-family: var(--ui-font);
+  font-stretch: var(--ui-stretch);
+  letter-spacing: var(--ui-tracking);
+}
+
+/* Numbered like a running order: 01 to 06, set from the list's counter. */
+.service-row::before {
+  grid-area: number;
+  font-size: var(--ui-size-sm);
+  font-weight: var(--ui-weight);
+  content: counter(service, decimal-leading-zero);
+  counter-increment: service;
+  font-variant-numeric: tabular-nums;
+}
+
+.service-name {
+  grid-area: name;
+  font-size: clamp(22px, 2.3vw, 40px);
+  font-weight: var(--ui-weight);
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  transition: translate 500ms var(--ease-out);
+}
+
+.service-detail {
+  grid-area: detail;
+  justify-self: end;
+  color: var(--gaffer-soft);
+  font-size: var(--ui-size-sm);
+  font-weight: var(--ui-weight-soft);
+  line-height: 1.35;
+  text-align: right;
+}
+
+/* The Services timeline is Main's alone (acid.css); every other look shows the ruled list. */
+.services-timeline {
+  display: none;
+}
+
+/* Under a mouse, the row being read steps its name in a little: a pointer's-eye running order. */
+@media (hover: hover) and (pointer: fine) {
+  .service-row:hover .service-name {
+    translate: 10px 0;
+  }
+}
+
+/* Phones and short screens: the title over the list, and each service's detail under its name. */
+@media (max-width: 768px), (max-height: 540px) {
+  .services-content {
+    align-content: start;
+    gap: clamp(22px, 4vh, 36px);
+    padding: max(92px, 13vh) 18px max(48px, calc(env(safe-area-inset-bottom) + 32px));
+  }
+
+  .services-list {
+    grid-column: 1 / -1;
+  }
+
+  .services-title {
+    font-size: clamp(56px, 18vw, 112px);
+  }
+
+  .service-row {
+    grid-template-areas:
+      'number name'
+      '. detail';
+    grid-template-columns: 2.2em minmax(0, 1fr);
+    padding: clamp(10px, 1.8vh, 14px) 0;
+  }
+
+  .service-name {
+    font-size: clamp(20px, 5.6vw, 30px);
+  }
+
+  .service-detail {
+    justify-self: start;
+    text-align: left;
+  }
+}
+
+/* Short landscape screens: width but little height, so the title and the list sit side by side again,
+   and the rows tighten so all six fit under the header. */
+@media (max-height: 540px) and (orientation: landscape) {
+  .services-content {
+    align-content: center;
+    gap: 14px;
+    padding-top: 64px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+
+  .services-list {
+    grid-column: 4 / -1;
+  }
+
+  .services-title {
+    font-size: clamp(40px, 16svh, 96px);
+  }
+
+  .service-row {
+    grid-template-areas: 'number name detail';
+    grid-template-columns: 2.2em minmax(0, auto) minmax(0, 1fr);
+    padding: 6px 0;
+  }
+
+  .service-name {
+    font-size: clamp(16px, 4.4svh, 22px);
+  }
+
+  .service-detail {
+    justify-self: end;
+    font-size: var(--ui-size-xs);
+    text-align: right;
+  }
 }
 
 /* Projects: title top-left, client boards standing on the floor, running sideways past the key light. */
@@ -951,11 +1168,6 @@ button.tape:focus-visible {
   inset: 18% 12%;
   width: 76%;
   height: 64%;
-}
-
-/* HaruPlate's own pale-pink mark is drawn for dark grounds, so its board is cut from gaffer. */
-.project-card.is-haruplate .project-board {
-  background: var(--gaffer);
 }
 
 /* A board under the pointer is lifted into the key light; the others drop a stop. */

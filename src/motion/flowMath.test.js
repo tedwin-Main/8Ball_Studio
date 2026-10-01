@@ -37,9 +37,11 @@ test( 'keyboard focus scrolls the run until the board sits at the centre', () =>
 
 test( 'the section under a line follows the section starts', () =>
 {
-  const starts = { projectsStart: 4000, contactStart: 6000 }
+  const starts = { servicesStart: 3000, projectsStart: 4000, contactStart: 6000 }
   assert.equal( sectionAt( 0, starts ), 'stage' )
-  assert.equal( sectionAt( 3999, starts ), 'stage' )
+  assert.equal( sectionAt( 2999, starts ), 'stage' )
+  assert.equal( sectionAt( 3000, starts ), 'services' )
+  assert.equal( sectionAt( 3999, starts ), 'services' )
   assert.equal( sectionAt( 4000, starts ), 'projects' )
   assert.equal( sectionAt( 6000, starts ), 'contact' )
 } )

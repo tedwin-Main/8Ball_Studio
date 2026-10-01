@@ -9,20 +9,86 @@ const HEADER_LINE_PX = 64
 
 // The handoff and reveal amounts at depth 1; the depth setting scales them all together.
 // contactShade is the strength of the shadow Projects casts at its bottom edge onto Contact.
-const FLOW_AT_DEPTH_1 = { riseVh: 8, contactOffsetPercent: 25, contactShade: 0.4 }
+const FLOW_AT_DEPTH_1 = { riseVh: 8, shrink: 0.035, liftPercent: 2, dim: 0.35, contactOffsetPercent: 25, contactShade: 0.4 }
+
+// Scroll per step of the Services timeline, in screens: each service holds the centre for this long.
+const TIMELINE_STEP_SCREENS = 0.65
 
 /**
- * Tracks which part of the Story sits under the header: the pinned stage, Projects, or Contact.
+ * Main's Services timeline (App.jsx, acid.css): Services pins while its column of tiles scrolls up
+ * through the centre, one tile per service. The tile at the centre is the active step: its name and
+ * detail show beside the column, and the counter and bar follow. Services' height grows by the
+ * timeline's scroll (--timeline-distance), the way Projects grows by its run. Returns a cleanup.
+ */
+function createServicesTimeline ( { services, timeline, scrub } )
+{
+  const track = timeline.querySelector( '.timeline-track' )
+  const windowEl = timeline.querySelector( '.timeline-window' )
+  const tiles = gsap.utils.toArray( '.timeline-tile', timeline )
+  const steps = gsap.utils.toArray( '.timeline-step', timeline )
+  const count = timeline.querySelector( '.timeline-count' )
+  const fill = timeline.querySelector( '.timeline-bar-fill' )
+  if ( !track || !windowEl || tiles.length < 2 ) return () => {}
+
+  const last = tiles.length - 1
+  let distance = 0
+  const measure = () =>
+  {
+    distance = Math.round( last * TIMELINE_STEP_SCREENS * window.innerHeight )
+    services.style.setProperty( '--timeline-distance', `${distance}px` )
+  }
+  measure()
+  ScrollTrigger.addEventListener( 'refreshInit', measure )
+
+  // The track's offset that puts a tile's centre on the window's centre (read at each refresh).
+  const centreOn = ( index ) => () =>
+    windowEl.clientHeight / 2 - ( tiles[ index ].offsetTop + tiles[ index ].offsetHeight / 2 )
+
+  // Only touch the DOM when the step changes, not on every scrubbed frame.
+  let current = 0
+  const setStep = ( next ) =>
+  {
+    if ( next === current ) return
+    tiles[ current ]?.classList.remove( 'is-active' )
+    steps[ current ]?.classList.remove( 'is-active' )
+    current = next
+    tiles[ current ]?.classList.add( 'is-active' )
+    steps[ current ]?.classList.add( 'is-active' )
+    if ( count ) count.textContent = String( current + 1 ).padStart( 2, '0' )
+  }
+
+  // Tiles are evenly spaced, so a linear move keeps every step the same length of scroll.
+  // The scrubbed progress (not raw scroll) picks the step, so text swaps in time with the tiles.
+  const trigger = { trigger: services, start: 'top top', end: () => `+=${Math.max( 1, distance )}`, scrub, invalidateOnRefresh: true }
+  gsap.fromTo( track, { y: centreOn( 0 ) }, {
+    y: centreOn( last ),
+    ease: 'none',
+    scrollTrigger: trigger,
+    onUpdate () { setStep( Math.round( this.progress() * last ) ) },
+  } )
+  if ( fill ) gsap.fromTo( fill, { scaleX: 1 / tiles.length }, { scaleX: 1, ease: 'none', scrollTrigger: { ...trigger } } )
+
+  return () =>
+  {
+    ScrollTrigger.removeEventListener( 'refreshInit', measure )
+    services.style.removeProperty( '--timeline-distance' )
+    setStep( 0 )
+  }
+}
+
+/**
+ * Tracks which part of the Story sits under the header: the pinned stage, Services, Projects, or Contact.
  * Runs in every motion mode (reduced motion too), because the header's ink and the browser chrome
  * colour must follow the section even when nothing animates. Returns a cleanup.
  */
 export function createNavSections ( { root, onNavSection } )
 {
+  const services = root.querySelector( '.services-screen' )
   const projects = root.querySelector( '.projects-screen' )
   const contact = root.querySelector( '.contact-screen' )
-  if ( !projects || !contact ) return () => {}
+  if ( !services || !projects || !contact ) return () => {}
 
-  const starts = { projectsStart: Infinity, contactStart: Infinity }
+  const starts = { servicesStart: Infinity, projectsStart: Infinity, contactStart: Infinity }
   let current = null
   const sync = ( self ) =>
   {
@@ -32,16 +98,18 @@ export function createNavSections ( { root, onNavSection } )
     onNavSection?.( next )
   }
 
-  // One trigger from Projects reaching the header line to Contact reaching it. Every edge callback
-  // re-reads the scroll position, so a jump straight past both sections still lands on the right one.
+  // One trigger from Services reaching the header line to Contact reaching it. Projects' line is
+  // measured on refresh from its own document top. Every edge callback re-reads the scroll position,
+  // so a jump straight past several sections still lands on the right one.
   const trigger = ScrollTrigger.create( {
-    trigger: projects,
+    trigger: services,
     start: `top top+=${HEADER_LINE_PX}`,
     endTrigger: contact,
     end: `top top+=${HEADER_LINE_PX}`,
     onRefresh: ( self ) =>
     {
-      starts.projectsStart = self.start
+      starts.servicesStart = self.start
+      starts.projectsStart = projects.getBoundingClientRect().top + window.scrollY - HEADER_LINE_PX
       starts.contactStart = self.end
       sync( self )
     },
@@ -61,13 +129,13 @@ export function createNavSections ( { root, onNavSection } )
 
 /**
  * The section choreography after the pinned stage, shared by every look:
- * 1. Studio → Projects: one page scrolling on. Studio scrolls up with Projects directly below it,
- *    with no fade, dim, or shrink.
+ * 1. Studio → Services: Services rises over the held Studio, which shrinks back and dims.
+ *    Services → Projects: Projects rises over Services, which shrinks back and dims the same way.
  * 2. The Projects run: the section pins while its track of boards slides sideways, each board
  *    lifting (--lift) as it crosses the centre; the title drifts and the wall pushes in for depth.
  * 3. Projects → Contact: Projects scrolls away and Contact is uncovered from beneath it.
  *    A look with motion.handoff 'sameTable' (Pool Table) keeps one still table under all three
- *    Pages instead: Studio's type clears off the table, and no sheet shows its own table while it moves.
+ *    Pages instead: Studio does not shrink or dim, and no sheet shows its own table while it moves.
  * 4. Titles are set with the look's own letter entrance; Contact's rows settle in.
  *
  * Every sheet arrives in its final colour: nothing here changes a Page's ground while it moves, so
@@ -81,17 +149,26 @@ export function createFlowMotion ( { root, motion, charRest, compact, scrub, dep
   const d = Math.max( 0, depth )
   const flow = {
     riseVh: FLOW_AT_DEPTH_1.riseVh * d,
+    shrinkScale: 1 - FLOW_AT_DEPTH_1.shrink * d,
+    shrinkLiftPercent: FLOW_AT_DEPTH_1.liftPercent * d,
+    shrinkDim: Math.min( 1, FLOW_AT_DEPTH_1.dim * d ),
     contactRevealOffsetPercent: FLOW_AT_DEPTH_1.contactOffsetPercent * d,
     contactShade: Math.min( 1, FLOW_AT_DEPTH_1.contactShade * d ),
   }
+  const services = root.querySelector( '.services-screen' )
   const projects = root.querySelector( '.projects-screen' )
   const contact = root.querySelector( '.contact-screen' )
   const track = projects?.querySelector( '.projects-track' )
   const rail = projects?.querySelector( '.projects-rail' )
-  if ( !projects || !contact || !track || !rail ) return () => {}
+  if ( !services || !projects || !contact || !track || !rail ) return () => {}
+
+  const servicesInner = services.querySelector( '.services-inner' )
+  const servicesContent = services.querySelector( '.services-content' )
+  const servicesShade = services.querySelector( '.services-shade' )
 
   const titleScreen = root.querySelector( '.title-screen' )
   const stageBackdrop = root.querySelector( '.stage-backdrop' )
+  const stageShade = root.querySelector( '.stage-shade' )
   const projectsContent = projects.querySelector( '.projects-content' )
   const projectsDepth = projects.querySelectorAll( ':scope .projects-sticky > .cyc-wall, :scope .projects-sticky > .look-scenery' )
   const contactInner = contact.querySelector( '.contact-inner' )
@@ -123,39 +200,68 @@ export function createFlowMotion ( { root, motion, charRest, compact, scrub, dep
     projects.style.removeProperty( '--run-distance' )
   } )
 
-  // ---- 1. Studio → Projects: one page scrolling on. ----
-  // The backdrop fills the stage behind Studio with the look's hall colour, so the frozen Intro
-  // scene never shows around its edges.
+  // ---- 1a. Studio → Services: rise over, shrink back. ----
+  // The backdrop fills the stage behind the shrinking Studio with the look's hall colour, so the
+  // frozen Intro scene never shows around its edges.
   const riseOver = gsap.timeline( {
-    scrollTrigger: { trigger: projects, start: 'top bottom', end: 'top top', scrub, invalidateOnRefresh: true },
+    scrollTrigger: { trigger: services, start: 'top bottom', end: 'top top', scrub, invalidateOnRefresh: true },
   } )
     .fromTo( stageBackdrop, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.001, ease: 'none' }, 0 )
-  if ( !sameTable )
-  {
-    // The pinned Studio screen scrolls up with Projects' top edge, so Studio and Projects read as
-    // one page: no fade, no dim, no shrink. scrub: true (not the weighted scrub) keeps it locked to
-    // the scroll position, the same one Projects' sheet moves by, so no gap opens between them.
-    gsap.fromTo( titleScreen, { y: 0 }, {
-      y: () => -window.innerHeight,
-      ease: 'none',
-      scrollTrigger: { trigger: projects, start: 'top bottom', end: 'top top', scrub: true, invalidateOnRefresh: true },
-    } )
-  }
-  if ( sameTable )
-  {
-    // Projects' content arrives a little behind its surface, then catches up: the rise.
-    riseOver.fromTo( [ projectsContent, rail ], { y: () => window.innerHeight * flow.riseVh * reach / 100 }, {
+    // Services' content arrives a little behind its surface, then catches up: the rise.
+    .fromTo( servicesContent, { y: () => window.innerHeight * flow.riseVh * reach / 100 }, {
       y: 0,
       duration: 1,
       ease: 'power2.out',
     }, 0 )
+  if ( sameTable )
+  {
     // Studio's title, services, and resting balls clear off the cloth in the first half of the rise;
-    // Studio's table stays, full size and fully lit, under Projects' incoming content. (A CSS
+    // Studio's table stays, full size and fully lit, under Services' incoming content. (A CSS
     // variable, read in downlight.css, so the Studio cue keeps sole use of these items' opacity.)
     riseOver
       .fromTo( titleScreen, { '--studio-clear': 1 }, { '--studio-clear': 0, duration: 0.5, ease: 'power1.in' }, 0 )
-      // Projects' own table switches on when its sheet reaches the top: exactly over Studio's.
+      // Services' own table switches on when its sheet reaches the top: exactly over Studio's.
+      .fromTo( services, { '--table-in': 0 }, { '--table-in': 1, duration: 0.001, ease: 'none' }, 0.999 )
+  }
+  else
+  {
+    riseOver
+      .fromTo( titleScreen, { scale: 1, yPercent: 0 }, {
+        scale: flow.shrinkScale,
+        yPercent: -flow.shrinkLiftPercent,
+        duration: 1,
+        ease: 'none',
+      }, 0 )
+      .fromTo( stageShade, { opacity: 0 }, { opacity: flow.shrinkDim, duration: 1, ease: 'none' }, 0 )
+  }
+
+  // ---- 1b. Services → Projects: the same rise over, one sheet on. ----
+  const riseOverServices = gsap.timeline( {
+    scrollTrigger: { trigger: projects, start: 'top bottom', end: 'top top', scrub, invalidateOnRefresh: true },
+  } )
+    // Projects' content arrives a little behind its surface, then catches up: the rise.
+    .fromTo( [ projectsContent, rail ], { y: () => window.innerHeight * flow.riseVh * reach / 100 }, {
+      y: 0,
+      duration: 1,
+      ease: 'power2.out',
+    }, 0 )
+  if ( sameTable )
+  {
+    // One table: Services' type clears off the cloth, and Projects' table switches on at the top.
+    riseOverServices
+      .fromTo( servicesContent, { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.5, ease: 'power1.in' }, 0 )
       .fromTo( projects, { '--table-in': 0 }, { '--table-in': 1, duration: 0.001, ease: 'none' }, 0.999 )
+  }
+  else
+  {
+    riseOverServices
+      .fromTo( servicesInner, { scale: 1, yPercent: 0 }, {
+        scale: flow.shrinkScale,
+        yPercent: -flow.shrinkLiftPercent,
+        duration: 1,
+        ease: 'none',
+      }, 0 )
+      .fromTo( servicesShade, { opacity: 0 }, { opacity: flow.shrinkDim, duration: 1, ease: 'none' }, 0 )
   }
 
   // ---- 2. The Projects run. ----
@@ -252,7 +358,29 @@ export function createFlowMotion ( { root, motion, charRest, compact, scrub, dep
       scrollTrigger: { trigger: section, start, end, scrub },
     } )
   }
+  revealTitle( services, '.services-title .cue-char', 'top 80%', 'top 15%' )
   revealTitle( projects, '.projects-title .cue-char', 'top 80%', 'top 15%' )
+
+  // The running order is read out one row at a time as Services rises: each row slides up out of
+  // its own rule, left to right down the list, finishing as the sheet reaches the top.
+  const serviceRows = services.querySelectorAll( '.service-row' )
+  if ( serviceRows.length )
+  {
+    gsap.fromTo( serviceRows, { y: 24, opacity: 0 }, {
+      y: 0,
+      opacity: 1,
+      ease: 'power2.out',
+      stagger: 0.1,
+      scrollTrigger: { trigger: services, start: 'top 70%', end: 'top 5%', scrub },
+    } )
+  }
+
+  // Main shows the running order as a pinned timeline instead of the list (hidden by CSS elsewhere).
+  const servicesTimeline = services.querySelector( '.services-timeline' )
+  if ( servicesTimeline && window.getComputedStyle( servicesTimeline ).display !== 'none' )
+  {
+    cleanups.push( createServicesTimeline( { services, timeline: servicesTimeline, scrub } ) )
+  }
   revealTitle( contact, '.contact-title .cue-char', 'top 75%', 'top 10%' )
 
   const rows = contact.querySelectorAll( '.contact-lead, .contact-primary, .contact-list li, .call-sheet-foot' )
@@ -288,6 +416,7 @@ export function createFlowMotion ( { root, motion, charRest, compact, scrub, dep
     cleanups.push( () =>
     {
       titleScreen?.style.removeProperty( '--studio-clear' )
+      services.style.removeProperty( '--table-in' )
       projects.style.removeProperty( '--table-in' )
       projects.style.removeProperty( '--table-out' )
     } )

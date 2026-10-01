@@ -34,15 +34,15 @@ test( 'every look names its chrome colour per Page', () =>
 {
   LOOK_IDS.forEach( ( id ) =>
   {
-    [ 'intro', 'studio', 'projects', 'contact' ].forEach( ( pageId ) =>
+    [ 'intro', 'studio', 'services', 'projects', 'contact' ].forEach( ( pageId ) =>
     {
       assert.match( getThemeColor( id, pageId ), /^#[0-9a-f]{6}$/, `${id} ${pageId}` )
     } )
   } )
-  // Main runs ink → paper → acid.
+  // Main runs ink → felt → paper → the Pool Table's black hall.
   assert.deepEqual(
-    [ 'studio', 'projects', 'contact' ].map( ( pageId ) => getThemeColor( 'acid', pageId ) ),
-    [ '#070908', '#f2f1e9', '#b7d95b' ],
+    [ 'studio', 'services', 'projects', 'contact' ].map( ( pageId ) => getThemeColor( 'acid', pageId ) ),
+    [ '#070908', '#0b5b3b', '#f2f1e9', '#030403' ],
   )
 } )
 

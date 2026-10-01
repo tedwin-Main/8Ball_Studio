@@ -1,11 +1,12 @@
 /* ==========================================================================
    Look: Main (id 'acid', ?look=acid; the default, formerly Acid Night). The original single-look build, commit 91fcc52, restored.
-   Near-black ink, warm paper, and one acid-green signal. Titles are Space Grotesk caps pulled
-   tight (tracking -0.075em, line-height 0.72), their second line indented and lit acid;
-   every smaller word is the same Space Grotesk, bold and in sentence case. Thin orbit rings hang
+   Near-black ink, warm paper, and one acid-green signal. Type is the Cyc Wall's face: titles are
+   Archivo 900 caps at 62% width (line-height 0.8), their second line indented and lit acid;
+   every smaller word is Archivo 700 at 85% width, in sentence case. Thin orbit rings hang
    behind Studio.
-   It is the one look whose palette changes along the Story: Studio is ink, Projects is paper, and
-   Contact is full acid. Each Page is a sheet in its own colour from its first pixel, so a Handoff
+   It is the one look whose palette changes along the Story: Studio is ink, Services is felt green,
+   Projects is paper, and Contact is the Pool Table look's table under its lamp, in the black hall.
+   Each Page is a sheet in its own colour from its first pixel, so a Handoff
    cuts cleanly at the sheet's edge and never shows a mid-tone (the Sheet Rule in DESIGN.md).
    ========================================================================== */
 .experience[data-look='acid'] {
@@ -22,13 +23,13 @@
   --sheet: var(--an-paper);
   --look-ink: var(--an-paper);
   --shade-color: var(--an-ink);
-  /* Small text in the title face (see --ui-* in styles.css): Space Grotesk bold, tracked in only a
-     hair, since the titles' -0.075em would close up at 15px. */
-  --ui-font: 'Space Grotesk', 'Helvetica Neue', Arial, sans-serif;
-  --ui-stretch: 100%;
+  /* Small text in the title face (see --ui-* in styles.css): the Cyc Wall's Archivo, bold and a
+     touch condensed (85%) to echo the 62%-wide titles. */
+  --ui-font: var(--font);
+  --ui-stretch: 85%;
   --ui-weight: 700;
   --ui-weight-soft: 500;
-  --ui-tracking: -0.01em;
+  --ui-tracking: -0.005em;
   --preloader-bg: var(--an-night);
   --preloader-ink: var(--an-paper);
   /* The header's ink: paper over the dark stage, ink once Projects or Contact owns the header. */
@@ -37,10 +38,11 @@
   --board-size: clamp(220px, min(24vw, 44svh), 360px);
   background: var(--an-night);
   color: var(--an-paper);
-  font-family: 'Space Grotesk', 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font);
 }
 
-.experience[data-look='acid']:is([data-nav-section='projects'], [data-nav-section='contact']) {
+/* Paper Projects takes ink in the header; Contact's black hall keeps the paper ink of the stage. */
+.experience[data-look='acid'][data-nav-section='projects'] {
   --nav-ink: var(--an-ink);
   --nav-accent: var(--an-felt);
   /* Focus rings in the header follow its ink. */
@@ -52,14 +54,14 @@
   color: var(--an-ink);
 }
 
-/* ---------- Titles: tight caps; each line is a mask the letters rise out of ---------- */
+/* ---------- Titles: the Cyc Wall's condensed caps; each line is a mask the letters rise out of ---------- */
 .experience[data-look='acid'] .cyc-title {
   color: var(--an-paper);
-  font-family: 'Space Grotesk', 'Helvetica Neue', Arial, sans-serif;
-  font-stretch: 100%;
-  font-weight: 700;
-  letter-spacing: -0.075em;
-  line-height: 0.72;
+  font-family: var(--font);
+  font-stretch: 62%;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 0.8;
 }
 
 .experience[data-look='acid'] .cyc-title > span {
@@ -143,6 +145,7 @@
 }
 
 /* The Page you are on is underlined in the signal colour. */
+.experience[data-look='acid'][data-story-indicator-page='services'] .header-meta .tape-services,
 .experience[data-look='acid'][data-story-indicator-page='projects'] .header-meta .tape-projects,
 .experience[data-look='acid'][data-story-indicator-page='contact'] .header-meta .tape-contact {
   color: var(--nav-ink);
@@ -153,12 +156,12 @@
 /* ---------- Intro overlay, over the kept 3D break ---------- */
 .experience[data-look='acid'] .hero-copy h1 {
   color: var(--an-paper);
-  font-family: 'Space Grotesk', 'Helvetica Neue', Arial, sans-serif;
-  font-size: clamp(55px, 7.6vw, 118px);
-  font-stretch: 100%;
-  font-weight: 700;
-  letter-spacing: -0.06em;
-  line-height: 0.83;
+  font-family: var(--font);
+  font-size: clamp(64px, 9vw, 148px);
+  font-stretch: 64%;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 0.84;
   text-transform: none;
 }
 
@@ -207,7 +210,7 @@
 }
 
 .experience[data-look='acid'] .final-title {
-  font-size: clamp(60px, 14vw, 224px);
+  font-size: clamp(76px, 17vw, 280px);
 }
 
 /* The footer rule under the name: services on the left, the location on the right. */
@@ -252,9 +255,282 @@
   padding-top: 18px;
 }
 
+/* ---------- Services: felt green, the running order ruled across it ---------- */
+/* Felt from its first pixel, the pool cloth the break was played on: it rises over the ink Studio
+   with a clean edge. Type is paper and the numbers take the acid signal, as on Studio. */
+.experience[data-look='acid'] .services-screen {
+  --gaffer: var(--an-paper);
+  --gaffer-soft: rgb(242 241 233 / 0.7);
+  --ink: var(--an-paper);
+  color: var(--an-paper);
+}
+
+/* The lamp over the table: a soft pool of light high on the cloth, falling off to the edges. */
+.experience[data-look='acid'] .services-screen .cyc-wall {
+  background:
+    radial-gradient(ellipse 60% 55% at 62% 18%, rgb(255 250 230 / 0.1), transparent 70%),
+    radial-gradient(ellipse 90% 80% at 50% 45%, transparent 55%, rgb(7 9 8 / 0.4) 120%),
+    var(--an-felt);
+}
+
+.experience[data-look='acid'] .services-list {
+  border-top-color: rgb(242 241 233 / 0.26);
+}
+
+.experience[data-look='acid'] .service-row {
+  border-bottom-color: rgb(242 241 233 / 0.18);
+}
+
+.experience[data-look='acid'] .service-row::before {
+  color: var(--an-acid);
+}
+
+/* Under a mouse, the row being read lights its name in the signal colour as it steps in. */
+@media (hover: hover) and (pointer: fine) {
+  .experience[data-look='acid'] .service-name {
+    transition:
+      translate 500ms var(--ease-out),
+      color 300ms ease;
+  }
+
+  .experience[data-look='acid'] .service-row:hover .service-name {
+    color: var(--an-acid);
+  }
+}
+
+/* ---------- Services timeline (after nickho-motorsports.nl's history) ---------- */
+/* Services pins while a column of tiles scrolls up through the centre, one tile per service
+   (flowMotion.js moves the column and marks the active step). The section grows by the timeline's
+   scroll (--timeline-distance); its inner screen sticks for that long. clip, not hidden, on both:
+   a hidden box is a scroll container, and the sticky screen would stop sticking. */
+.experience[data-look='acid'] .services-screen.cyc-flow {
+  height: calc(100svh + var(--timeline-distance, 0px));
+  min-height: 100svh;
+  overflow: clip;
+}
+
+.experience[data-look='acid'] .services-inner {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  min-height: 0;
+  overflow: clip;
+}
+
+.experience[data-look='acid'] .services-content {
+  height: 100svh;
+  min-height: 0;
+  align-content: start;
+}
+
+.experience[data-look='acid'] .services-title {
+  z-index: 1;
+  grid-column: 1 / 6;
+  /* Small enough that "SERVICES", indented, ends before the tile column. */
+  font-size: clamp(52px, 5.8vw, 112px);
+}
+
+/* The ruled list is the timeline's reduced-motion fallback (below). */
+.experience[data-look='acid'] .services-list {
+  display: none;
+}
+
+/* Three columns on the 12-column grid: the active name bottom-left, the tile column in the middle
+   (full height, faded at top and bottom), the counter and detail bottom-right. */
+.experience[data-look='acid'] .services-timeline {
+  --tl-pad-top: clamp(96px, 13vh, 140px);
+  --tl-pad-bottom: clamp(48px, 9vh, 96px);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  column-gap: clamp(16px, 2vw, 32px);
+  row-gap: 18px;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  padding: var(--tl-pad-top) var(--gutter) var(--tl-pad-bottom);
+  pointer-events: none;
+}
+
+/* Each step's name and detail are grid items of the timeline itself, so all six names share one
+   cell and all six details another; only the active pair is shown. */
+.experience[data-look='acid'] :is(.timeline-steps, .timeline-step) {
+  display: contents;
+}
+
+.experience[data-look='acid'] :is(.timeline-name, .timeline-detail) {
+  margin: 0;
+  opacity: 0;
+  translate: 0 0.6em;
+  transition:
+    opacity 260ms ease,
+    translate 600ms var(--ease-out);
+}
+
+.experience[data-look='acid'] .timeline-step.is-active :is(.timeline-name, .timeline-detail) {
+  opacity: 1;
+  translate: 0 0;
+  transition-delay: 120ms;
+}
+
+.experience[data-look='acid'] .timeline-name {
+  align-self: end;
+  grid-column: 1 / 6;
+  grid-row: 2 / 4;
+  color: var(--an-paper);
+  font-family: var(--font);
+  font-size: clamp(40px, 5.2vw, 100px);
+  font-stretch: 62%;
+  font-weight: 900;
+  line-height: 0.86;
+  text-transform: uppercase;
+}
+
+.experience[data-look='acid'] .timeline-number {
+  display: block;
+  margin-bottom: 14px;
+  color: var(--an-acid);
+  font-family: var(--ui-font);
+  font-size: var(--ui-size);
+  font-stretch: var(--ui-stretch);
+  font-weight: var(--ui-weight);
+  letter-spacing: var(--ui-tracking);
+}
+
+.experience[data-look='acid'] .timeline-detail {
+  align-self: end;
+  grid-column: 9 / 13;
+  grid-row: 3;
+  color: rgb(242 241 233 / 0.82);
+  font-family: var(--ui-font);
+  font-size: clamp(17px, 1.4vw, 22px);
+  font-stretch: var(--ui-stretch);
+  font-weight: var(--ui-weight);
+  letter-spacing: var(--ui-tracking);
+  line-height: 1.3;
+}
+
+/* 01 ——— 06: the running order's progress, the bar filling as the column scrolls. */
+.experience[data-look='acid'] .timeline-progress {
+  display: flex;
+  align-items: center;
+  grid-column: 9 / 13;
+  grid-row: 2;
+  gap: 14px;
+  color: rgb(242 241 233 / 0.6);
+  font-family: var(--ui-font);
+  font-size: var(--ui-size-sm);
+  font-stretch: var(--ui-stretch);
+  font-weight: var(--ui-weight);
+  font-variant-numeric: tabular-nums;
+}
+
+.experience[data-look='acid'] .timeline-count {
+  color: var(--an-acid);
+}
+
+.experience[data-look='acid'] .timeline-bar {
+  position: relative;
+  height: 1px;
+  flex: 1;
+  background: rgb(242 241 233 / 0.24);
+}
+
+.experience[data-look='acid'] .timeline-bar-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--an-acid);
+  transform: scaleX(0.1667);
+  transform-origin: 0 50%;
+}
+
+/* The tile column runs the full height of the screen, behind the header, faded at both ends. */
+.experience[data-look='acid'] .timeline-window {
+  grid-column: 6 / 9;
+  grid-row: 1 / -1;
+  margin: calc(-1 * var(--tl-pad-top)) 0 calc(-1 * var(--tl-pad-bottom));
+  overflow: clip;
+  -webkit-mask-image: linear-gradient(transparent, #000 22%, #000 78%, transparent);
+  mask-image: linear-gradient(transparent, #000 22%, #000 78%, transparent);
+}
+
+.experience[data-look='acid'] .timeline-track {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: clamp(20px, 3.4vh, 40px);
+  will-change: transform;
+}
+
+/* A tile per service: its number, a line drawing, and its name, on ink laid over the felt. Tiles
+   off the centre sit back and dim; the active one comes forward. (Placeholders for the Media
+   Showcase's real work.) */
+.experience[data-look='acid'] .timeline-tile {
+  position: relative;
+  display: grid;
+  width: min(100%, 46svh);
+  aspect-ratio: 1;
+  flex: none;
+  place-items: center;
+  border: 1px solid rgb(242 241 233 / 0.12);
+  border-radius: 4px;
+  background: rgb(7 9 8 / 0.34);
+  color: var(--an-paper);
+  opacity: 0.4;
+  scale: 0.84;
+  transition:
+    opacity 500ms ease,
+    scale 700ms var(--ease-out),
+    border-color 500ms ease,
+    background 500ms ease;
+}
+
+.experience[data-look='acid'] .timeline-tile.is-active {
+  border-color: rgb(183 217 91 / 0.5);
+  background: rgb(7 9 8 / 0.62);
+  opacity: 1;
+  scale: 1;
+}
+
+.experience[data-look='acid'] .timeline-tile-icon {
+  width: 34%;
+  color: var(--an-acid);
+}
+
+.experience[data-look='acid'] .timeline-tile-icon svg {
+  display: block;
+  width: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.2;
+}
+
+.experience[data-look='acid'] :is(.timeline-tile-number, .timeline-tile-name) {
+  position: absolute;
+  left: 8%;
+  font-family: var(--ui-font);
+  font-size: var(--ui-size-sm);
+  font-stretch: var(--ui-stretch);
+  font-weight: var(--ui-weight);
+  letter-spacing: var(--ui-tracking);
+}
+
+.experience[data-look='acid'] .timeline-tile-number {
+  top: 7%;
+  color: var(--an-acid);
+}
+
+.experience[data-look='acid'] .timeline-tile-name {
+  right: 8%;
+  bottom: 7%;
+  color: rgb(242 241 233 / 0.78);
+}
+
 /* ---------- Projects: paper, and the boards run past like the original's card reel ---------- */
-.experience[data-look='acid'] :is(.projects-screen, .contact-screen) {
-  /* Focus rings inside these Pages are ink: they sit on paper and acid. */
+.experience[data-look='acid'] .projects-screen {
+  /* Focus rings inside Projects are ink: they sit on paper. */
   --ink: var(--an-ink);
   color: var(--an-ink);
 }
@@ -266,17 +542,17 @@
     var(--an-paper);
 }
 
-.experience[data-look='acid'] :is(.projects-title, .contact-title) {
+.experience[data-look='acid'] .projects-title {
   color: var(--an-ink);
 }
 
-/* On paper and acid the indented line takes the felt green: the signal colour would vanish there. */
-.experience[data-look='acid'] :is(.projects-title, .contact-title) > span + span {
+/* On paper the indented line takes the felt green: the signal colour would vanish there. */
+.experience[data-look='acid'] .projects-title > span + span {
   color: var(--an-felt);
 }
 
 .experience[data-look='acid'] .projects-title {
-  font-size: clamp(52px, 11vw, 190px);
+  font-size: clamp(64px, 13vw, 220px);
 }
 
 .experience[data-look='acid'] .project-card {
@@ -284,7 +560,7 @@
   gap: 12px;
 }
 
-/* White cards on paper, square-shouldered at 4px, lifted on a soft shadow as they cross the centre. */
+/* Cards on paper, square-shouldered at 4px, lifted on a soft shadow as they cross the centre. */
 .experience[data-look='acid'] .project-board {
   width: 100%;
   aspect-ratio: 7 / 5;
@@ -310,11 +586,6 @@
   will-change: opacity;
 }
 
-.experience[data-look='acid'] .project-card.is-haruplate .project-board {
-  border-color: transparent;
-  background: var(--an-ink);
-}
-
 .experience[data-look='acid'] .project-card .tape {
   --tilt: 0deg;
   min-height: 0;
@@ -322,6 +593,25 @@
   background: none;
   box-shadow: none;
   color: rgb(7 9 8 / 0.72);
+}
+
+/* Client cards are ink, and every client's logo is pure white on them, like a partner run on a
+   dark reel (after airrlabs.com). The filter flattens any logo to its silhouette in white; Artigusto's
+   solid badge uses its white lettering instead (App.jsx, whiteSrc), or it would turn into a disc. */
+.experience[data-look='acid'] .project-card:not(.is-next) .project-board {
+  border-color: transparent;
+  background: var(--an-ink);
+}
+
+.experience[data-look='acid'] .project-board img {
+  filter: brightness(0) invert(1);
+}
+
+/* The white lettering is a wide wordmark, not a round badge: it takes the wordmarks' box. */
+.experience[data-look='acid'] .project-card.is-artigusto .project-board img {
+  inset: 25% 14%;
+  width: 72%;
+  height: 50%;
 }
 
 .experience[data-look='acid'] .projects-track:hover .project-card:not(:hover) .project-board {
@@ -346,8 +636,8 @@
 
 .experience[data-look='acid'] .project-next-title {
   font-size: clamp(24px, 2.4vw, 38px);
-  letter-spacing: -0.05em;
-  line-height: 0.86;
+  letter-spacing: -0.02em;
+  line-height: 0.95;
 }
 
 .experience[data-look='acid'] .project-next-detail {
@@ -363,107 +653,142 @@
   outline-color: var(--an-ink);
 }
 
-/* ---------- Contact: full acid, the three channels ruled across it ---------- */
-/* Acid from its first pixel: Projects lifts off it, and only Projects' edge shadow lies on it. */
+/* ---------- Contact: the Pool Table look's table under its lamp ---------- */
+/* The last Page is laid on the Pool Table look's table (LookScenery.jsx draws it; its plate geometry,
+   cloth and pockets come from downlight.css). The hall is black from Contact's first pixel, so
+   Projects still lifts off a sheet in its own colour. Type is ivory on the cloth, the WhatsApp
+   action an ivory chip, and the 8-ball drops into the table's own top-right pocket. */
+.experience[data-look='acid'] .contact-screen {
+  --ivory: #f3eee2;
+  --ivory-soft: rgb(243 238 226 / 0.68);
+  --gaffer: var(--ivory);
+  --gaffer-soft: var(--ivory);
+  --sheet: var(--ivory);
+  --ink: var(--ivory);
+  color: var(--ivory);
+}
+
+/* Main has no Draft or Look controls under the table, so on every screen the table takes the room
+   down to a small margin (downlight.css keeps space for them). Higher specificity: downlight.css loads later. */
+.experience[data-look='acid'] .contact-screen.cyc {
+  --hall-bottom: clamp(28px, 6vh, 64px);
+}
+
 .experience[data-look='acid'] .contact-screen .cyc-wall {
   background:
-    radial-gradient(circle at 12% 82%, rgb(7 9 8 / 0.08), transparent 26%),
-    var(--an-acid);
+    radial-gradient(ellipse 70% 80% at 50% 55%, rgb(255 244 220 / 0.05), transparent 70%),
+    #030403;
 }
 
 .experience[data-look='acid'] .contact-content {
-  display: flex;
-  /* The base grid aligns to the end; the ruled list here spans the full measure under the title. */
-  align-items: stretch;
-  justify-content: center;
-  flex-direction: column;
-  gap: 6vh;
-  padding: clamp(96px, 14vh, 150px) var(--gutter) clamp(96px, 14vh, 140px);
+  inset: calc(var(--tbl-top) + var(--rail)) calc(var(--tbl-side) + var(--rail-x)) calc(var(--tbl-bottom) + var(--rail));
+  padding: clamp(20px, 5vh, 56px) clamp(20px, 4vw, 70px);
 }
 
 .experience[data-look='acid'] .contact-title {
-  align-self: flex-start;
-  font-size: clamp(44px, 12vw, 190px);
+  color: var(--ivory);
+  font-size: clamp(60px, 8.6vw, 160px);
 }
 
+/* Overhead light: a soft shadow straight under each letter, as on the Pool Table. */
+.experience[data-look='acid'] .contact-title .cue-char {
+  text-shadow: 0 0 14px rgb(0 0 0 / 0.45);
+}
+
+/* "US" stays flush, in the signal colour: acid reads on the lit green cloth. */
 .experience[data-look='acid'] .contact-title > span + span {
   padding-left: 0;
+  color: var(--an-acid);
 }
 
 .experience[data-look='acid'] .call-sheet {
-  padding: 0;
+  padding-inline: 0;
   background: none;
   box-shadow: none;
-  color: var(--an-ink);
+  color: var(--ivory);
   rotate: 0deg;
 }
 
-.experience[data-look='acid'] .contact-list {
-  display: grid;
-  border-top: 1px solid rgb(7 9 8 / 0.24);
-  border-bottom: 1px solid rgb(7 9 8 / 0.24);
-  /* Instagram and email: the smaller channels under the WhatsApp action. */
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.experience[data-look='acid'] .contact-lead {
+  color: var(--ivory);
+}
+
+/* WhatsApp, the Page's one primary action: an ivory chip with dark ink, the acid glyph's place taken
+   by felt so it reads on ivory. */
+.experience[data-look='acid'] .contact-primary {
+  background: var(--ivory);
+  box-shadow: 0 0 18px 2px rgb(0 0 0 / 0.45);
+  color: var(--an-ink);
+}
+
+.experience[data-look='acid'] .contact-primary:is(:hover, :focus-visible) {
+  box-shadow: 0 0 26px 4px rgb(0 0 0 / 0.55), 0 0 0 1px rgb(243 238 226 / 0.6);
+}
+
+.experience[data-look='acid'] .contact-primary-icon {
+  color: var(--an-felt);
+}
+
+.experience[data-look='acid'] .contact-primary:focus-visible {
+  outline: 2px solid var(--ivory);
+  outline-offset: 4px;
+}
+
+/* The closing shot drops the 8-ball into the table's top-right corner pocket (centre and size are
+   shares of the plate, as in downlight.css), not a drawn hole beside the title. */
+.experience[data-look='acid'] .contact-pocket {
+  top: calc(var(--plate-h) * 0.1113 - var(--rail));
+  right: auto;
+  left: calc(var(--plate-w) * 0.9316 - var(--rail-x));
+  width: calc(var(--plate-w) * 0.0556);
+  translate: -50% -50%;
+}
+
+.experience[data-look='acid'] .contact-pocket-hole {
+  display: none;
+}
+
+.experience[data-look='acid'] .contact-pocket-ball {
+  inset: 26%;
+  width: 48%;
+}
+
+@media (orientation: portrait) {
+  .experience[data-look='acid'] .contact-pocket {
+    top: calc(var(--plate-h) * 0.0684 - var(--rail));
+    left: calc(var(--plate-w) * 0.8887 - var(--rail-x));
+    width: calc(var(--plate-w) * 0.1036);
+  }
 }
 
 .experience[data-look='acid'] .contact-list li + li {
-  border-top: 0;
-  border-left: 1px solid rgb(7 9 8 / 0.18);
-}
-
-.experience[data-look='acid'] .contact-item {
-  height: 100%;
-  padding: clamp(18px, 2.4vw, 34px);
-  column-gap: clamp(14px, 1.6vw, 22px);
-  row-gap: 6px;
-  grid-template-areas:
-    'icon channel action'
-    'icon detail action';
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  transition: background 150ms ease;
-}
-
-.experience[data-look='acid'] .contact-item:is(:hover, :focus-visible) {
-  background: rgb(7 9 8 / 0.07);
+  border-top: 1px solid rgb(243 238 226 / 0.18);
 }
 
 .experience[data-look='acid'] .contact-icon {
-  width: clamp(40px, 4vw, 56px);
-  border: 1px solid rgb(7 9 8 / 0.52);
-  color: var(--an-ink);
+  border-color: rgb(243 238 226 / 0.6);
   transition:
     background 300ms ease,
     color 300ms ease;
 }
 
 .experience[data-look='acid'] .contact-item:is(:hover, :focus-visible) .contact-icon {
-  background: var(--an-ink);
-  color: var(--an-acid);
-}
-
-.experience[data-look='acid'] .contact-icon svg {
-  width: 44%;
-  stroke-width: 1.5;
-}
-
-.experience[data-look='acid'] .contact-channel {
-  padding: 0;
-  background: none;
-  font-size: clamp(18px, 1.5vw, 24px);
-  letter-spacing: -0.02em;
-}
-
-.experience[data-look='acid'] .contact-detail {
-  color: rgb(7 9 8 / 0.72);
-}
-
-.experience[data-look='acid'] .call-sheet-foot {
-  border-top: 0;
-  color: rgb(7 9 8 / 0.6);
+  background: var(--ivory);
+  color: var(--an-felt);
 }
 
 .experience[data-look='acid'] .contact-item:focus-visible {
-  outline-color: var(--an-ink);
+  outline-color: var(--ivory);
+}
+
+/* An acid rub across the channel name on hover, the signal colour on the cloth. */
+.experience[data-look='acid'] .contact-channel {
+  background-image: linear-gradient(rgb(183 217 91 / 0.45), rgb(183 217 91 / 0.45));
+}
+
+.experience[data-look='acid'] .call-sheet-foot {
+  border-top: 1px solid rgb(243 238 226 / 0.45);
+  color: var(--ivory-soft);
 }
 
 /* ---------- Cursor, preloader ---------- */
@@ -474,15 +799,11 @@
   --cursor-label-ink: var(--an-ink);
 }
 
-.experience[data-look='acid'] .cursor-ball:is([data-section='projects'], [data-section='contact']) {
+.experience[data-look='acid'] .cursor-ball[data-section='projects'] {
   --cursor-fill: var(--an-ink);
   --cursor-ring: rgb(255 255 255 / 0.28);
   --cursor-label-bg: var(--an-ink);
   --cursor-label-ink: var(--an-paper);
-}
-
-.experience[data-look='acid'] .cursor-ball[data-section='contact'] {
-  --cursor-label-ink: var(--an-acid);
 }
 
 .experience[data-look='acid'] .preloader-count {
@@ -504,7 +825,7 @@
   }
 
   .experience[data-look='acid'] .hero-copy h1 {
-    font-size: clamp(42px, 12.5vw, 64px);
+    font-size: clamp(52px, 15vw, 84px);
   }
 
   .experience[data-look='acid'] .final-content {
@@ -512,7 +833,7 @@
   }
 
   .experience[data-look='acid'] .final-title {
-    font-size: clamp(60px, 18vw, 112px);
+    font-size: clamp(72px, 22vw, 140px);
     line-height: 0.8;
   }
 
@@ -520,9 +841,6 @@
     padding-left: 7vw;
   }
 
-  .experience[data-look='acid'] .contact-title > span + span {
-    padding-left: 0;
-  }
 
   /* The Draft switcher shows only on the Intro, so Studio's footer rule sits near the bottom. */
   .experience[data-look='acid'] :is(.studio-floor, .final-meta) {
@@ -545,37 +863,18 @@
     padding-top: 0;
   }
 
-  .experience[data-look='acid'] .projects-title {
-    font-size: clamp(52px, 18vw, 102px);
-    line-height: 0.78;
-  }
-
-  .experience[data-look='acid'] .contact-content {
-    justify-content: flex-start;
-    gap: 4vh;
-    padding: max(88px, 12vh) var(--gutter) max(48px, calc(env(safe-area-inset-bottom) + 32px));
+  .experience[data-look='acid'] :is(.projects-title, .services-title) {
+    font-size: clamp(60px, 20vw, 120px);
+    line-height: 0.8;
   }
 
   .experience[data-look='acid'] .contact-title {
-    font-size: clamp(44px, 14vw, 88px);
-    line-height: 0.78;
+    font-size: clamp(48px, 15vw, 96px);
   }
 
-  .experience[data-look='acid'] .contact-list {
-    grid-template-columns: 1fr;
-  }
-
-  .experience[data-look='acid'] .contact-list li + li {
-    border-top: 1px solid rgb(7 9 8 / 0.18);
-    border-left: 0;
-  }
-
-  .experience[data-look='acid'] .contact-item {
-    padding: 12px 8px;
-  }
-
-  .experience[data-look='acid'] .contact-icon {
-    width: 36px;
+  /* Contact's "US" stays flush on phones too. */
+  .experience[data-look='acid'] .contact-title > span + span {
+    padding-left: 0;
   }
 }
 
@@ -607,51 +906,198 @@
     padding-top: 18px;
   }
 
-  .experience[data-look='acid'] .projects-title {
+  .experience[data-look='acid'] :is(.projects-title, .services-title) {
     font-size: clamp(40px, 16svh, 96px);
-  }
-
-  /* Title, channels and the foot line (with the Look choice) all fit above the fold. */
-  .experience[data-look='acid'] .contact-content {
-    gap: 2svh;
-    padding-top: 64px;
-    padding-bottom: max(12px, env(safe-area-inset-bottom));
-  }
-
-  .experience[data-look='acid'] .contact-title {
-    font-size: clamp(40px, 16svh, 88px);
   }
 
   .experience[data-look='acid'] .final-title {
     font-size: clamp(56px, 13vw, 112px);
-    line-height: 0.72;
+    line-height: 0.8;
   }
 
-  .experience[data-look='acid'] .contact-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .experience[data-look='acid'] .contact-title {
+    font-size: clamp(36px, 13svh, 64px);
   }
 
-  .experience[data-look='acid'] .contact-list li + li {
-    border-top: 0;
-    border-left: 1px solid rgb(7 9 8 / 0.18);
+  /* The short table holds only the essentials: the lead line and the foot go, and the WhatsApp
+     action and the channels tighten so all of them stay on the cloth. */
+  .experience[data-look='acid'] .contact-content {
+    padding: clamp(10px, 4svh, 20px) clamp(16px, 3vw, 32px);
+  }
+
+  .experience[data-look='acid'] :is(.contact-lead, .call-sheet-foot) {
+    display: none;
+  }
+
+  .experience[data-look='acid'] .contact-primary {
+    min-height: 0;
+    margin-bottom: 6px;
+    padding: 8px 12px;
+  }
+
+  .experience[data-look='acid'] .contact-primary-label {
+    font-size: 17px;
+  }
+
+  /* The number drops under the label, so the label keeps one line in the narrow column. */
+  .experience[data-look='acid'] .contact-primary {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    row-gap: 2px;
+  }
+
+  .experience[data-look='acid'] .contact-primary-number {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .experience[data-look='acid'] .contact-primary-arrow {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+
+  .experience[data-look='acid'] .contact-item {
+    padding-block: 4px;
+  }
+
+  .experience[data-look='acid'] .contact-channel {
+    font-size: 17px;
   }
 }
 
-/* ---------- Contact's primary action and closing shot on acid ---------- */
-.experience[data-look='acid'] .contact-lead {
-  color: var(--an-ink);
+/* ---------- Services timeline on phones and short screens ---------- */
+/* Phones stack it: the title, then the tile column (in its own window between the title and the
+   text), then the counter, the active name, and its detail. */
+@media (max-width: 768px), (max-height: 540px) {
+  .experience[data-look='acid'] .services-content {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(14px, 2.4svh, 24px);
+    padding-bottom: max(28px, calc(env(safe-area-inset-bottom) + 20px));
+  }
+
+  .experience[data-look='acid'] .services-timeline {
+    position: relative;
+    inset: auto;
+    min-height: 0;
+    flex: 1;
+    row-gap: 12px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto auto auto;
+    padding: 0;
+  }
+
+  .experience[data-look='acid'] .timeline-window {
+    grid-column: 1;
+    grid-row: 1;
+    margin: 0;
+    -webkit-mask-image: linear-gradient(transparent, #000 16%, #000 84%, transparent);
+    mask-image: linear-gradient(transparent, #000 16%, #000 84%, transparent);
+  }
+
+  .experience[data-look='acid'] .timeline-tile {
+    width: min(64vw, 30svh);
+  }
+
+  .experience[data-look='acid'] .timeline-progress {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .experience[data-look='acid'] .timeline-name {
+    grid-column: 1;
+    grid-row: 3;
+    font-size: clamp(34px, 10vw, 56px);
+  }
+
+  .experience[data-look='acid'] .timeline-number {
+    display: none;
+  }
+
+  .experience[data-look='acid'] .timeline-detail {
+    grid-column: 1;
+    grid-row: 4;
+    min-height: 2.6em;
+    font-size: var(--ui-size);
+  }
 }
 
-.experience[data-look='acid'] .contact-primary {
-  background: var(--an-ink);
-  color: var(--an-paper);
+/* Short landscape screens have width but little height: back to the three columns, beside the title. */
+@media (max-height: 540px) and (orientation: landscape) {
+  .experience[data-look='acid'] .services-content {
+    display: grid;
+    padding-top: 64px;
+  }
+
+  .experience[data-look='acid'] .services-title {
+    grid-column: 1 / 6;
+  }
+
+  .experience[data-look='acid'] .services-timeline {
+    --tl-pad-top: 64px;
+    --tl-pad-bottom: max(16px, env(safe-area-inset-bottom));
+    position: absolute;
+    inset: 0;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    padding: var(--tl-pad-top) var(--gutter) var(--tl-pad-bottom);
+  }
+
+  .experience[data-look='acid'] .timeline-window {
+    grid-column: 6 / 9;
+    grid-row: 1 / -1;
+    margin: calc(-1 * var(--tl-pad-top)) 0 calc(-1 * var(--tl-pad-bottom));
+  }
+
+  .experience[data-look='acid'] .timeline-tile {
+    width: min(100%, 52svh);
+  }
+
+  .experience[data-look='acid'] .timeline-progress {
+    grid-column: 9 / 13;
+    grid-row: 2;
+  }
+
+  .experience[data-look='acid'] .timeline-name {
+    grid-column: 1 / 6;
+    grid-row: 2 / 4;
+    font-size: clamp(28px, 10svh, 48px);
+  }
+
+  .experience[data-look='acid'] .timeline-detail {
+    grid-column: 9 / 13;
+    grid-row: 3;
+    min-height: 0;
+    font-size: var(--ui-size-sm);
+  }
 }
 
-.experience[data-look='acid'] .contact-primary-icon {
-  color: var(--an-acid);
-}
+/* Reduced motion: nothing pins, so Services is the ruled list again, one screen tall. */
+@media (prefers-reduced-motion: reduce) {
+  .experience[data-look='acid'] .services-screen.cyc-flow {
+    height: auto;
+  }
 
-.experience[data-look='acid'] .contact-primary:focus-visible {
-  outline: 2px solid var(--an-ink);
-  outline-offset: 4px;
+  .experience[data-look='acid'] .services-inner {
+    position: relative;
+    height: auto;
+    min-height: 100svh;
+  }
+
+  .experience[data-look='acid'] .services-content {
+    display: grid;
+    height: auto;
+    min-height: 100svh;
+  }
+
+  .experience[data-look='acid'] .services-title {
+    grid-column: 1 / -1;
+  }
+
+  .experience[data-look='acid'] .services-list {
+    display: block;
+  }
+
+  .experience[data-look='acid'] .services-timeline {
+    display: none;
+  }
 }

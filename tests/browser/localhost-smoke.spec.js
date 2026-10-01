@@ -72,19 +72,27 @@ test( 'Projects runs its boards sideways and the header links land on each secti
   await page.goto( '/', { waitUntil: 'load' } )
   await waitForPreloader( page )
 
-  // Projects is pulled over the stage's last screen: its top is exactly where the stage releases.
+  // Services is pulled over the stage's last screen: its top is exactly where the stage releases,
+  // and Projects starts where Services ends.
   const layout = await page.evaluate( () =>
   {
     const story = document.querySelector( '.story' )
+    const services = document.querySelector( '#services' )
     const projects = document.querySelector( '#projects' )
     return {
       pinnedRange: story.offsetHeight - window.innerHeight,
+      servicesTop: Math.round( services.getBoundingClientRect().top + window.scrollY ),
+      servicesBottom: Math.round( services.getBoundingClientRect().bottom + window.scrollY ),
       projectsTop: Math.round( projects.getBoundingClientRect().top + window.scrollY ),
       runDistance: parseFloat( projects.style.getPropertyValue( '--run-distance' ) ),
     }
   } )
-  expect( Math.abs( layout.projectsTop - layout.pinnedRange ) ).toBeLessThanOrEqual( 1 )
+  expect( Math.abs( layout.servicesTop - layout.pinnedRange ) ).toBeLessThanOrEqual( 1 )
+  expect( Math.abs( layout.projectsTop - layout.servicesBottom ) ).toBeLessThanOrEqual( 1 )
   expect( layout.runDistance ).toBeGreaterThan( 0 )
+
+  await page.getByRole( 'link', { name: 'Our Services' } ).click()
+  await expect.poll( () => sectionTop( page, '#services' ), { timeout: 8_000 } ).toBe( 0 )
 
   await page.getByRole( 'link', { name: 'Our Projects' } ).click()
   await expect.poll( () => sectionTop( page, '#projects' ), { timeout: 8_000 } ).toBe( 0 )

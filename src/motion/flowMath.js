@@ -30,12 +30,13 @@ export function getRunScrollTarget ( { sectionTop, runDistance, boardLeft, board
 }
 
 // Which part of the Story sits under a line at scroll position y (the header, or the pointer):
-// the pinned stage, Projects, or Contact. Starts are the scroll positions where each section
-// reaches that line.
-export function sectionAt ( y, { projectsStart, contactStart } )
+// the pinned stage, Services, Projects, or Contact. Starts are the scroll positions where each
+// section reaches that line.
+export function sectionAt ( y, { servicesStart, projectsStart, contactStart } )
 {
   if ( y >= contactStart ) return 'contact'
   if ( y >= projectsStart ) return 'projects'
+  if ( y >= servicesStart ) return 'services'
   return 'stage'
 }
 

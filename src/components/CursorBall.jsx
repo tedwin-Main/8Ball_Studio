@@ -20,6 +20,7 @@ const sectionOf = ( element ) =>
 {
   if ( element?.closest( '.contact-screen' ) ) return 'contact'
   if ( element?.closest( '.projects-screen' ) ) return 'projects'
+  if ( element?.closest( '.services-screen' ) ) return 'services'
   return 'stage'
 }
 

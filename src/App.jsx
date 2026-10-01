@@ -21,6 +21,9 @@ import { getStoryPages, getStudioStartUnits } from './storySchedule'
 import brandLogo from './assets/8BALL-V4.jpg'
 // Circular mark with real alpha outside the badge.
 import artigustoGelato from './assets/Artigusto-Gelato_Clearned.webp'
+// The same mark's lettering alone in pure white (teal disc keyed out): Main's ink boards show every
+// logo as a white silhouette, and a CSS filter would turn the solid badge into a plain white disc.
+import artigustoGelatoWhite from './assets/artigusto-gelato-white.webp'
 import ersEnergyLogo from './assets/ers-energy-logo.png'
 import haruplateLogo from './assets/haruplate-logo.png'
 import shopeeLogo from './assets/shopee-logo.svg'
@@ -104,10 +107,10 @@ const getInitialDraft = () =>
 
 const PROJECT_ITEMS = [
   // Round badge mark: its board gives it a little more room than the wordmarks.
-  { src: artigustoGelato, alt: 'Artigusto Gelato', type: 'artigusto' },
+  // whiteSrc: the pure-white version Main shows on its ink boards (acid.css whitens the others).
+  { src: artigustoGelato, whiteSrc: artigustoGelatoWhite, alt: 'Artigusto Gelato', type: 'artigusto' },
   { src: ersEnergyLogo, alt: 'ERS Energy' },
-  // Pale mark drawn for dark grounds: its board is cut from gaffer.
-  { src: haruplateLogo, alt: 'Haruplate', type: 'haruplate' },
+  { src: haruplateLogo, alt: 'Haruplate' },
   { src: shopeeLogo, alt: 'Shopee' },
 ]
 
@@ -135,6 +138,21 @@ const NEXT_BOARDS = [
 
 // Small text is sentence case everywhere; only names (8 Ball Studio, WhatsApp, places) keep capitals.
 const SERVICES = [ 'Social content management', 'Video & photography', 'Graphic design' ]
+
+// The Services Page's running order (DOCS/TODOLIST.md): each service with one short line of what it
+// covers. Numbers come from the list's own counter in CSS, so reordering never needs renumbering.
+// icon names the line drawing on the service's timeline tile (ServiceIcon below).
+const SERVICE_ITEMS = [
+  { name: 'Video production', detail: 'Brand films, reels and short-form edits', icon: 'video' },
+  { name: 'Graphic design', detail: 'Brand assets, social posts and print', icon: 'design' },
+  { name: 'Performance marketing', detail: 'Paid campaigns, tracked and tuned', icon: 'chart' },
+  { name: 'Social media management', detail: 'Calendars, posting and community', icon: 'social' },
+  { name: 'Web design', detail: 'Websites and landing pages', icon: 'web' },
+  { name: 'AI generated content', detail: 'AI UGC, synthetic media, virtual production', icon: 'ai' },
+]
+
+// Two-digit running-order number for a zero-based index: 0 → "01".
+const toStepNumber = ( index ) => String( index + 1 ).padStart( 2, '0' )
 
 // The Intro title, one mask per word so the opening shot can raise it word by word.
 const HERO_TITLE = 'Roll with us.'
@@ -182,8 +200,15 @@ function CueLine ( { text, className } )
   return (
     <span className={ className }>
       <span aria-hidden="true">
-        { [ ...text ].map( ( character, index ) => (
-          <span className="cue-char" key={ index }>{ character === ' ' ? ' ' : character }</span>
+        { [ ...text ].map( ( character, index, characters ) => (
+          <span
+            // A capital right after a lowercase letter starts a joined word ("8ightBall"): it gets a
+            // small gap (styles.css), since tight title tracking would fuse "tB" together.
+            className={ /[a-z]/.test( characters[ index - 1 ] ?? '' ) && /[A-Z]/.test( character ) ? 'cue-char is-joined-cap' : 'cue-char' }
+            key={ index }
+          >
+            { character === ' ' ? ' ' : character }
+          </span>
         ) ) }
       </span>
     </span>
@@ -231,6 +256,22 @@ function ContactIcon ( { type } )
   )
 }
 
+// Line drawings for the Services timeline tiles: drawn strokes, like every icon on the site.
+// Placeholders until the Media Showcase puts real work on these tiles.
+const SERVICE_ICON_PATHS = {
+  video: <><rect x="3" y="6" width="13" height="12" rx="2" /><path d="m16 10.5 5-3v9l-5-3" /></>,
+  design: <><path d="M14.5 4.5 19.5 9.5 9 20H4v-5Z" /><path d="m12.5 6.5 5 5" /></>,
+  chart: <><path d="M4 4v16h16" /><path d="m7 15 4-4 3 3 6-7" /><path d="M16 7h4v4" /></>,
+  social: <><path d="M5 5h14v10H10l-5 4Z" /><path d="M9 10h6" /></>,
+  web: <><rect x="3" y="4.5" width="18" height="15" rx="2" /><path d="M3 9h18" /><circle cx="6" cy="6.8" r="0.6" /><circle cx="8.4" cy="6.8" r="0.6" /></>,
+  ai: <><path d="M12 3.5c.6 3.9 2.6 5.9 6.5 6.5-3.9.6-5.9 2.6-6.5 6.5-.6-3.9-2.6-5.9-6.5-6.5 3.9-.6 5.9-2.6 6.5-6.5Z" /><path d="M18.5 15.5c.3 1.6 1 2.3 2.5 2.5-1.5.2-2.2.9-2.5 2.5-.3-1.6-1-2.3-2.5-2.5 1.5-.2 2.2-.9 2.5-2.5Z" /></>,
+}
+
+function ServiceIcon ( { type } )
+{
+  return <svg viewBox="0 0 24 24" aria-hidden="true">{ SERVICE_ICON_PATHS[ type ] }</svg>
+}
+
 function PoolTable ()
 {
   return (
@@ -268,6 +309,7 @@ function App ()
 {
   const rootRef = useRef( null )
   const storyRef = useRef( null )
+  const servicesRef = useRef( null )
   const projectsRef = useRef( null )
   const contactRef = useRef( null )
   const draftControllersRef = useRef( {} )
@@ -308,18 +350,21 @@ function App ()
   const measureStoryLayout = useCallback( () =>
   {
     const story = storyRef.current
+    const services = servicesRef.current
     const projects = projectsRef.current
     const contact = contactRef.current
-    if ( !story || !projects || !contact ) return
+    if ( !story || !services || !projects || !contact ) return
 
     const viewport = window.innerHeight
     const pinnedRange = Math.max( 0, story.offsetHeight - viewport )
-    // Projects is pulled up over the stage's last screen, so its top sits exactly where the stage
+    // Services is pulled up over the stage's last screen, so its top sits exactly where the stage
     // releases; clamp away the sub-pixel rounding that could put it a pixel early.
-    const projectsTop = Math.max( pinnedRange, Math.round( getDocumentTop( projects ) ) )
+    const servicesTop = Math.max( pinnedRange, Math.round( getDocumentTop( services ) ) )
+    const projectsTop = Math.max( servicesTop, Math.round( getDocumentTop( projects ) ) )
     const next = {
       viewport,
       pinnedRange,
+      servicesTop,
       projectsTop,
       contactTop: Math.max( projectsTop, Math.round( getDocumentTop( contact ) ) ),
       documentRange: getDocumentRange(),
@@ -1011,6 +1056,18 @@ function App ()
         {/* Nav tapes are coloured with the gel of the Page they lead to. */}
         <nav className="header-meta" aria-label="Page navigation">
           <a
+            className="header-link tape tape-services"
+            href="#services"
+            onClick={ ( event ) =>
+            {
+              // Stop the browser jump so the pager can land on the stable Services target.
+              event.preventDefault()
+              goToPage( 'services' )
+            } }
+          >
+            Our services
+          </a>
+          <a
             className="header-link tape tape-projects"
             href="#projects"
             onClick={ ( event ) =>
@@ -1042,7 +1099,7 @@ function App ()
       </header>
 
       {/* Pinned stage: scroll range = timeline units × viewportsPerUnit screens, plus the sticky screen itself.
-          It holds the Intro break and Studio; in its last screen Studio scrolls up with Projects below it. */}
+          It holds the Intro break and Studio; in its last screen Services rises over the held Studio. */}
       <section
         className="story"
         ref={ storyRef }
@@ -1097,7 +1154,7 @@ function App ()
             </div>
           </div>
 
-          {/* Fills the stage in the look's hall colour behind Studio while it scrolls up for Projects. */}
+          {/* Fills the stage in the look's hall colour behind Studio while it shrinks back for Projects. */}
           <div className="stage-backdrop" aria-hidden="true" />
 
           {/* Studio: the lights come up on a pink-gel cyc. */}
@@ -1105,8 +1162,8 @@ function App ()
             <div className="cyc-wall" aria-hidden="true" />
             <LookScenery look={ activeLook } page="studio" />
             <div className="final-content">
-              <h2 id="studio-title" className="final-title cyc-title" aria-label="8 Ball Studio">
-                <CueLine className="final-title-line" text="8 Ball" />
+              <h2 id="studio-title" className="final-title cyc-title" aria-label="8ightBall Studio">
+                <CueLine className="final-title-line" text="8ightBall" />
                 <CueLine className="final-title-line" text="Studio" />
               </h2>
             </div>
@@ -1118,17 +1175,83 @@ function App ()
             <p className="final-meta tape">Greater Kuala Lumpur, Malaysia</p>
           </section>
 
+          {/* Dims the held Studio as Projects covers it. */}
+          <div className="stage-shade" aria-hidden="true" />
         </div>
       </section>
 
-      {/* Projects scrolls on directly below Studio, then pins while its boards run sideways across the screen.
-          Pulled up by the handoff screens; its height grows by the run (--run-distance, measured in JS). */}
+      {/* Services rises over the held Studio (pulled up by the handoff screens): one screen, the title
+          beside a numbered running order of what the studio does. Projects then rises over it. */}
+      <section
+        id="services"
+        className="services-screen cyc cyc-flow cyc-services"
+        ref={ servicesRef }
+        aria-labelledby="services-title"
+        style={ { '--handoff-screens': STAGE.pages.handoffScreens } }
+      >
+        <div className="services-inner">
+          <div className="cyc-wall" aria-hidden="true" />
+          <LookScenery look={ activeLook } page="services" />
+          <div className="services-content">
+            <h2 id="services-title" className="services-title cyc-title" aria-label="Our Services">
+              <CueLine className="services-title-line" text="Our" />
+              <CueLine className="services-title-line" text="Services" />
+            </h2>
+            <ol className="services-list">
+              { SERVICE_ITEMS.map( ( service ) => (
+                <li className="service-row" key={ service.name }>
+                  <span className="service-name">{ service.name }</span>
+                  <span className="service-detail">{ service.detail }</span>
+                </li>
+              ) ) }
+            </ol>
+            {/* Main's Services timeline (after nickho-motorsports.nl's history): Services pins while a
+                column of tiles scrolls up through the centre; the service on the centre tile shows its
+                name on the left and its detail on the right (flowMotion.js sets the step). Other looks
+                and reduced motion show the ruled list above instead (CSS). The steps stay in reading
+                order for screen readers; inactive ones are faded, never hidden. */}
+            <div className="services-timeline">
+              <ol className="timeline-steps">
+                { SERVICE_ITEMS.map( ( service, index ) => (
+                  <li className={ `timeline-step${index === 0 ? ' is-active' : ''}` } key={ service.name }>
+                    <h3 className="timeline-name">
+                      <span className="timeline-number">{ toStepNumber( index ) }</span>
+                      <span className="timeline-name-text">{ service.name }</span>
+                    </h3>
+                    <p className="timeline-detail">{ service.detail }</p>
+                  </li>
+                ) ) }
+              </ol>
+              <div className="timeline-window" aria-hidden="true">
+                <div className="timeline-track">
+                  { SERVICE_ITEMS.map( ( service, index ) => (
+                    <div className={ `timeline-tile${index === 0 ? ' is-active' : ''}` } key={ service.name }>
+                      <span className="timeline-tile-number">{ toStepNumber( index ) }</span>
+                      <span className="timeline-tile-icon"><ServiceIcon type={ service.icon } /></span>
+                      <span className="timeline-tile-name">{ service.name }</span>
+                    </div>
+                  ) ) }
+                </div>
+              </div>
+              <div className="timeline-progress" aria-hidden="true">
+                <span className="timeline-count">01</span>
+                <span className="timeline-bar"><span className="timeline-bar-fill" /></span>
+                <span className="timeline-total">{ toStepNumber( SERVICE_ITEMS.length - 1 ) }</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* Dims Services as Projects rises over it (flowMotion.js). */}
+        <div className="services-shade" aria-hidden="true" />
+      </section>
+
+      {/* Projects rises over Services, then pins while its boards run sideways across the screen.
+          Its height grows by the run (--run-distance, measured in JS). */}
       <section
         id="projects"
         className="projects-screen cyc cyc-flow cyc-projects"
         ref={ projectsRef }
         aria-labelledby="projects-title"
-        style={ { '--handoff-screens': STAGE.pages.handoffScreens } }
       >
         <div className="projects-sticky">
           <div className="cyc-wall" aria-hidden="true" />
@@ -1146,7 +1269,7 @@ function App ()
                   { PROJECT_ITEMS.map( ( project ) => (
                     <li className={ `project-card${project.type ? ` is-${project.type}` : ''}` } key={ project.alt }>
                       <div className="project-board">
-                        <img src={ project.src } alt={ project.alt } />
+                        <img src={ activeLook === 'acid' && project.whiteSrc ? project.whiteSrc : project.src } alt={ project.alt } />
                       </div>
                       <span className="tape">{ project.alt }</span>
                     </li>
@@ -1236,7 +1359,7 @@ function App ()
                 ) ) }
               </ul>
               <div className="call-sheet-foot">
-                <span>8 Ball Studio</span>
+                <span>8ightBall Studio</span>
                 <span>Greater Kuala Lumpur</span>
               </div>
             </div>

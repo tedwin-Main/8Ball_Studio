@@ -5,11 +5,11 @@ This context names the visitor-facing sequence and its visual alternatives so St
 ## Language
 
 **Story**:
-The linear visitor experience that moves through Intro, Studio, Projects, and Contact.
+The linear visitor experience that moves through Intro, Studio, Services, Projects, and Contact.
 _Avoid_: flow, tour
 
 **Page**:
-A named, stable chapter in the Story: Intro, Studio, Projects, or Contact.
+A named, stable chapter in the Story: Intro, Studio, Services, Projects, or Contact.
 _Avoid_: section, screen
 
 **Draft**:
@@ -21,7 +21,7 @@ A whole-site visual theme over the one shared markup and motion: Main (the defau
 _Avoid_: skin, theme (a look's per-Page palettes are its section themes)
 
 **Handoff**:
-The scroll-driven move from one Page to the next after the Intro: Studio scrolling up with Projects directly below it (one page, no fade), and Contact uncovered from beneath Projects.
+The scroll-driven move from one Page to the next after the Intro: Services rising over the held Studio, Projects rising over Services, and Contact uncovered from beneath Projects.
 _Avoid_: transition (reserved for Story navigation glides)
 
 **Run**:

@@ -53,9 +53,12 @@ function DownlightTable ( { page } )
 const SCENES = {
   acid: {
     studio: () => <AcidOrbits rings={ [ 'one', 'two' ] } />,
+    // The last Page is the Pool Table look's table under the lamp: Contact is laid on its cloth.
+    contact: () => <DownlightTable page="contact" />,
   },
   downlight: {
     studio: () => <DownlightTable page="studio" />,
+    services: () => <DownlightTable page="services" />,
     projects: () => <DownlightTable page="projects" />,
     contact: () => <DownlightTable page="contact" />,
   },
