@@ -141,14 +141,26 @@ const SERVICES = [ 'Social content management', 'Video & photography', 'Graphic 
 
 // The Services Page's running order (DOCS/TODOLIST.md): each service with one short line of what it
 // covers. Numbers come from the list's own counter in CSS, so reordering never needs renumbering.
-// icon names the line drawing on the service's timeline tile (ServiceIcon below).
+// Sample media for Main's Services timeline (src/assets/services, sources in SOURCES.json): per
+// service a short muted reel, its poster, and a still. Placeholders until the studio's own work.
+const SERVICE_MEDIA_FILES = import.meta.glob( './assets/services/*.{mp4,webp}', { eager: true, import: 'default' } )
+const serviceMedia = ( slug ) => [
+  {
+    type: 'video',
+    src: SERVICE_MEDIA_FILES[ `./assets/services/${slug}-reel.mp4` ],
+    poster: SERVICE_MEDIA_FILES[ `./assets/services/${slug}-reel-poster.webp` ],
+  },
+  { type: 'image', src: SERVICE_MEDIA_FILES[ `./assets/services/${slug}-still.webp` ] },
+]
+
+// media: the service's tiles in the timeline, a reel then a still.
 const SERVICE_ITEMS = [
-  { name: 'Video production', detail: 'Brand films, reels and short-form edits', icon: 'video' },
-  { name: 'Graphic design', detail: 'Brand assets, social posts and print', icon: 'design' },
-  { name: 'Performance marketing', detail: 'Paid campaigns, tracked and tuned', icon: 'chart' },
-  { name: 'Social media management', detail: 'Calendars, posting and community', icon: 'social' },
-  { name: 'Web design', detail: 'Websites and landing pages', icon: 'web' },
-  { name: 'AI generated content', detail: 'AI UGC, synthetic media, virtual production', icon: 'ai' },
+  { name: 'Video production', detail: 'Brand films, reels and short-form edits', media: serviceMedia( 'video' ) },
+  { name: 'Graphic design', detail: 'Brand assets, social posts and print', media: serviceMedia( 'design' ) },
+  { name: 'Performance marketing', detail: 'Paid campaigns, tracked and tuned', media: serviceMedia( 'marketing' ) },
+  { name: 'Social media management', detail: 'Calendars, posting and community', media: serviceMedia( 'social' ) },
+  { name: 'Web design', detail: 'Websites and landing pages', media: serviceMedia( 'web' ) },
+  { name: 'AI generated content', detail: 'AI UGC, synthetic media, virtual production', media: serviceMedia( 'ai' ) },
 ]
 
 // Two-digit running-order number for a zero-based index: 0 → "01".
@@ -254,22 +266,6 @@ function ContactIcon ( { type } )
       <circle cx="12" cy="10" r="2.2" />
     </svg>
   )
-}
-
-// Line drawings for the Services timeline tiles: drawn strokes, like every icon on the site.
-// Placeholders until the Media Showcase puts real work on these tiles.
-const SERVICE_ICON_PATHS = {
-  video: <><rect x="3" y="6" width="13" height="12" rx="2" /><path d="m16 10.5 5-3v9l-5-3" /></>,
-  design: <><path d="M14.5 4.5 19.5 9.5 9 20H4v-5Z" /><path d="m12.5 6.5 5 5" /></>,
-  chart: <><path d="M4 4v16h16" /><path d="m7 15 4-4 3 3 6-7" /><path d="M16 7h4v4" /></>,
-  social: <><path d="M5 5h14v10H10l-5 4Z" /><path d="M9 10h6" /></>,
-  web: <><rect x="3" y="4.5" width="18" height="15" rx="2" /><path d="M3 9h18" /><circle cx="6" cy="6.8" r="0.6" /><circle cx="8.4" cy="6.8" r="0.6" /></>,
-  ai: <><path d="M12 3.5c.6 3.9 2.6 5.9 6.5 6.5-3.9.6-5.9 2.6-6.5 6.5-.6-3.9-2.6-5.9-6.5-6.5 3.9-.6 5.9-2.6 6.5-6.5Z" /><path d="M18.5 15.5c.3 1.6 1 2.3 2.5 2.5-1.5.2-2.2.9-2.5 2.5-.3-1.6-1-2.3-2.5-2.5 1.5-.2 2.2-.9 2.5-2.5Z" /></>,
-}
-
-function ServiceIcon ( { type } )
-{
-  return <svg viewBox="0 0 24 24" aria-hidden="true">{ SERVICE_ICON_PATHS[ type ] }</svg>
 }
 
 function PoolTable ()
@@ -1223,14 +1219,22 @@ function App ()
                 ) ) }
               </ol>
               <div className="timeline-window" aria-hidden="true">
+                {/* Every service's media in order; data-step names the service a tile belongs to, so
+                    its name stays up until the column has run past all of that service's tiles.
+                    Reels load and play only while centred (flowMotion.js). */}
                 <div className="timeline-track">
-                  { SERVICE_ITEMS.map( ( service, index ) => (
-                    <div className={ `timeline-tile${index === 0 ? ' is-active' : ''}` } key={ service.name }>
+                  { SERVICE_ITEMS.flatMap( ( service, index ) => service.media.map( ( item, mediaIndex ) => (
+                    <figure
+                      className={ `timeline-tile${index === 0 && mediaIndex === 0 ? ' is-active' : ''}` }
+                      data-step={ index }
+                      key={ `${service.name}-${mediaIndex}` }
+                    >
+                      { item.type === 'video'
+                        ? <video className="timeline-media" src={ item.src } poster={ item.poster } muted loop playsInline preload="none" />
+                        : <img className="timeline-media" src={ item.src } alt="" loading="lazy" decoding="async" /> }
                       <span className="timeline-tile-number">{ toStepNumber( index ) }</span>
-                      <span className="timeline-tile-icon"><ServiceIcon type={ service.icon } /></span>
-                      <span className="timeline-tile-name">{ service.name }</span>
-                    </div>
-                  ) ) }
+                    </figure>
+                  ) ) ) }
                 </div>
               </div>
               <div className="timeline-progress" aria-hidden="true">

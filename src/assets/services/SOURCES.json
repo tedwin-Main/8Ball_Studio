@@ -1,0 +1,19 @@
+{
+  "note": "Sample media for the Services timeline (placeholders until the studio's own work). All from Mixkit under the Mixkit Stock Video Free License (free for commercial use, no attribution required; not for standalone redistribution). Clips: centre square crop, 640px, first 6 s, no audio, H.264 CRF 30-34. Stills: the source clip's 720p thumbnail, centre square crop, 640px WebP. Posters: the reel's frame at 1 s.",
+  "license": "https://mixkit.co/license/#videoFree",
+  "files": {
+    "video-reel.mp4": "https://mixkit.co/free-stock-video/using-a-clapperboard-to-start-filming-a-shot-46353/",
+    "video-still.webp": "https://mixkit.co/free-stock-video/film-crew-receiving-instructions-for-shooting-23666/",
+    "design-reel.mp4": "https://mixkit.co/free-stock-video/the-graphic-designer-picks-colors-for-the-typography-design-on-50598/",
+    "design-still.webp": "https://mixkit.co/free-stock-video/designer-using-a-graphics-tablet-24533/",
+    "marketing-reel.mp4": "https://mixkit.co/free-stock-video/youtuber-analyzing-the-graphics-of-one-of-his-videos-41277/",
+    "marketing-still.webp": "https://mixkit.co/free-stock-video/digital-marketing-team-leader-explains-strategy-on-whiteboard-9069/",
+    "social-reel.mp4": "https://mixkit.co/free-stock-video/hands-of-a-person-typing-on-a-cell-phone-4915/",
+    "social-still.webp": "https://mixkit.co/free-stock-video/promotion-for-social-networks-with-a-smiling-girl-42283/",
+    "web-reel.mp4": "https://mixkit.co/free-stock-video/creative-man-works-on-web-design-in-modern-office-13229/",
+    "web-still.webp": "https://mixkit.co/free-stock-video/web-design-team-look-at-prototype-in-modern-office-13232/",
+    "ai-reel.mp4": "https://mixkit.co/free-stock-video/going-through-a-space-tunnel-with-fractal-shapes-31562/",
+    "ai-still.webp": "https://mixkit.co/free-stock-video/traveling-to-the-dream-world-through-the-clouds-14165/"
+  },
+  "createdAt": "2026-10-01T20:05:00.000Z"
+}

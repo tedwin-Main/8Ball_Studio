@@ -1,6 +1,6 @@
 ---
 name: 8 Ball Studio
-description: Main. After the pool break, the Story runs ink, then felt, then paper, then the pool table under its lamp, and every Page moves with a heavy, cinematic scroll.
+description: Main. After the pool break, the Story runs ink, then black, then paper, then the pool table under its lamp, and every Page moves with a heavy, cinematic scroll.
 colors:
   ink: "#070908"
   paper: "#f2f1e9"
@@ -101,12 +101,12 @@ The site ships three **Looks** over one markup and one motion system. **Main** i
 
 **Creative North Star: "Main"** (formerly Acid Night; id `acid`)
 
-This is the studio's original single look (commit 91fcc52), restored, now set in the Cyc Wall's face. It pairs near-black ink with warm paper and uses one acid-green signal. Titles are Archivo condensed caps, set large; every smaller word is the same family, bold and in sentence case. After the pool break the Story changes palette as it goes. Studio is ink, lit by a faint acid glow. Services is felt green, the cloth the break was played on, with its running order as a pinned timeline. Projects is paper, and its ink client cards, every logo pure white, run past like a reel. Contact is the Pool Table look's table under its lamp, in the black hall: the Story ends where the break began. Each Page is a sheet in its own colour, and the palette changes at a sheet's edge as it slides over or lifts off the one below, like a cut in film.
+This is the studio's original single look (commit 91fcc52), restored, now set in the Cyc Wall's face. It pairs near-black ink with warm paper and uses one acid-green signal. Titles are Archivo condensed caps, set large; every smaller word is the same family, bold and in sentence case. After the pool break the Story changes palette as it goes. Studio is ink, lit by a faint acid glow. Services is black, like nickho-motorsports.nl's history timeline, its running order a pinned column of reels and stills. Projects is paper, and its ink client cards, every logo pure white, run past like a reel. Contact is the Pool Table look's table under its lamp, in the black hall: the Story ends where the break began. Each Page is a sheet in its own colour, and the palette changes at a sheet's edge as it slides over or lifts off the one below, like a cut in film.
 
 Density is low. Each Page holds one enormous title and one next move. Motion carries the brand: the studio sells video, so how the site moves is the demonstration.
 
 **Key Characteristics:**
-- Four grounds on one Story: ink → felt → paper → the lamp-lit table, each on its own sheet, changing at the sheet's edge.
+- Four grounds on one Story: ink → black → paper → the lamp-lit table, each on its own sheet, changing at the sheet's edge.
 - Archivo 900 caps at 62% width (line-height 0.8, the Cyc Wall's setting), with the second line indented 15vw and set in the signal colour.
 - One family for everything: Archivo 700 at 85% width in sentence case, 13–15px, for nav, services, captions, controls, and counts.
 - Thin orbit rings behind Studio, on the ink only; no other ornament.
@@ -117,7 +117,8 @@ Density is low. Each Page holds one enormous title and one next move. Motion car
 - **Ink** (`#070908`): Studio's ground, and the type on paper and acid. It is also the fill for control pills and the Instagram card.
 - **Paper** (`#f2f1e9`): Projects' ground. It is also the type on ink and on felt.
 - **Acid** (`#b7d95b`): the signal colour. It marks the second title line on ink and on the Contact cloth, the service numbers and timeline, and the Contact card. On ink it is decoration and emphasis; on paper it never carries text.
-- **Felt** (`#0b5b3b`): Services' ground. It is also the indented title line on paper and acid, where acid would vanish, and the nav accent there.
+- **Felt** (`#0b5b3b`): the indented title line on paper, where acid would vanish, the nav accent there, and the glyphs on Contact's ivory chips.
+- **Black** (`#000000`): Services' ground, with a paper hairline at its top edge so it reads as it rises over the ink Studio.
 - **Night** (`#07110d`): the page ground and preloader behind the Intro.
 - **Card** (Ink `#070908`): client cards on paper, each logo pure white on it.
 - **Hall** (`#030403`) and **Ivory** (`#f3eee2`): Contact's black hall around the Pool Table look's table, and the type on its cloth.
@@ -125,7 +126,7 @@ Density is low. Each Page holds one enormous title and one next move. Motion car
 ### Named Rules
 **The Signal Rule.** Acid is the one colour off the ink/paper axis. Felt stands in for it wherever acid would lose contrast (on paper and acid grounds).
 
-**The Sheet Rule.** A Page's ground never changes while it moves. Each sheet is its final colour from its first pixel: Services rises over Studio already felt, Projects rises over Services already paper, and Contact is uncovered already the black hall with its table. The palette changes only at a sheet's edge, so a Handoff never shows a mid-tone between two palettes. Depth comes from the layer below (Studio shrinks and dims) and from the soft shadow a sheet casts at its edge. Only the header ink and the browser chrome change colour, as each section reaches the header line.
+**The Sheet Rule.** A Page's ground never changes while it moves. Each sheet is its final colour from its first pixel: Services rises over Studio already black, Projects rises over Services already paper, and Contact is uncovered already the black hall with its table. The palette changes only at a sheet's edge, so a Handoff never shows a mid-tone between two palettes. Depth comes from the layer below (Studio shrinks and dims) and from the soft shadow a sheet casts at its edge. Only the header ink and the browser chrome change colour, as each section reaches the header line.
 
 **The Header Rule.** The header follows the section under it: paper ink over the stage, Services and Contact, ink over Projects. The browser chrome (`<meta name="theme-color">`) follows it too.
 
@@ -150,9 +151,9 @@ Density is low. Each Page holds one enormous title and one next move. Motion car
 The Story has a pinned stage (Intro, then Studio) followed by two choreographed sections. Content hangs off `--gutter` (clamp(20px, 5vw, 80px); 18px on phones).
 
 - **Studio:** the title is centred on a box min(90vw, 1320px) wide. A footer rule sits near the bottom: numbered services on the left, the location on the right.
-- **Services:** a timeline after nickho-motorsports.nl's history. The title sits top-left. Services pins while a column of square tiles (number, line icon, name) scrolls up through the middle of a 12-column grid; the tile at the centre is the active service, its number and name large at bottom-left, a counter with a filling bar and its detail at bottom-right. Phones stack it: title, tile column, counter, name, detail. Reduced motion shows the ruled list instead.
+- **Services:** a timeline after nickho-motorsports.nl's history. The title sits top-left. Services pins while a column of square media tiles (each service's reel, then its still, with its number) scrolls up through the middle of a 12-column grid; the service whose tile is at the centre is active, and it stays active until the column has run past all of its tiles. It shows its number and name large at bottom-left, a counter with a filling bar and its detail at bottom-right. Phones stack it: title, tile column, counter, name, detail. Reduced motion shows the ruled list instead.
 - **Projects:** the title sits top-left. A rail at the bottom carries the client cards (7:5) and two closing cards, which run sideways while the section is pinned.
-- **Contact:** the Pool Table look's table under its lamp, centred in the black hall (upright on phones). On the cloth: the title top-left, the lead line, the WhatsApp action as an ivory chip, Instagram and email ruled under it, and a foot line. The 8-ball lies in the table's top-right pocket.
+- **Contact:** the Pool Table look's table under its lamp, centred in the black hall. On upright phones it turns lengthways at the full screen width, and Contact grows taller than the screen to hold it. On the cloth: the title top-left, the lead line, the WhatsApp action as an ivory chip, Instagram and email ruled under it, and a foot line. The 8-ball lies in the table's top-right pocket.
 
 The compact breakpoint is `max-width: 768px` or `max-height: 540px`. Safe-area insets are respected on edge controls.
 
@@ -181,7 +182,7 @@ Visitors get no Draft or Look controls: they see Main with Draft 01. The owner p
 On touch screens every control is a target of at least 44 × 44 px.
 
 ### Cue-ball cursor
-This applies to mouse and trackpad only. A small lit ball replaces the pointer and trails it by 0.18 s. Over links it swells; over elements with `data-cursor` it shows the action as a pill ("Message", "Contact"...). On ink, felt and the Contact hall the ball is paper with an acid label; on paper it is ink. The system pointer returns over the controls.
+This applies to mouse and trackpad only. A small lit ball replaces the pointer and trails it by 0.18 s. Over links it swells; over elements with `data-cursor` it shows the action as a pill ("Message", "Contact"...). On ink, black and the Contact hall the ball is paper with an acid label; on paper it is ink. The system pointer returns over the controls.
 
 ### Preloader
 It covers the Intro only while the faces and the active Draft load, once per session. The 8-ball rolls in place while a count runs in acid. The count creeps toward 90 and reaches 100 only when everything is ready. The cover then lifts away like a sheet pulled up. On a reload in the same session there is no cover; the Intro simply shows once it is ready.
@@ -194,7 +195,7 @@ Every look shares this system. Values live in `src/storyTiming.js` (`scroll`, `p
 - **Opening shot** (once per page load, as the preloader lifts or the Intro first shows): the active Draft's table settles from a 1.06 push-in (power2.out, 2.4 s); "Roll with us." rises out of its line word by word (power4.out, 1 s, 0.08 s apart), clipped only below the line so its soft shadow is never cut; the services settle under it; the scroll prompt arrives last. It moves only child elements, so the scrubbed Intro timeline keeps `.hero-copy` and `.scroll-prompt`. Reduced motion shows the Intro at rest. Code: `src/motion/introEntrance.js`.
 - **Intro → Studio** (pinned, scrub 1.2 s): one scroll plays the whole break by itself, a 3 s glide that starts slowly so the 8-ball rolls in heavy; scrolling up from Studio plays it back. The Studio cue then takes one screen of that glide, so its title lands at the pace of the Projects and Contact titles. Each look has its own reveal. In Main the opening composition fades into Studio while the title letters rise out of their line masks, left to right.
 - **Studio → Services handoff** (scrub 0.6 s): Services rises over the held Studio, which shrinks to 0.965, lifts 2%, and dims (except Pool Table, which keeps one still table). The Services title rises in with the look's letter entrance and the six rows settle up one after another.
-- **Services timeline:** Services pins for 0.65 screens per service while its tile column scrolls up (scrubbed, linear). The tile at the centre comes forward, the others sit back at 84% and dim; the name and detail swap with a short rise, and the counter's bar fills. Code: `createServicesTimeline` in `src/motion/flowMotion.js`.
+- **Services timeline:** Services pins for 0.55 screens per tile while its column scrolls up (scrubbed, linear); each tile's media drifts 8% inside its frame. The tile at the centre comes forward and its reel plays (muted, looped; the next two preload; all pause off screen); the others sit back at 84% and dim. The name and detail swap only when the next service's first tile arrives, with a short rise, and the counter's bar fills. Sample media: `src/assets/services` (Mixkit, see `SOURCES.json`). Code: `createServicesTimeline` in `src/motion/flowMotion.js`.
 - **Services → Projects handoff:** Projects rises over Services, which shrinks, lifts, and dims the same way.
 - **The run:** Projects pins while its cards slide sideways, and each card lifts as it crosses the centre. The title drifts against the cards for depth.
 - **Projects → Contact reveal:** Projects scrolls away and Contact is uncovered from beneath it. Contact is the hall and its table from its first pixel. Its content settles from 25% up while the shadow under Projects' edge lifts.

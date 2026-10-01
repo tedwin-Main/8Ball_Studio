@@ -11,13 +11,17 @@ const HEADER_LINE_PX = 64
 // contactShade is the strength of the shadow Projects casts at its bottom edge onto Contact.
 const FLOW_AT_DEPTH_1 = { riseVh: 8, shrink: 0.035, liftPercent: 2, dim: 0.35, contactOffsetPercent: 25, contactShade: 0.4 }
 
-// Scroll per step of the Services timeline, in screens: each service holds the centre for this long.
-const TIMELINE_STEP_SCREENS = 0.65
+// Scroll per tile of the Services timeline, in screens: each reel or still holds the centre this long.
+const TIMELINE_TILE_SCREENS = 0.55
+// How far each tile's media drifts inside its frame (yPercent), the parallax of the column.
+const TIMELINE_PARALLAX_PERCENT = 8
 
 /**
- * Main's Services timeline (App.jsx, acid.css): Services pins while its column of tiles scrolls up
- * through the centre, one tile per service. The tile at the centre is the active step: its name and
- * detail show beside the column, and the counter and bar follow. Services' height grows by the
+ * Main's Services timeline (App.jsx, acid.css), after nickho-motorsports.nl's history: Services pins
+ * while its column of media tiles (each service's reel, then its still) scrolls up through the centre.
+ * The tile at the centre is active: it comes forward, and its reel plays. Each tile names its service
+ * (data-step), so a service's name, detail and count stay up until the column has run past every one
+ * of its tiles, and only then does the next service take over. Services' height grows by the
  * timeline's scroll (--timeline-distance), the way Projects grows by its run. Returns a cleanup.
  */
 function createServicesTimeline ( { services, timeline, scrub } )
@@ -31,10 +35,15 @@ function createServicesTimeline ( { services, timeline, scrub } )
   if ( !track || !windowEl || tiles.length < 2 ) return () => {}
 
   const last = tiles.length - 1
+  const stepOf = tiles.map( ( tile ) => Number( tile.dataset.step ) || 0 )
+  const videos = tiles.map( ( tile ) => tile.querySelector( 'video' ) )
+  // Each tile's media drifts against the column's move (quickSetter: no tween per frame).
+  const setDrift = tiles.map( ( tile ) => gsap.quickSetter( tile.querySelector( '.timeline-media' ), 'yPercent' ) )
+
   let distance = 0
   const measure = () =>
   {
-    distance = Math.round( last * TIMELINE_STEP_SCREENS * window.innerHeight )
+    distance = Math.round( last * TIMELINE_TILE_SCREENS * window.innerHeight )
     services.style.setProperty( '--timeline-distance', `${distance}px` )
   }
   measure()
@@ -44,35 +53,90 @@ function createServicesTimeline ( { services, timeline, scrub } )
   const centreOn = ( index ) => () =>
     windowEl.clientHeight / 2 - ( tiles[ index ].offsetTop + tiles[ index ].offsetHeight / 2 )
 
-  // Only touch the DOM when the step changes, not on every scrubbed frame.
-  let current = 0
-  const setStep = ( next ) =>
+  // Only the centred reel plays, and only while Services is on screen; the next two start loading
+  // so they are ready when they arrive.
+  let onScreen = false
+  const playOnly = ( index ) =>
   {
-    if ( next === current ) return
-    tiles[ current ]?.classList.remove( 'is-active' )
-    steps[ current ]?.classList.remove( 'is-active' )
-    current = next
-    tiles[ current ]?.classList.add( 'is-active' )
-    steps[ current ]?.classList.add( 'is-active' )
-    if ( count ) count.textContent = String( current + 1 ).padStart( 2, '0' )
+    if ( !onScreen ) return
+    videos.forEach( ( video, videoIndex ) =>
+    {
+      if ( !video ) return
+      if ( videoIndex === index )
+      {
+        video.play()?.catch( () => {} )
+        return
+      }
+      if ( !video.paused ) video.pause()
+      if ( videoIndex > index && videoIndex <= index + 2 ) video.preload = 'auto'
+    } )
   }
 
-  // Tiles are evenly spaced, so a linear move keeps every step the same length of scroll.
-  // The scrubbed progress (not raw scroll) picks the step, so text swaps in time with the tiles.
+  // Only touch the DOM when the centred tile changes, not on every scrubbed frame.
+  let currentTile = -1
+  let currentStep = -1
+  const setTile = ( next ) =>
+  {
+    if ( next === currentTile ) return
+    tiles[ currentTile ]?.classList.remove( 'is-active' )
+    currentTile = next
+    tiles[ currentTile ].classList.add( 'is-active' )
+    playOnly( currentTile )
+    const step = stepOf[ currentTile ]
+    if ( step === currentStep ) return
+    steps[ currentStep ]?.classList.remove( 'is-active' )
+    currentStep = step
+    steps[ currentStep ]?.classList.add( 'is-active' )
+    if ( count ) count.textContent = String( currentStep + 1 ).padStart( 2, '0' )
+  }
+  // The markup starts with the first tile and step active.
+  tiles.forEach( ( tile, index ) => tile.classList.toggle( 'is-active', index === 0 ) )
+  steps.forEach( ( step, index ) => step.classList.toggle( 'is-active', index === 0 ) )
+  currentTile = 0
+  currentStep = 0
+
+  // Tiles are evenly spaced, so a linear move keeps every tile the same length of scroll.
+  // The scrubbed progress (not raw scroll) picks the tile, so text swaps in time with the column.
   const trigger = { trigger: services, start: 'top top', end: () => `+=${Math.max( 1, distance )}`, scrub, invalidateOnRefresh: true }
-  gsap.fromTo( track, { y: centreOn( 0 ) }, {
+  const syncTimeline = ( progress ) =>
+  {
+    const position = progress * last
+    setTile( Math.round( position ) )
+    setDrift.forEach( ( set, index ) => set( gsap.utils.clamp( -1, 1, index - position ) * TIMELINE_PARALLAX_PERCENT ) )
+  }
+  const column = gsap.fromTo( track, { y: centreOn( 0 ) }, {
     y: centreOn( last ),
     ease: 'none',
-    scrollTrigger: trigger,
-    onUpdate () { setStep( Math.round( this.progress() * last ) ) },
+    // A refresh can land the column anywhere (a restored scroll spot, a resize): re-read it then too.
+    scrollTrigger: { ...trigger, onRefresh: ( self ) => syncTimeline( self.animation?.progress() ?? self.progress ) },
+    onUpdate () { syncTimeline( this.progress() ) },
   } )
+  // The bar fills with the column, from one tile's share to full at the last tile.
   if ( fill ) gsap.fromTo( fill, { scaleX: 1 / tiles.length }, { scaleX: 1, ease: 'none', scrollTrigger: { ...trigger } } )
+  syncTimeline( column.progress() )
+
+  // Reels stop when Services is off screen.
+  const visibility = ScrollTrigger.create( {
+    trigger: services,
+    start: 'top bottom',
+    end: 'bottom top',
+    onToggle: ( self ) =>
+    {
+      onScreen = self.isActive
+      if ( onScreen ) playOnly( currentTile )
+      else videos.forEach( ( video ) => video?.pause() )
+    },
+  } )
 
   return () =>
   {
     ScrollTrigger.removeEventListener( 'refreshInit', measure )
     services.style.removeProperty( '--timeline-distance' )
-    setStep( 0 )
+    visibility.kill()
+    videos.forEach( ( video ) => video?.pause() )
+    tiles.forEach( ( tile, index ) => tile.classList.toggle( 'is-active', index === 0 ) )
+    steps.forEach( ( step, index ) => step.classList.toggle( 'is-active', index === 0 ) )
+    if ( count ) count.textContent = '01'
   }
 }
 

@@ -4,7 +4,7 @@
    Archivo 900 caps at 62% width (line-height 0.8), their second line indented and lit acid;
    every smaller word is Archivo 700 at 85% width, in sentence case. Thin orbit rings hang
    behind Studio.
-   It is the one look whose palette changes along the Story: Studio is ink, Services is felt green,
+   It is the one look whose palette changes along the Story: Studio is ink, Services is black,
    Projects is paper, and Contact is the Pool Table look's table under its lamp, in the black hall.
    Each Page is a sheet in its own colour from its first pixel, so a Handoff
    cuts cleanly at the sheet's edge and never shows a mid-tone (the Sheet Rule in DESIGN.md).
@@ -255,9 +255,10 @@
   padding-top: 18px;
 }
 
-/* ---------- Services: felt green, the running order ruled across it ---------- */
-/* Felt from its first pixel, the pool cloth the break was played on: it rises over the ink Studio
-   with a clean edge. Type is paper and the numbers take the acid signal, as on Studio. */
+/* ---------- Services: black, its running order as a timeline ---------- */
+/* Black from its first pixel, like nickho-motorsports.nl's history timeline. Black on Studio's ink
+   would hide the sheet's edge as it rises, so a paper hairline marks the edge. Type is paper and the
+   numbers take the acid signal (the yellow of the reference). */
 .experience[data-look='acid'] .services-screen {
   --gaffer: var(--an-paper);
   --gaffer-soft: rgb(242 241 233 / 0.7);
@@ -265,12 +266,9 @@
   color: var(--an-paper);
 }
 
-/* The lamp over the table: a soft pool of light high on the cloth, falling off to the edges. */
 .experience[data-look='acid'] .services-screen .cyc-wall {
-  background:
-    radial-gradient(ellipse 60% 55% at 62% 18%, rgb(255 250 230 / 0.1), transparent 70%),
-    radial-gradient(ellipse 90% 80% at 50% 45%, transparent 55%, rgb(7 9 8 / 0.4) 120%),
-    var(--an-felt);
+  background: #000;
+  box-shadow: inset 0 1px rgb(242 241 233 / 0.14);
 }
 
 .experience[data-look='acid'] .services-list {
@@ -462,70 +460,54 @@
   will-change: transform;
 }
 
-/* A tile per service: its number, a line drawing, and its name, on ink laid over the felt. Tiles
-   off the centre sit back and dim; the active one comes forward. (Placeholders for the Media
-   Showcase's real work.) */
+/* A tile per piece of work: the service's reel, then its still, square and full-bleed (the
+   reference's 1:1 photos). The media sits taller than its frame and drifts inside it as the column
+   moves (flowMotion.js). Tiles off the centre sit back and dim; the active one comes forward.
+   (Sample media until the studio's own work: src/assets/services/SOURCES.json.) */
 .experience[data-look='acid'] .timeline-tile {
   position: relative;
-  display: grid;
   width: min(100%, 46svh);
+  margin: 0;
   aspect-ratio: 1;
   flex: none;
-  place-items: center;
-  border: 1px solid rgb(242 241 233 / 0.12);
+  overflow: hidden;
   border-radius: 4px;
-  background: rgb(7 9 8 / 0.34);
-  color: var(--an-paper);
-  opacity: 0.4;
+  background: #111;
+  opacity: 0.35;
   scale: 0.84;
   transition:
     opacity 500ms ease,
-    scale 700ms var(--ease-out),
-    border-color 500ms ease,
-    background 500ms ease;
+    scale 700ms var(--ease-out);
 }
 
 .experience[data-look='acid'] .timeline-tile.is-active {
-  border-color: rgb(183 217 91 / 0.5);
-  background: rgb(7 9 8 / 0.62);
   opacity: 1;
   scale: 1;
 }
 
-.experience[data-look='acid'] .timeline-tile-icon {
-  width: 34%;
-  color: var(--an-acid);
-}
-
-.experience[data-look='acid'] .timeline-tile-icon svg {
+.experience[data-look='acid'] .timeline-media {
+  position: absolute;
+  top: -10%;
+  left: 0;
   display: block;
   width: 100%;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.2;
+  height: 120%;
+  object-fit: cover;
+  will-change: transform;
 }
 
-.experience[data-look='acid'] :is(.timeline-tile-number, .timeline-tile-name) {
+/* The service's number on its media, on a soft shade so it reads over any frame. */
+.experience[data-look='acid'] .timeline-tile-number {
   position: absolute;
-  left: 8%;
+  inset: 0 0 auto;
+  padding: 7% 8% 14%;
+  background: linear-gradient(rgb(0 0 0 / 0.45), transparent);
+  color: var(--an-acid);
   font-family: var(--ui-font);
   font-size: var(--ui-size-sm);
   font-stretch: var(--ui-stretch);
   font-weight: var(--ui-weight);
   letter-spacing: var(--ui-tracking);
-}
-
-.experience[data-look='acid'] .timeline-tile-number {
-  top: 7%;
-  color: var(--an-acid);
-}
-
-.experience[data-look='acid'] .timeline-tile-name {
-  right: 8%;
-  bottom: 7%;
-  color: rgb(242 241 233 / 0.78);
 }
 
 /* ---------- Projects: paper, and the boards run past like the original's card reel ---------- */
@@ -1099,5 +1081,27 @@
 
   .experience[data-look='acid'] .services-timeline {
     display: none;
+  }
+}
+
+/* ---------- Contact on upright phones ---------- */
+/* Fitting the upright table into one screen's height made it too narrow for the channels (on iOS
+   Safari, with its bars, they ran off the cloth). Here the table takes the full width instead, at
+   its true proportions, and Contact grows taller than the screen to hold it: the visitor scrolls
+   down the table. The plate geometry (downlight.css) is re-anchored to the top of the section. */
+@media (orientation: portrait) and (max-width: 768px) {
+  .experience[data-look='acid'] .contact-screen.cyc {
+    --plate-w: calc(100vw - 2 * var(--hall-side));
+    --tbl-top: var(--hall-top);
+    --tbl-bottom: var(--hall-bottom);
+  }
+
+  .experience[data-look='acid'] .contact-screen.cyc-flow {
+    height: max(100svh, calc(var(--hall-top) + var(--plate-h) + var(--hall-bottom)));
+  }
+
+  /* The title never runs wider than the cloth. */
+  .experience[data-look='acid'] .contact-title {
+    font-size: min(clamp(48px, 15vw, 96px), calc(var(--plate-w) * 0.17));
   }
 }
