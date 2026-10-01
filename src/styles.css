@@ -2342,3 +2342,39 @@ button.tape:focus-visible {
     overflow: hidden;
   }
 }
+
+/* ---------- Scroll-driven runs (touch screens, flowMotion.js adds .is-scroll-driven) ---------- */
+/* The sideways runs are moved by the browser from the section's own scroll timeline instead of by
+   script: they run on the compositor, in step with native touch scrolling, so they never trail a
+   frame behind it. The "contain" range is exactly the pin: from the section's top reaching the top of
+   the screen to its bottom reaching the bottom. --run is the track's travel in px (flowMotion.js). */
+@keyframes scroll-run {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(calc(-1 * var(--run, 0px)), 0, 0);
+  }
+}
+
+@keyframes scroll-fill {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.projects-screen.is-scroll-driven {
+  --run: var(--run-distance, 0px);
+  view-timeline: --section-run block;
+}
+
+.projects-screen.is-scroll-driven .projects-track {
+  animation: scroll-run linear both;
+  animation-range: contain 0% contain 100%;
+  animation-timeline: --section-run;
+}

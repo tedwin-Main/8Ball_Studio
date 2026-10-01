@@ -421,6 +421,25 @@
   will-change: transform;
 }
 
+/* Touch screens: the carousel and its bar run from the panel's own scroll timeline (styles.css,
+   scroll-run), on the compositor, so they keep pace with the finger. */
+.experience[data-look='acid'] .service-panel.is-scroll-driven {
+  --run: var(--panel-distance, 0px);
+  view-timeline: --section-run block;
+}
+
+.experience[data-look='acid'] .service-panel.is-scroll-driven .service-panel-track {
+  animation: scroll-run linear both;
+  animation-range: contain 0% contain 100%;
+  animation-timeline: --section-run;
+}
+
+.experience[data-look='acid'] .service-panel.is-scroll-driven .service-panel-bar-fill {
+  animation: scroll-fill linear both;
+  animation-range: contain 0% contain 100%;
+  animation-timeline: --section-run;
+}
+
 /* Portrait 4:5 tiles, full-bleed media. (Sample media until the studio's own work:
    src/assets/services/SOURCES.json.) */
 .experience[data-look='acid'] .service-tile {
@@ -584,10 +603,40 @@
   --hall-bottom: clamp(28px, 6vh, 64px);
 }
 
+/* The hall: black, with the lamp's warm spill on the floor around the table and a film grain over
+   it, so it reads as a dark room rather than a flat fill. */
 .experience[data-look='acid'] .contact-screen .cyc-wall {
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background:
-    radial-gradient(ellipse 70% 80% at 50% 55%, rgb(255 244 220 / 0.05), transparent 70%),
+    radial-gradient(ellipse 62% 70% at 50% 52%, rgb(255 232 196 / 0.09), transparent 72%),
+    radial-gradient(ellipse 120% 100% at 50% 50%, transparent 55%, rgb(0 0 0 / 0.6)),
     #030403;
+}
+
+.experience[data-look='acid'] .contact-screen .cyc-wall::after {
+  position: absolute;
+  inset: 0;
+  background: var(--grain) 0 0 / 180px 180px;
+  content: '';
+  mix-blend-mode: overlay;
+  opacity: 0.16;
+  pointer-events: none;
+}
+
+/* ---------- The table's finish (Main's Contact only; the render itself is downlight.css) ---------- */
+/* A touch more depth in the render: deeper cloth and richer walnut. Static, so it is drawn once. */
+.experience[data-look='acid'] .contact-screen .dl-table {
+  filter: saturate(1.08) contrast(1.06);
+}
+
+/* Fine worsted grain on the cloth, finer than the baked nap, so it holds up on high-density phones. */
+.experience[data-look='acid'] .contact-screen .dl-cloth::before {
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E") 0 0 / 120px 120px;
+  content: '';
+  mix-blend-mode: overlay;
+  opacity: 0.32;
 }
 
 .experience[data-look='acid'] .contact-content {
@@ -661,14 +710,6 @@
 .experience[data-look='acid'] .contact-pocket-ball {
   inset: 26%;
   width: 48%;
-}
-
-@media (orientation: portrait) {
-  .experience[data-look='acid'] .contact-pocket {
-    top: calc(var(--plate-h) * 0.0684 - var(--rail));
-    left: calc(var(--plate-w) * 0.8887 - var(--rail-x));
-    width: calc(var(--plate-w) * 0.1036);
-  }
 }
 
 .experience[data-look='acid'] .contact-list li + li {
@@ -951,14 +992,16 @@
   }
 }
 
-/* ---------- Contact on upright phones ---------- */
-/* Fitting the upright table into one screen's height made it too narrow for the channels (on iOS
-   Safari, with its bars, they ran off the cloth). Here the table takes the full width instead, at
-   its true proportions, and Contact grows taller than the screen to hold it: the visitor scrolls
-   down the table. The plate geometry (downlight.css) is re-anchored to the top of the section. */
-@media (orientation: portrait) and (max-width: 768px) {
+/* ---------- Contact on upright screens: the same horizontal table, closer ---------- */
+/* The table stays horizontal on every screen. An upright screen is too narrow to show all of it at a
+   size the channels fit on, so the camera moves in: the plate is sized by its height (enough cloth
+   for the channels), centred, and its two ends run off the sides of the screen. What shows is the
+   middle of the table: the long rails above and below, with their middle pockets. Contact grows
+   taller than the screen when the table needs it. The 8-ball drops into the top middle pocket. */
+@media (orientation: portrait) {
   .experience[data-look='acid'] .contact-screen.cyc {
-    --plate-w: calc(100vw - 2 * var(--hall-side));
+    --plate-h: clamp(660px, calc(100svh - var(--hall-top) - var(--hall-bottom)), 860px);
+    --plate-w: calc(var(--plate-h) * var(--plate-ratio));
     --tbl-top: var(--hall-top);
     --tbl-bottom: var(--hall-bottom);
   }
@@ -967,8 +1010,20 @@
     height: max(100svh, calc(var(--hall-top) + var(--plate-h) + var(--hall-bottom)));
   }
 
-  /* The title never runs wider than the cloth. */
+  /* The cloth spans the screen here, so the type keeps to the page gutter, not the cushions. */
+  .experience[data-look='acid'] .contact-content {
+    right: var(--gutter);
+    left: var(--gutter);
+    padding-inline: 0;
+  }
+
   .experience[data-look='acid'] .contact-title {
-    font-size: min(clamp(48px, 15vw, 96px), calc(var(--plate-w) * 0.17));
+    font-size: clamp(48px, 15vw, 96px);
+  }
+
+  .experience[data-look='acid'] .contact-pocket {
+    top: calc(var(--plate-h) * 0.0951 - var(--rail));
+    left: 50%;
+    width: calc(var(--plate-w) * 0.052);
   }
 }

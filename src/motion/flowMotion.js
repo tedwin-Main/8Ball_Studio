@@ -11,6 +11,11 @@ const HEADER_LINE_PX = 64
 // contactShade is the strength of the shadow Projects casts at its bottom edge onto Contact.
 const FLOW_AT_DEPTH_1 = { riseVh: 8, shrink: 0.035, liftPercent: 2, dim: 0.35, contactOffsetPercent: 25, contactShade: 0.4 }
 
+// Whether the browser can drive an animation from scroll position itself (CSS scroll-driven
+// animations: Chrome 115+, Safari 26+). Those run on the compositor, in step with native scrolling.
+const supportsScrollDriven = () =>
+  typeof CSS !== 'undefined' && CSS.supports?.( 'animation-timeline: view()' ) === true
+
 // Scroll per pixel of a Services carousel's sideways run (1 = the carousel moves with the scroll).
 const SERVICE_RUN_RATE = 1
 
@@ -21,7 +26,7 @@ const SERVICE_RUN_RATE = 1
  * before the next begins. Each panel grows by its run (--panel-distance), the way Projects grows by
  * its run. Reels play only while their panel is on screen. Returns a cleanup.
  */
-function createServicePanels ( { panels, scrub } )
+function createServicePanels ( { panels, scrub, scrollDriven } )
 {
   const cleanups = []
   panels.forEach( ( panel ) =>
@@ -41,15 +46,25 @@ function createServicePanels ( { panels, scrub } )
     measure()
     ScrollTrigger.addEventListener( 'refreshInit', measure )
 
-    const trigger = { trigger: panel, start: 'top top', end: () => `+=${Math.max( 1, distance * SERVICE_RUN_RATE )}`, scrub, invalidateOnRefresh: true }
-    gsap.to( track, { x: () => -distance, ease: 'none', scrollTrigger: trigger } )
-    if ( fill ) gsap.fromTo( fill, { scaleX: 0 }, { scaleX: 1, ease: 'none', scrollTrigger: { ...trigger } } )
+    if ( scrollDriven )
+    {
+      // Touch screens: CSS moves the track and the bar from the panel's own scroll timeline
+      // (acid.css, .is-scroll-driven), on the compositor, so they never trail the finger.
+      panel.classList.add( 'is-scroll-driven' )
+    }
+    else
+    {
+      const trigger = { trigger: panel, start: 'top top', end: () => `+=${Math.max( 1, distance * SERVICE_RUN_RATE )}`, scrub, invalidateOnRefresh: true }
+      gsap.to( track, { x: () => -distance, ease: 'none', scrollTrigger: trigger } )
+      if ( fill ) gsap.fromTo( fill, { scaleX: 0 }, { scaleX: 1, ease: 'none', scrollTrigger: { ...trigger } } )
+    }
 
-    // The panel's reels play while any of it is on screen, and load only then.
+    // The panel's reels play only while it holds the middle of the screen (one panel at a time),
+    // and load only then: several reels decoding at once made phones drop frames.
     const playback = ScrollTrigger.create( {
       trigger: panel,
-      start: 'top bottom',
-      end: 'bottom top',
+      start: 'top center',
+      end: 'bottom center',
       onToggle: ( self ) => videos.forEach( ( video ) =>
       {
         if ( self.isActive ) video.play()?.catch( () => {} )
@@ -61,6 +76,7 @@ function createServicePanels ( { panels, scrub } )
     {
       ScrollTrigger.removeEventListener( 'refreshInit', measure )
       panel.style.removeProperty( '--panel-distance' )
+      panel.classList.remove( 'is-scroll-driven' )
       playback.kill()
       videos.forEach( ( video ) => video.pause() )
     } )
@@ -142,6 +158,8 @@ export function createFlowMotion ( { root, motion, charRest, compact, touch = fa
   // they lock to the scroll position (true): native momentum is already smooth, and a catch-up lag
   // on top of the finger read as the run lagging behind it on phones.
   const pinnedScrub = touch ? true : scrub
+  // On touch screens that support it, the sideways runs are CSS scroll-driven animations instead.
+  const scrollDriven = touch && supportsScrollDriven()
   const d = Math.max( 0, depth )
   const flow = {
     riseVh: FLOW_AT_DEPTH_1.riseVh * d,
@@ -276,16 +294,28 @@ export function createFlowMotion ( { root, motion, charRest, compact, touch = fa
     scrub: pinnedScrub,
     invalidateOnRefresh: true,
   } )
-  const run = gsap.to( track, { x: () => -runDistance, ease: 'none', scrollTrigger: runTrigger() } )
-  // Depth: the title drifts against the boards, and the wall (or table) pushes in slightly.
-  gsap.to( projectsContent, { x: () => -window.innerWidth * 0.04 * reach, ease: 'none', scrollTrigger: runTrigger() } )
-  // (Not with one table: a pushed-in table would no longer match the next Page's.)
-  if ( projectsDepth.length && !sameTable ) gsap.fromTo( projectsDepth, { scale: 1 }, { scale: 1.04, ease: 'none', scrollTrigger: runTrigger() } )
+  // Touch screens with scroll-driven animations: CSS slides the track from Projects' own scroll
+  // timeline (styles.css, .is-scroll-driven) on the compositor, in step with native scrolling; the
+  // title drift and the wall push are left out there. Elsewhere GSAP scrubs the run.
+  const runScrollDriven = scrollDriven && !sameTable
+  if ( runScrollDriven )
+  {
+    projects.classList.add( 'is-scroll-driven' )
+    cleanups.push( () => projects.classList.remove( 'is-scroll-driven' ) )
+  }
+  const run = runScrollDriven ? null : gsap.to( track, { x: () => -runDistance, ease: 'none', scrollTrigger: runTrigger() } )
+  if ( !runScrollDriven )
+  {
+    // Depth: the title drifts against the boards, and the wall (or table) pushes in slightly.
+    gsap.to( projectsContent, { x: () => -window.innerWidth * 0.04 * reach, ease: 'none', scrollTrigger: runTrigger() } )
+    // (Not with one table: a pushed-in table would no longer match the next Page's.)
+    if ( projectsDepth.length && !sameTable ) gsap.fromTo( projectsDepth, { scale: 1 }, { scale: 1.04, ease: 'none', scrollTrigger: runTrigger() } )
+  }
 
   // Each board lifts as it crosses the centre; every look turns --lift into its own gesture.
   // Not on touch screens: a custom property written on every card each frame re-styled the whole
   // track while the finger moved. There the boards rest unlifted (Main shows its logos at full strength).
-  if ( !touch ) gsap.utils.toArray( '.project-card', track ).forEach( ( card ) =>
+  if ( !touch && run ) gsap.utils.toArray( '.project-card', track ).forEach( ( card ) =>
   {
     const setLift = ( self ) => card.style.setProperty( '--lift', liftAt( self.progress ).toFixed( 3 ) )
     ScrollTrigger.create( {
@@ -303,7 +333,7 @@ export function createFlowMotion ( { root, motion, charRest, compact, touch = fa
   const followFocus = ( event ) =>
   {
     const card = event.target.closest?.( '.project-card' )
-    const start = run.scrollTrigger?.start
+    const start = run?.scrollTrigger?.start ?? ( projects.getBoundingClientRect().top + window.scrollY )
     if ( !card || !Number.isFinite( start ) || !( runDistance > 0 ) ) return
     scrollToY?.( getRunScrollTarget( {
       sectionTop: start,
@@ -382,7 +412,7 @@ export function createFlowMotion ( { root, motion, charRest, compact, touch = fa
   }
 
   // Main shows each service as a pinned panel with its own carousel instead of the list (hidden by CSS elsewhere).
-  if ( servicePanels.length ) cleanups.push( createServicePanels( { panels: servicePanels, scrub: pinnedScrub } ) )
+  if ( servicePanels.length ) cleanups.push( createServicePanels( { panels: servicePanels, scrub: pinnedScrub, scrollDriven } ) )
   revealTitle( contact, '.contact-title .cue-char', 'top 75%', 'top 10%' )
 
   const rows = contact.querySelectorAll( '.contact-lead, .contact-primary, .contact-list li, .call-sheet-foot' )

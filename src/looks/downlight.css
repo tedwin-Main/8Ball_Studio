@@ -63,9 +63,9 @@
 }
 
 /* Upright screens get the table turned lengthways (1280 × 2386). */
+/* (Pool Table only: Main's Contact keeps its table horizontal on every screen, see acid.css.) */
 @media (orientation: portrait) {
-  .experience[data-look='downlight'] .cyc,
-  .experience[data-look='acid'] .contact-screen {
+  .experience[data-look='downlight'] .cyc {
     --plate-ratio: 0.5365;
     --rail-x: calc(var(--plate-w) * 0.1132);
     --rail: calc(var(--plate-h) * 0.0682);
@@ -94,7 +94,7 @@
 }
 
 @media (orientation: portrait) {
-  .experience:is([data-look='downlight'], [data-look='acid']) .dl-table {
+  .experience[data-look='downlight'] .dl-table {
     background-image: url('../assets/looks/downlight/table-portrait.webp');
   }
 }
@@ -154,7 +154,7 @@
 }
 
 @media (orientation: portrait) {
-  .experience:is([data-look='downlight'], [data-look='acid']) .dl-table::before {
+  .experience[data-look='downlight'] .dl-table::before {
     background:
       radial-gradient(5.18% 2.78% at 11.13% 6.84%, var(--pocket-wall)),
       radial-gradient(5.18% 2.78% at 88.87% 6.84%, var(--pocket-wall)),
@@ -164,7 +164,7 @@
       radial-gradient(4.85% 2.6% at 90.49% 50%, var(--pocket-wall));
   }
 
-  .experience:is([data-look='downlight'], [data-look='acid']) .dl-table::after {
+  .experience[data-look='downlight'] .dl-table::after {
     background:
       linear-gradient(180deg, rgb(0 0 0 / 0.34), transparent 6%, transparent 94%, rgb(0 0 0 / 0.34)),
       radial-gradient(ellipse 72% 64% at 50% 50%, transparent 38%, rgb(0 0 0 / 0.36) 100%),

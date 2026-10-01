@@ -153,7 +153,7 @@ The Story has a pinned stage (Intro, then Studio) followed by two choreographed 
 - **Studio:** the title is centred on a box min(90vw, 1320px) wide. A footer rule sits near the bottom: numbered services on the left, the location on the right.
 - **Services:** the title sits top-left. Under it, one panel per service, each a screen tall plus its carousel's run: on the left the number (01 / 06), the name in title caps, its detail and a bar showing how far its carousel has run; on the right, to the screen's edge, a carousel of four 4:5 tiles (two reels, two stills). Phones stack each panel: text above, carousel below. Reduced motion shows the ruled list instead.
 - **Projects:** the title sits top-left. A rail at the bottom carries the client cards (7:5) and two closing cards, which run sideways while the section is pinned.
-- **Contact:** the Pool Table look's table under its lamp, centred in the black hall. On upright phones it turns lengthways at the full screen width, and Contact grows taller than the screen to hold it. On the cloth: the title top-left, the lead line, the WhatsApp action as an ivory chip, Instagram and email ruled under it, and a foot line. The 8-ball lies in the table's top-right pocket.
+- **Contact:** the Pool Table look's table under its lamp, centred in the black hall, horizontal on every screen. On upright screens the camera moves in: the table is sized by its height so the channels fit on the cloth, its ends run off the sides, and the long rails with their middle pockets frame the type; Contact grows taller than the screen when needed. The hall carries the lamp's warm spill, a vignette and a film grain; the cloth a fine worsted grain over the baked nap; the render a touch more contrast and saturation. On the cloth: the title top-left, the lead line, the WhatsApp action as an ivory chip, Instagram and email ruled under it, and a foot line. The 8-ball lies in the table's top-right pocket.
 
 The compact breakpoint is `max-width: 768px` or `max-height: 540px`. Safe-area insets are respected on edge controls.
 
@@ -199,10 +199,10 @@ Every look shares this system. Values live in `src/storyTiming.js` (`scroll`, `p
 - **Services → Projects handoff:** Projects rises over Services, which shrinks, lifts, and dims the same way.
 - **The run:** Projects pins while its cards slide sideways, and each card lifts as it crosses the centre. The title drifts against the cards for depth.
 - **Projects → Contact reveal:** Projects scrolls away and Contact is uncovered from beneath it. Contact is the hall and its table from its first pixel. Its content settles from 25% up while the shadow under Projects' edge lifts.
-- **Touch screens:** the Projects run and the Services carousels lock to the scroll position (no catch-up lag over native momentum), and there is no velocity skew or per-card lift, so the run keeps pace with the finger.
+- **Touch screens:** the Projects run and the Services carousels are CSS scroll-driven animations (`view-timeline`, `animation-range: contain`), moved by the browser on the compositor in step with native scrolling; where unsupported they fall back to GSAP locked to the scroll. No velocity skew, per-card lift, title drift or wall push there, and only the panel holding the middle of the screen plays its reels.
 - **Velocity skew:** only the Projects cards lean with the scroll's speed (up to 1.5°) and settle upright. Titles and Contact stand still, and nothing leans during a glide.
 - **Glides:** header links and Page keys glide on a quart ease-out, 0.7 s plus 0.14 s per screen (at most 1.5 s). Top, the wordmark and Home return to the Intro as a cut, never a rewind.
-- **Closing shot:** as Contact settles, the 8-ball rolls in from the left and drops into the table's top-right pocket, the break's last beat. At rest, and with reduced motion, it lies in the pocket.
+- **Closing shot:** as Contact settles, the 8-ball rolls in from the left and drops into the table's top-right pocket (the top middle pocket on upright screens), the break's last beat. At rest, and with reduced motion, it lies in the pocket.
 - **Reduced motion:** there is no Lenis, skew, run, or handoff. Each Page shows its own palette, and the cards wrap into a grid.
 
 ## Alternate looks
