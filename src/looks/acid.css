@@ -315,7 +315,8 @@
 .experience[data-look='acid'] .services-content {
   display: block;
   min-height: 0;
-  padding: clamp(96px, 13vh, 140px) 0 0;
+  /* The title and lead sit lower on the screen, so they're seen before the first panel arrives. */
+  padding: clamp(140px, 28vh, 320px) 0 0;
 }
 
 .experience[data-look='acid'] .services-title {
@@ -355,12 +356,18 @@
 
 .experience[data-look='acid'] .service-panels {
   display: block;
-  margin-top: clamp(32px, 7vh, 80px);
+  /* No gap after the lead: each panel's own top padding spaces it. */
+  margin-top: 0;
 }
 
 .experience[data-look='acid'] .service-panel {
   position: relative;
   height: calc(100svh + var(--panel-distance, 0px));
+}
+
+/* The first panel follows the lead directly, so it drops the hairline that separates panels. */
+.experience[data-look='acid'] .service-panel:first-child .service-panel-sticky {
+  border-top-color: transparent;
 }
 
 /* Each panel's screen is opaque black, so the next one covers it cleanly as it scrolls up. */
@@ -369,10 +376,12 @@
   top: 0;
   display: grid;
   height: 100svh;
-  align-items: center;
+  /* Top-aligned, not centred: centring left a tall empty band between the lead and the first
+     service. The name lines up with the top of its carousel. */
+  align-items: start;
   column-gap: clamp(16px, 2vw, 32px);
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  padding: clamp(84px, 11vh, 110px) 0 clamp(40px, 7vh, 72px) var(--gutter);
+  padding: clamp(116px, 15vh, 160px) 0 clamp(40px, 7vh, 72px) var(--gutter);
   border-top: 1px solid rgb(242 241 233 / 0.14);
   background: #000;
   transform-origin: 50% 0;
@@ -998,10 +1007,12 @@
 /* Short landscape screens keep the side-by-side panel, sized to the height. */
 @media (max-height: 540px) and (orientation: landscape) {
   .experience[data-look='acid'] .services-content {
-    padding-top: 64px;
+    padding-top: max(80px, 18svh);
   }
 
+  /* Little height here: the panel stays centred, clear of the header. */
   .experience[data-look='acid'] .service-panel-sticky {
+    align-items: center;
     padding: 60px 0 max(14px, env(safe-area-inset-bottom));
     padding-left: var(--gutter);
   }

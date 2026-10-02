@@ -152,7 +152,7 @@ export function createNavSections ( { root, onNavSection } )
  * 1. Studio → Services: Services rises over the held Studio, which shrinks back and dims.
  *    Services → Projects: Projects rises over Services, which shrinks back and dims the same way.
  * 2. The Projects run: the section pins while its track of boards slides sideways, each board
- *    lifting (--lift) as it crosses the centre; the title drifts and the wall pushes in for depth.
+ *    lifting (--lift) as it crosses the centre; the wall pushes in for depth while the title holds still.
  * 3. Projects → Contact: Projects scrolls away and Contact is uncovered from beneath it.
  *    A look with motion.handoff 'sameTable' (Pool Table) keeps one still table under all three
  *    Pages instead: Studio does not shrink or dim, and no sheet shows its own table while it moves.
@@ -310,7 +310,7 @@ export function createFlowMotion ( { root, motion, charRest, compact, touch = fa
   } )
   // Touch screens with scroll-driven animations: CSS slides the track from Projects' own scroll
   // timeline (styles.css, .is-scroll-driven) on the compositor, in step with native scrolling; the
-  // title drift and the wall push are left out there. Elsewhere GSAP scrubs the run.
+  // wall push is left out there. Elsewhere GSAP scrubs the run.
   const runScrollDriven = scrollDriven && !sameTable
   if ( runScrollDriven )
   {
@@ -320,8 +320,7 @@ export function createFlowMotion ( { root, motion, charRest, compact, touch = fa
   const run = runScrollDriven ? null : gsap.to( track, { x: () => -runDistance, ease: 'none', scrollTrigger: runTrigger() } )
   if ( !runScrollDriven )
   {
-    // Depth: the title drifts against the boards, and the wall (or table) pushes in slightly.
-    gsap.to( projectsContent, { x: () => -window.innerWidth * 0.04 * reach, ease: 'none', scrollTrigger: runTrigger() } )
+    // Depth: the wall (or table) pushes in slightly. The title holds still while the boards run.
     // (Not with one table: a pushed-in table would no longer match the next Page's.)
     if ( projectsDepth.length && !sameTable ) gsap.fromTo( projectsDepth, { scale: 1 }, { scale: 1.04, ease: 'none', scrollTrigger: runTrigger() } )
   }
