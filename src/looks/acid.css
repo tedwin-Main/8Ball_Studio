@@ -249,9 +249,11 @@
 .experience[data-look='acid'] .final-meta {
   top: auto;
   right: var(--gutter);
-  bottom: clamp(64px, 11vh, 104px);
+  /* Sits just under the footer rule, not across it: the rule is 18px (the floor's padding) above the
+     floor's bottom, so the line's top goes 12px below the rule (+6px, less one line of text). */
+  bottom: calc(clamp(64px, 11vh, 104px) + 6px - 1lh);
   left: auto;
-  padding-top: 18px;
+  padding-top: 0;
 }
 
 /* ---------- Services: black, one panel per service ---------- */
@@ -318,7 +320,32 @@
 
 .experience[data-look='acid'] .services-title {
   padding: 0 var(--gutter);
-  font-size: clamp(64px, 9vw, 160px);
+  font-size: var(--services-title, clamp(64px, 9vw, 160px));
+}
+
+/* Services and Projects set their titles like Contact: both lines flush left, closed up, so
+   "OUR / SERVICES" and "OUR / PROJECTS" read as one block. --services-title is the title's size. */
+.experience[data-look='acid'] .services-content {
+  --services-title: clamp(64px, 9vw, 160px);
+}
+
+.experience[data-look='acid'] :is(.services-title, .projects-title).cyc-title > span + span {
+  margin-top: -0.1em;
+  padding-left: 0;
+}
+
+/* The lead sits right under the title, flush left with it, as one group. */
+.experience[data-look='acid'] .services-lead {
+  display: block;
+  max-width: 26ch;
+  margin: clamp(14px, 2.4vh, 24px) 0 0 var(--gutter);
+  color: rgb(242 241 233 / 0.78);
+  font-family: var(--ui-font);
+  font-size: clamp(18px, 1.6vw, 26px);
+  font-stretch: var(--ui-stretch);
+  font-weight: var(--ui-weight);
+  letter-spacing: var(--ui-tracking);
+  line-height: 1.2;
 }
 
 /* The ruled list is the panels' fallback for reduced motion (below). */
@@ -358,18 +385,12 @@
   grid-column: 1 / 5;
 }
 
-.experience[data-look='acid'] :is(.service-panel-number, .service-panel-detail) {
+.experience[data-look='acid'] .service-panel-detail {
   margin: 0;
   font-family: var(--ui-font);
   font-stretch: var(--ui-stretch);
   font-weight: var(--ui-weight);
   letter-spacing: var(--ui-tracking);
-}
-
-.experience[data-look='acid'] .service-panel-number {
-  color: var(--an-acid);
-  font-size: var(--ui-size);
-  font-variant-numeric: tabular-nums;
 }
 
 .experience[data-look='acid'] .service-panel-name {
@@ -390,23 +411,6 @@
   line-height: 1.3;
 }
 
-/* How far this service's carousel has run. */
-.experience[data-look='acid'] .service-panel-bar {
-  position: relative;
-  width: min(100%, 240px);
-  height: 1px;
-  margin-top: 8px;
-  background: rgb(242 241 233 / 0.24);
-}
-
-.experience[data-look='acid'] .service-panel-bar-fill {
-  position: absolute;
-  inset: 0;
-  background: var(--an-acid);
-  transform: scaleX(0);
-  transform-origin: 0 50%;
-}
-
 /* The carousel runs to the screen's right edge; its track slides left (flowMotion.js). */
 .experience[data-look='acid'] .service-panel-window {
   grid-column: 5 / -1;
@@ -421,7 +425,7 @@
   will-change: transform;
 }
 
-/* Touch screens: the carousel and its bar run from the panel's own scroll timeline (styles.css,
+/* Touch screens: the carousel runs from the panel's own scroll timeline (styles.css,
    scroll-run), on the compositor, so they keep pace with the finger. */
 .experience[data-look='acid'] .service-panel.is-scroll-driven {
   --run: var(--panel-distance, 0px);
@@ -430,12 +434,6 @@
 
 .experience[data-look='acid'] .service-panel.is-scroll-driven .service-panel-track {
   animation: scroll-run linear both;
-  animation-range: contain 0% contain 100%;
-  animation-timeline: --section-run;
-}
-
-.experience[data-look='acid'] .service-panel.is-scroll-driven .service-panel-bar-fill {
-  animation: scroll-fill linear both;
   animation-range: contain 0% contain 100%;
   animation-timeline: --section-run;
 }
@@ -478,7 +476,9 @@
 
 .experience[data-look='acid'] .projects-title {
   color: var(--an-paper);
-  font-size: clamp(64px, 13vw, 220px);
+  /* Capped by the screen height as well, so on short laptop screens (720px) the title clears the
+     closing cards at the end of the run. */
+  font-size: clamp(64px, min(13vw, 20svh), 220px);
 }
 
 .experience[data-look='acid'] .projects-title > span + span {
@@ -549,16 +549,13 @@
   color: rgb(242 241 233 / 0.6);
 }
 
-/* The two closing boards: Contact is cut from acid, Instagram drawn as a paper outline. */
+/* The two closing boards: both black, drawn as a paper outline on the black run, with an acid
+   arrow as the one signal. */
 .experience[data-look='acid'] .project-next {
-  color: var(--an-ink);
+  color: var(--an-paper);
 }
 
-.experience[data-look='acid'] .project-card.is-next-contact .project-board {
-  background: var(--an-acid);
-}
-
-.experience[data-look='acid'] .project-card.is-next-instagram .project-board {
+.experience[data-look='acid'] .project-card.is-next .project-board {
   box-shadow: inset 0 0 0 1px rgb(242 241 233 / 0.3);
   color: var(--an-paper);
 }
@@ -574,7 +571,7 @@
   opacity: 0.72;
 }
 
-.experience[data-look='acid'] .is-next-instagram .project-next-arrow {
+.experience[data-look='acid'] .is-next .project-next-arrow {
   color: var(--an-acid);
 }
 
@@ -586,7 +583,7 @@
 /* The last Page is laid on the Pool Table look's table (LookScenery.jsx draws it; its plate geometry,
    cloth and pockets come from downlight.css). The hall is black from Contact's first pixel, so
    Projects still lifts off a sheet in its own colour. Type is ivory on the cloth, the WhatsApp
-   action an ivory chip, and the 8-ball drops into the table's own top-right pocket. */
+   action a dark outlined chip, and the 8-ball drops into the table's own top-right pocket. */
 .experience[data-look='acid'] .contact-screen {
   --ivory: #f3eee2;
   --ivory-soft: rgb(243 238 226 / 0.68);
@@ -672,20 +669,63 @@
   color: var(--ivory);
 }
 
-/* WhatsApp, the Page's one primary action: an ivory chip with dark ink, the acid glyph's place taken
-   by felt so it reads on ivory. */
+/* WhatsApp, the Page's one primary action. Not a solid block (an ivory slab outweighed the title):
+   a dark, slightly sunk chip on the cloth with an ivory hairline, ivory type on one line, and the
+   acid signal on the glyph and arrow only. Hover lifts it: the hairline turns acid and the chip
+   darkens, so it reads as the one thing to press without shouting at rest. */
 .experience[data-look='acid'] .contact-primary {
-  background: var(--ivory);
-  box-shadow: 0 0 18px 2px rgb(0 0 0 / 0.45);
-  color: var(--an-ink);
+  min-height: 0;
+  padding: clamp(14px, 1.4vw, 20px) clamp(16px, 1.8vw, 24px);
+  background: rgb(5 12 8 / 0.42);
+  box-shadow: inset 0 0 0 1px rgb(243 238 226 / 0.42);
+  color: var(--ivory);
+  transition:
+    background-color 240ms var(--ease-out),
+    box-shadow 240ms var(--ease-out),
+    translate 200ms var(--ease-out);
+}
+
+.experience[data-look='acid'] .contact-primary-label {
+  font-size: clamp(18px, 1.5vw, 22px);
+  white-space: nowrap;
+}
+
+/* The number sits under the label, never beside it: side by side, the one-line label ran into the
+   number whenever the column narrowed. Icon and arrow span both lines. */
+.experience[data-look='acid'] .contact-primary {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  row-gap: 2px;
+}
+
+.experience[data-look='acid'] .contact-primary-number {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.experience[data-look='acid'] :is(.contact-primary-icon, .contact-primary-arrow) {
+  grid-row: 1 / span 2;
+}
+
+.experience[data-look='acid'] .contact-primary-arrow {
+  grid-column: 3;
 }
 
 .experience[data-look='acid'] .contact-primary:is(:hover, :focus-visible) {
-  box-shadow: 0 0 26px 4px rgb(0 0 0 / 0.55), 0 0 0 1px rgb(243 238 226 / 0.6);
+  background: rgb(5 12 8 / 0.62);
+  box-shadow: inset 0 0 0 1px var(--an-acid);
 }
 
-.experience[data-look='acid'] .contact-primary-icon {
-  color: var(--an-felt);
+/* A small physical press. */
+.experience[data-look='acid'] .contact-primary:active {
+  translate: 0 1px;
+}
+
+.experience[data-look='acid'] :is(.contact-primary-icon, .contact-primary-arrow) {
+  color: var(--an-acid);
+}
+
+.experience[data-look='acid'] .contact-primary-number {
+  opacity: 0.78;
 }
 
 .experience[data-look='acid'] .contact-primary:focus-visible {
@@ -812,6 +852,10 @@
     line-height: 0.8;
   }
 
+  .experience[data-look='acid'] .services-content {
+    --services-title: clamp(60px, 20vw, 120px);
+  }
+
   .experience[data-look='acid'] .contact-title {
     font-size: clamp(48px, 15vw, 96px);
   }
@@ -832,7 +876,8 @@
   /* Studio's footer is one line again, near the bottom (nothing floats below it on Studio):
      services on the left, the location on the right. */
   .experience[data-look='acid'] .studio-floor {
-    bottom: max(24px, calc(env(safe-area-inset-bottom) + 16px));
+    /* Raised to leave room for the location line under the rule. */
+    bottom: max(44px, calc(env(safe-area-inset-bottom) + 36px));
     padding-bottom: 0;
   }
 
@@ -845,13 +890,18 @@
 
   .experience[data-look='acid'] .final-meta {
     right: var(--gutter);
-    bottom: max(24px, calc(env(safe-area-inset-bottom) + 16px));
+    /* Under the rule, as on desktop. */
+    bottom: calc(max(44px, calc(env(safe-area-inset-bottom) + 36px)) + 6px - 1lh);
     left: auto;
-    padding-top: 18px;
+    padding-top: 0;
   }
 
   .experience[data-look='acid'] :is(.projects-title, .services-title) {
     font-size: clamp(40px, 16svh, 96px);
+  }
+
+  .experience[data-look='acid'] .services-content {
+    --services-title: clamp(40px, 16svh, 96px);
   }
 
   .experience[data-look='acid'] .final-title {
@@ -911,11 +961,13 @@
 /* ---------- Services panels on phones and short screens ---------- */
 /* Upright phones stack each panel: the service's number, name and detail, then its carousel. */
 @media (max-width: 768px) and (orientation: portrait) {
+  /* Content starts under the header instead of centring: centring left a tall empty band between
+     the Page title and the first service. */
   .experience[data-look='acid'] .service-panel-sticky {
     display: flex;
     align-items: stretch;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     gap: clamp(18px, 3svh, 28px);
     padding: max(76px, 10svh) 0 max(24px, calc(env(safe-area-inset-bottom) + 16px));
   }
@@ -937,8 +989,9 @@
     padding-left: var(--gutter);
   }
 
+  /* Taller tiles on phones: with the panel top-aligned, they fill the screen below the name. */
   .experience[data-look='acid'] .service-tile {
-    height: min(80vw, 46svh);
+    height: min(105vw, 58svh);
   }
 }
 

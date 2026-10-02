@@ -109,7 +109,8 @@ body,
 }
 
 body {
-  overflow-x: hidden;
+  /* clip, not hidden: a hidden body is a sideways scroll box that touch screens can rubber-band. */
+  overflow-x: clip;
   overscroll-behavior-x: none;
   overscroll-behavior-y: none;
 }
@@ -969,6 +970,11 @@ button.tape:focus-visible {
   font-weight: var(--ui-weight-soft);
   line-height: 1.35;
   text-align: right;
+}
+
+/* The Services lead line belongs to Main's layout (acid.css). */
+.services-lead {
+  display: none;
 }
 
 /* The Services panels (one carousel per service) are Main's alone (acid.css); every other look
@@ -2358,15 +2364,6 @@ button.tape:focus-visible {
   }
 }
 
-@keyframes scroll-fill {
-  from {
-    transform: scaleX(0);
-  }
-
-  to {
-    transform: scaleX(1);
-  }
-}
 
 .projects-screen.is-scroll-driven {
   --run: var(--run-distance, 0px);

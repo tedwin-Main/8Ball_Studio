@@ -1,5 +1,5 @@
 {
-  "note": "Sample media for the Services carousels (placeholders until the studio's own work). All from Mixkit under the Mixkit Stock Video Free License (free for commercial use, no attribution required; not for standalone redistribution). Clips: centre square crop, 640px, first 6 s, no audio, H.264 CRF 30-34. Stills: the source clip's 720p thumbnail, centre square crop, 640px WebP. Posters: the reel's frame at 1 s.",
+  "note": "Sample media for the Services carousels (placeholders until the studio's own work). All from Mixkit under the Mixkit Stock Video Free License (free for commercial use, no attribution required; not for standalone redistribution). Clips: centre square crop, 640px, first 6 s, no audio, H.264 CRF 30-34. Stills: the source clip's 720p thumbnail, centre square crop, 640px WebP. Posters: the reel's frame at 1 s. Grade baked into every file (saturation 0.85, contrast 1.06; ffmpeg eq for clips, Pillow for stills) so the site applies no live filter.",
   "license": "https://mixkit.co/license/#videoFree",
   "files": {
     "video-reel.mp4": "https://mixkit.co/free-stock-video/using-a-clapperboard-to-start-filming-a-shot-46353/",
@@ -25,7 +25,13 @@
     "web-reel-2.mp4": "https://mixkit.co/free-stock-video/design-team-review-prototype-in-modern-minimalist-office-13325/",
     "web-still-2.webp": "https://mixkit.co/free-stock-video/young-business-team-discuss-design-in-modern-office-13327/",
     "ai-reel-2.mp4": "https://mixkit.co/free-stock-video/abstract-video-of-a-liquid-with-dark-ink-flowing-44818/",
-    "ai-still-2.webp": "https://mixkit.co/free-stock-video/traveling-through-a-tunnel-of-black-cubes-in-3d-31497/"
+    "ai-still-2.webp": "https://mixkit.co/free-stock-video/traveling-through-a-tunnel-of-black-cubes-in-3d-31497/",
+    "video-reel-3.mp4": "https://mixkit.co/free-stock-video/silhouette-of-a-videographer-recording-a-a-documentary-48778/",
+    "design-still-3.webp": "https://mixkit.co/free-stock-video/designing-a-restaurant-menu-in-a-professional-graphics-design-software-50596/",
+    "marketing-reel-3.mp4": "https://mixkit.co/free-stock-video/analyzing-the-graphics-of-a-video-on-youtube-41278/",
+    "social-reel-3.mp4": "https://mixkit.co/free-stock-video/young-woman-lying-down-watching-images-on-her-cell-phone-4911/",
+    "web-still-3.webp": "https://mixkit.co/free-stock-video/work-team-planning-a-project-in-the-office-13231/",
+    "ai-reel-3.mp4": "https://mixkit.co/free-stock-video/blue-crystal-like-light-leak-overlay-47282/"
   },
   "createdAt": "2026-10-01T20:05:00.000Z"
 }

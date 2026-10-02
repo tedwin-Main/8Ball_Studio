@@ -78,6 +78,14 @@ export function createStoryScrollAdapter ( {
       autoResize: false,
       virtualScroll: ( input ) =>
       {
+        // A sideways trackpad swipe (over the Services carousels or anywhere) becomes page scroll,
+        // which is what runs the carousels. Left to the browser, Lenis ignores it ('vertical') and
+        // the page rubber-bands sideways instead. Lenis reads the deltas after this hook returns.
+        if ( input.event?.type === 'wheel' && Math.abs( input.deltaX ) > Math.abs( input.deltaY ) )
+        {
+          input.deltaY = input.deltaX
+          input.deltaX = 0
+        }
         const allowed = virtualScrollHandler( input )
         // The speed limit (src/scrollLead.js): Lenis reads input.deltaY after this hook returns, so
         // trimming it here keeps a hard wheel or trackpad flick at a steady, heavy pace.

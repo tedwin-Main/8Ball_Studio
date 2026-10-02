@@ -142,7 +142,8 @@ const NEXT_BOARDS = [
 ]
 
 // Small text is sentence case everywhere; only names (8 Ball Studio, WhatsApp, places) keep capitals.
-const SERVICES = [ 'Social content management', 'Video & photography', 'Graphic design' ]
+// The six services in three lines, for the Intro and Studio (the Services Page lists all six).
+const SERVICES = [ 'Video & AI content', 'Design & web', 'Social & performance marketing' ]
 
 // The Services Page's running order (DOCS/TODOLIST.md): each service with one short line of what it
 // covers. Numbers come from the list's own counter in CSS, so reordering never needs renumbering.
@@ -152,15 +153,21 @@ const SERVICE_MEDIA_FILES = import.meta.glob( './assets/services/*.{mp4,webp}', 
 const serviceFile = ( name ) => SERVICE_MEDIA_FILES[ `./assets/services/${name}` ]
 const serviceReel = ( name ) => ( { type: 'video', src: serviceFile( `${name}.mp4` ), poster: serviceFile( `${name}-poster.webp` ) } )
 const serviceStill = ( name ) => ( { type: 'image', src: serviceFile( `${name}.webp` ) } )
-// A service's carousel: reel, still, second reel, second still.
-const serviceMedia = ( slug ) => [
-  serviceReel( `${slug}-reel` ),
-  serviceStill( `${slug}-still` ),
-  serviceReel( `${slug}-reel-2` ),
-  serviceStill( `${slug}-still-2` ),
-]
+// Each service's carousel is a five-tile reel. Motion-led services (video, social, AI) open and close
+// on a clip; craft-led ones (design, web) open on a still, so the work reads before it moves.
+// Motion and stills alternate where they can, giving the eye a rest between clips.
+const SERVICE_REELS = {
+  video: [ 'reel-3', 'still', 'reel', 'still-2', 'reel-2' ],
+  design: [ 'still', 'reel', 'still-3', 'reel-2', 'still-2' ],
+  marketing: [ 'reel', 'still', 'reel-3', 'still-2', 'reel-2' ],
+  social: [ 'reel', 'still', 'reel-3', 'still-2', 'reel-2' ],
+  web: [ 'still', 'reel', 'still-3', 'reel-2', 'still-2' ],
+  ai: [ 'reel', 'still', 'reel-3', 'still-2', 'reel-2' ],
+}
+const serviceMedia = ( slug ) => SERVICE_REELS[ slug ].map( ( piece ) =>
+  piece.startsWith( 'reel' ) ? serviceReel( `${slug}-${piece}` ) : serviceStill( `${slug}-${piece}` ) )
 
-// media: the service's carousel in Main (four sample pieces).
+// media: the service's carousel in Main (five sample pieces).
 const SERVICE_ITEMS = [
   { name: 'Video production', detail: 'Brand films, reels and short-form edits', media: serviceMedia( 'video' ) },
   { name: 'Graphic design', detail: 'Brand assets, social posts and print', media: serviceMedia( 'design' ) },
@@ -169,9 +176,6 @@ const SERVICE_ITEMS = [
   { name: 'Web design', detail: 'Websites and landing pages', media: serviceMedia( 'web' ) },
   { name: 'AI generated content', detail: 'AI UGC, synthetic media, virtual production', media: serviceMedia( 'ai' ) },
 ]
-
-// Two-digit running-order number for a zero-based index: 0 → "01".
-const toStepNumber = ( index ) => String( index + 1 ).padStart( 2, '0' )
 
 // The Intro title, one mask per word so the opening shot can raise it word by word.
 const HERO_TITLE = 'Roll with us.'
@@ -1176,11 +1180,9 @@ function App ()
                 <CueLine className="final-title-line" text="Studio" />
               </h2>
             </div>
-            <div className="studio-floor">
-              <ul className="studio-services" aria-label="Services">
-                { SERVICES.map( ( service ) => <li className="tape" key={ service }>{ service }</li> ) }
-              </ul>
-            </div>
+            {/* The footer rule under the name. Its services list was dropped: the Services Page right
+                after lists all six, so here it repeated itself. Only the location line remains. */}
+            <div className="studio-floor" />
             <p className="final-meta tape">Greater Kuala Lumpur, Malaysia</p>
           </section>
 
@@ -1206,6 +1208,8 @@ function App ()
               <CueLine className="services-title-line" text="Our" />
               <CueLine className="services-title-line" text="Services" />
             </h2>
+            {/* One line that frames the six reels below (Main only; hidden in other looks). */}
+            <p className="services-lead">Six ways we make brands move.</p>
             <ol className="services-list">
               { SERVICE_ITEMS.map( ( service ) => (
                 <li className="service-row" key={ service.name }>
@@ -1223,10 +1227,8 @@ function App ()
                 <article className="service-panel" key={ service.name } aria-labelledby={ `service-${index}` }>
                   <div className="service-panel-sticky">
                     <div className="service-panel-text">
-                      <span className="service-panel-number">{ toStepNumber( index ) } / { toStepNumber( SERVICE_ITEMS.length - 1 ) }</span>
                       <h3 className="service-panel-name" id={ `service-${index}` }>{ service.name }</h3>
                       <p className="service-panel-detail">{ service.detail }</p>
-                      <span className="service-panel-bar" aria-hidden="true"><span className="service-panel-bar-fill" /></span>
                     </div>
                     <div className="service-panel-window" aria-hidden="true">
                       <div className="service-panel-track">

@@ -33,7 +33,6 @@ function createServicePanels ( { panels, scrub, scrollDriven } )
   {
     const windowEl = panel.querySelector( '.service-panel-window' )
     const track = panel.querySelector( '.service-panel-track' )
-    const fill = panel.querySelector( '.service-panel-bar-fill' )
     const videos = [ ...panel.querySelectorAll( 'video' ) ]
     if ( !windowEl || !track ) return
 
@@ -48,7 +47,7 @@ function createServicePanels ( { panels, scrub, scrollDriven } )
 
     if ( scrollDriven )
     {
-      // Touch screens: CSS moves the track and the bar from the panel's own scroll timeline
+      // Touch screens: CSS moves the track from the panel's own scroll timeline
       // (acid.css, .is-scroll-driven), on the compositor, so they never trail the finger.
       panel.classList.add( 'is-scroll-driven' )
     }
@@ -56,11 +55,23 @@ function createServicePanels ( { panels, scrub, scrollDriven } )
     {
       const trigger = { trigger: panel, start: 'top top', end: () => `+=${Math.max( 1, distance * SERVICE_RUN_RATE )}`, scrub, invalidateOnRefresh: true }
       gsap.to( track, { x: () => -distance, ease: 'none', scrollTrigger: trigger } )
-      if ( fill ) gsap.fromTo( fill, { scaleX: 0 }, { scaleX: 1, ease: 'none', scrollTrigger: { ...trigger } } )
     }
 
     // The panel's reels play only while it holds the middle of the screen (one panel at a time),
     // and load only then: several reels decoding at once made phones drop frames.
+    // Reels start downloading while the panel is still a screen away, so decoding never begins in
+    // the middle of the panel's run.
+    const warmup = ScrollTrigger.create( {
+      trigger: panel,
+      start: 'top 200%',
+      once: true,
+      onEnter: () => videos.forEach( ( video ) =>
+      {
+        video.preload = 'auto'
+        video.load()
+      } ),
+    } )
+
     const playback = ScrollTrigger.create( {
       trigger: panel,
       start: 'top center',
@@ -77,6 +88,7 @@ function createServicePanels ( { panels, scrub, scrollDriven } )
       ScrollTrigger.removeEventListener( 'refreshInit', measure )
       panel.style.removeProperty( '--panel-distance' )
       panel.classList.remove( 'is-scroll-driven' )
+      warmup.kill()
       playback.kill()
       videos.forEach( ( video ) => video.pause() )
     } )
@@ -154,10 +166,12 @@ export function createNavSections ( { root, onNavSection } )
  */
 export function createFlowMotion ( { root, motion, charRest, compact, touch = false, scrub, depth = 1, scrollToY } )
 {
-  // Scrub for the pinned sideways moves (the Projects run, the Services timeline). On touch screens
-  // they lock to the scroll position (true): native momentum is already smooth, and a catch-up lag
-  // on top of the finger read as the run lagging behind it on phones.
-  const pinnedScrub = touch ? true : scrub
+  // Scrub for the pinned sideways moves (the Projects run, the Services carousels): locked to the
+  // scroll (true) on every device. A sticky screen moves with the scroll instantly; a
+  // catch-up lag on its sideways track (the old desktop setting) left the track still sliding as the
+  // screen locked and released, which read as jitter at every Services panel and the Projects run.
+  // Lenis already smooths desktop scrolling, so the run stays smooth without a second lag.
+  const pinnedScrub = true
   // On touch screens that support it, the sideways runs are CSS scroll-driven animations instead.
   const scrollDriven = touch && supportsScrollDriven()
   const d = Math.max( 0, depth )

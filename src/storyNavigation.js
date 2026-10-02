@@ -773,9 +773,13 @@ export function createStoryNavigation ( {
     goToPage( pages[ targetPageIndex ].id )
   }
 
-  const handleResize = () =>
+  const handleResize = ( event ) =>
   {
     if ( destroyed ) return
+    // The listener captures, so it also hears media elements: a <video> fires its own `resize` when
+    // a reel's size becomes known (the Services carousels load theirs mid-scroll). Treating that as
+    // a viewport resize refreshed and restored a stale position: the page jumped back (rubber band).
+    if ( event?.target && event.target !== eventTarget ) return
     if ( !isLayoutResize() )
     {
       adapter.syncLimits?.()
