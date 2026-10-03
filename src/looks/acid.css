@@ -15,6 +15,12 @@
   --an-acid: #b7d95b;
   --an-felt: #0b5b3b;
   --an-night: #07110d;
+  /* The black of Services, Projects and the header over them; the empty tile; Studio's pointer
+     glow; Contact's hall. Tokens so a theme over Main (themes.css) can re-colour them. */
+  --an-black: #000;
+  --an-tile: #111;
+  --an-glow: rgb(48 145 96 / 0.12);
+  --an-hall: #030403;
   /* Shared tokens the base sheet and the motion layers read. */
   --hall: var(--an-ink);
   --cyc: var(--an-paper);
@@ -80,7 +86,7 @@
 .experience[data-look='acid'] .acid-orbit {
   position: absolute;
   aspect-ratio: 1;
-  border: 1px solid rgb(242 241 233 / 0.08);
+  border: 1px solid color-mix(in srgb, var(--an-paper) 8%, transparent);
   border-radius: 50%;
 }
 
@@ -94,7 +100,7 @@
   right: -4vw;
   bottom: -29vw;
   width: 62vw;
-  border-color: rgb(183 217 91 / 0.1);
+  border-color: color-mix(in srgb, var(--an-acid) 10%, transparent);
 }
 
 /* ---------- Header: plain links on a hairline, ink following the section under it ---------- */
@@ -110,7 +116,7 @@
 /* After the stage every Page is black and scrolls (Services' panels, the Projects run, Contact's
    table): the header takes the same black, so nothing scrolling under it shows through the nav. */
 .experience[data-look='acid']:not([data-nav-section='stage']) .site-header {
-  background: #000;
+  background: var(--an-black);
 }
 
 .experience[data-look='acid'] .brand-logo {
@@ -168,7 +174,7 @@
   margin-top: 26px;
   flex-direction: column;
   gap: 2px;
-  color: rgb(242 241 233 / 0.78);
+  color: color-mix(in srgb, var(--an-paper) 78%, transparent);
   line-height: 1.5;
 }
 
@@ -186,15 +192,15 @@
 }
 
 .experience[data-look='acid'] .scroll-arrow {
-  stroke: rgb(242 241 233 / 0.72);
+  stroke: color-mix(in srgb, var(--an-paper) 72%, transparent);
 }
 
 /* ---------- Studio: the name centred on ink under a faint acid glow ---------- */
 .experience[data-look='acid'] .title-screen .cyc-wall {
   background:
     /* The pointer carries a soft felt-green glow across the ink, as the original stage did. */
-    radial-gradient(circle at calc(var(--lx, 30) * 1%) calc(var(--ly, 26) * 1%), rgb(48 145 96 / 0.12), transparent 34%),
-    radial-gradient(circle at 74% 20%, rgb(183 217 91 / 0.06), transparent 22%),
+    radial-gradient(circle at calc(var(--lx, 30) * 1%) calc(var(--ly, 26) * 1%), var(--an-glow), transparent 34%),
+    radial-gradient(circle at 74% 20%, color-mix(in srgb, var(--an-acid) 6%, transparent), transparent 22%),
     var(--an-ink);
 }
 
@@ -219,7 +225,7 @@
   bottom: clamp(64px, 11vh, 104px);
   left: var(--gutter);
   padding-top: 18px;
-  border-top: 1px solid rgb(242 241 233 / 0.24);
+  border-top: 1px solid color-mix(in srgb, var(--an-paper) 24%, transparent);
   counter-reset: service;
 }
 
@@ -233,7 +239,7 @@
   padding: 0;
   background: none;
   box-shadow: none;
-  color: rgb(242 241 233 / 0.72);
+  color: color-mix(in srgb, var(--an-paper) 72%, transparent);
   font-size: var(--ui-size);
   line-height: 1.55;
 }
@@ -262,22 +268,22 @@
    numbers take the acid signal (the yellow of the reference). */
 .experience[data-look='acid'] .services-screen {
   --gaffer: var(--an-paper);
-  --gaffer-soft: rgb(242 241 233 / 0.7);
+  --gaffer-soft: color-mix(in srgb, var(--an-paper) 70%, transparent);
   --ink: var(--an-paper);
   color: var(--an-paper);
 }
 
 .experience[data-look='acid'] .services-screen .cyc-wall {
-  background: #000;
-  box-shadow: inset 0 1px rgb(242 241 233 / 0.14);
+  background: var(--an-black);
+  box-shadow: inset 0 1px color-mix(in srgb, var(--an-paper) 14%, transparent);
 }
 
 .experience[data-look='acid'] .services-list {
-  border-top-color: rgb(242 241 233 / 0.26);
+  border-top-color: color-mix(in srgb, var(--an-paper) 26%, transparent);
 }
 
 .experience[data-look='acid'] .service-row {
-  border-bottom-color: rgb(242 241 233 / 0.18);
+  border-bottom-color: color-mix(in srgb, var(--an-paper) 18%, transparent);
 }
 
 .experience[data-look='acid'] .service-row::before {
@@ -340,7 +346,7 @@
   display: block;
   max-width: 26ch;
   margin: clamp(14px, 2.4vh, 24px) 0 0 var(--gutter);
-  color: rgb(242 241 233 / 0.78);
+  color: color-mix(in srgb, var(--an-paper) 78%, transparent);
   font-family: var(--ui-font);
   font-size: clamp(18px, 1.6vw, 26px);
   font-stretch: var(--ui-stretch);
@@ -382,8 +388,8 @@
   column-gap: clamp(16px, 2vw, 32px);
   grid-template-columns: repeat(12, minmax(0, 1fr));
   padding: clamp(116px, 15vh, 160px) 0 clamp(40px, 7vh, 72px) var(--gutter);
-  border-top: 1px solid rgb(242 241 233 / 0.14);
-  background: #000;
+  border-top: 1px solid color-mix(in srgb, var(--an-paper) 14%, transparent);
+  background: var(--an-black);
   transform-origin: 50% 0;
 }
 
@@ -415,7 +421,7 @@
 
 .experience[data-look='acid'] .service-panel-detail {
   max-width: 22em;
-  color: rgb(242 241 233 / 0.78);
+  color: color-mix(in srgb, var(--an-paper) 78%, transparent);
   font-size: clamp(17px, 1.4vw, 22px);
   line-height: 1.3;
 }
@@ -457,7 +463,7 @@
   flex: none;
   overflow: hidden;
   border-radius: 4px;
-  background: #111;
+  background: var(--an-tile);
 }
 
 .experience[data-look='acid'] .service-media {
@@ -479,8 +485,8 @@
 }
 
 .experience[data-look='acid'] .projects-screen .cyc-wall {
-  background: #000;
-  box-shadow: inset 0 1px rgb(242 241 233 / 0.14);
+  background: var(--an-black);
+  box-shadow: inset 0 1px color-mix(in srgb, var(--an-paper) 14%, transparent);
 }
 
 .experience[data-look='acid'] .projects-title {
@@ -555,7 +561,7 @@
   padding: 0;
   background: none;
   box-shadow: none;
-  color: rgb(242 241 233 / 0.6);
+  color: color-mix(in srgb, var(--an-paper) 60%, transparent);
 }
 
 /* The two closing boards: both black, drawn as a paper outline on the black run, with an acid
@@ -565,7 +571,7 @@
 }
 
 .experience[data-look='acid'] .project-card.is-next .project-board {
-  box-shadow: inset 0 0 0 1px rgb(242 241 233 / 0.3);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--an-paper) 30%, transparent);
   color: var(--an-paper);
 }
 
@@ -616,7 +622,7 @@
   background:
     radial-gradient(ellipse 62% 70% at 50% 52%, rgb(255 232 196 / 0.09), transparent 72%),
     radial-gradient(ellipse 120% 100% at 50% 50%, transparent 55%, rgb(0 0 0 / 0.6)),
-    #030403;
+    var(--an-hall);
 }
 
 .experience[data-look='acid'] .contact-screen .cyc-wall::after {
@@ -783,7 +789,7 @@
 
 /* An acid rub across the channel name on hover, the signal colour on the cloth. */
 .experience[data-look='acid'] .contact-channel {
-  background-image: linear-gradient(rgb(183 217 91 / 0.45), rgb(183 217 91 / 0.45));
+  background-image: linear-gradient(color-mix(in srgb, var(--an-acid) 45%, transparent), color-mix(in srgb, var(--an-acid) 45%, transparent));
 }
 
 .experience[data-look='acid'] .call-sheet-foot {

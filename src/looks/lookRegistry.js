@@ -56,6 +56,26 @@ export const LOOK_CONFIGS = Object.freeze( {
     } ),
   } ),
 
+  // A theme over Main: the same layout, motion and set pieces (base: 'acid', so the page renders as
+  // data-look="acid"), re-coloured and re-set by themes.css under data-theme="espresso". Espresso
+  // grounds, warm cream type and one brass signal in place of acid green; titles in a variable serif
+  // with the second line in italic; a faint film grain over the dark Pages.
+  espresso: Object.freeze( {
+    id: 'espresso',
+    label: 'Main · Espresso',
+    base: 'acid',
+    themeColors: Object.freeze( { intro: '#110c08', studio: '#140f0b', services: '#0d0907', projects: '#0d0907', contact: '#070504' } ),
+    keyLight: '.title-screen > .cyc-wall',
+    motion: Object.freeze( {
+      reveal: 'fade',
+      origin: '50% 50%',
+      entrance: Object.freeze( { yPercent: 115 } ),
+      letterFrom: 'start',
+      letterEase: 'power3.out',
+      label: Object.freeze( { from: Object.freeze( { autoAlpha: 0, y: 20 } ), ease: 'power2.out' } ),
+    } ),
+  } ),
+
   // A photo-studio floor: after the break, the lights come up on an infinity cove, one gel per Page.
   cyc: Object.freeze( {
     id: 'cyc',
@@ -96,7 +116,7 @@ export const LOOK_CONFIGS = Object.freeze( {
   } ),
 } )
 
-// Dropdown order: Main first (the default; id 'acid', kept so ?look=acid links still work), then Cyc Wall, then Pool Table (id 'downlight', kept so ?look=downlight links still work).
+// Dropdown order: Main first (the default; id 'acid', kept so ?look=acid links still work), its Espresso theme, then Cyc Wall, then Pool Table (id 'downlight', kept so ?look=downlight links still work).
 export const LOOK_IDS = Object.freeze( Object.keys( LOOK_CONFIGS ) )
 export const DEFAULT_LOOK_ID = 'acid'
 
@@ -109,6 +129,14 @@ export function normalizeLookId ( queryValue )
 export function getLookConfig ( id )
 {
   return LOOK_CONFIGS[ normalizeLookId( id ) ]
+}
+
+// The look whose layout sheet a look renders with: a theme (one with a base) borrows its base's
+// data-look, set pieces and markup choices, and only re-colours them under data-theme.
+export function getLookBase ( id )
+{
+  const look = getLookConfig( id )
+  return look.base ?? look.id
 }
 
 // Returns the from/to vars for the Studio reveal in the given look.

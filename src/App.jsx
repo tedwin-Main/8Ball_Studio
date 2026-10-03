@@ -6,7 +6,7 @@ import { useStoryPager } from './hooks/useStoryPager'
 import { CursorBall } from './components/CursorBall'
 import { Preloader } from './components/Preloader'
 import { LookScenery } from './looks/LookScenery'
-import { DEFAULT_LOOK_ID, getLookConfig, getRevealVars, getThemeColor, normalizeLookId } from './looks/lookRegistry'
+import { DEFAULT_LOOK_ID, getLookBase, getLookConfig, getRevealVars, getThemeColor, normalizeLookId } from './looks/lookRegistry'
 import { createFlowMotion, createNavSections } from './motion/flowMotion'
 import { createVelocitySkew } from './motion/velocitySkew'
 import { createIntroEntrance } from './motion/introEntrance'
@@ -329,6 +329,8 @@ function App ()
   const activeDraftRef = useRef( getInitialDraft() )
   const [ activeDraft, setActiveDraft ] = useState( getInitialDraft )
   const [ activeLook, setActiveLook ] = useState( getInitialLook )
+  // The layout sheet the look renders with: Main for Main and its themes (Espresso), else the look.
+  const lookBase = getLookBase( activeLook )
   const [ activePage, setActivePage ] = useState( 'intro' )
   const [ indicatorPage, setIndicatorPage ] = useState( 'intro' )
   // The latest indicator Page for event handlers (the Top cut) without re-binding them per render.
@@ -1050,7 +1052,8 @@ function App ()
   return (
     <main
       className={ `experience draft-${activeDraft}` }
-      data-look={ activeLook }
+      data-look={ lookBase }
+      data-theme={ activeLook }
       ref={ rootRef }
       data-story-page={ activePage }
       data-story-indicator-page={ indicatorPage }
@@ -1173,7 +1176,7 @@ function App ()
           {/* Studio: the lights come up on a pink-gel cyc. */}
           <section className="title-screen cyc cyc-studio" aria-labelledby="studio-title">
             <div className="cyc-wall" aria-hidden="true" />
-            <LookScenery look={ activeLook } page="studio" />
+            <LookScenery look={ lookBase } page="studio" />
             <div className="final-content">
               <h2 id="studio-title" className="final-title cyc-title" aria-label="8ightBall Studio">
                 <CueLine className="final-title-line" text="8ightBall" />
@@ -1202,7 +1205,7 @@ function App ()
       >
         <div className="services-inner">
           <div className="cyc-wall" aria-hidden="true" />
-          <LookScenery look={ activeLook } page="services" />
+          <LookScenery look={ lookBase } page="services" />
           <div className="services-content">
             <h2 id="services-title" className="services-title cyc-title" aria-label="Our Services">
               <CueLine className="services-title-line" text="Our" />
@@ -1261,7 +1264,7 @@ function App ()
       >
         <div className="projects-sticky">
           <div className="cyc-wall" aria-hidden="true" />
-          <LookScenery look={ activeLook } page="projects" />
+          <LookScenery look={ lookBase } page="projects" />
           <div className="projects-content">
             <h2 id="projects-title" className="projects-title cyc-title" aria-label="Our Projects">
               <CueLine className="projects-title-line" text="Our" />
@@ -1275,7 +1278,7 @@ function App ()
                   { PROJECT_ITEMS.map( ( project ) => (
                     <li className={ `project-card${project.type ? ` is-${project.type}` : ''}` } key={ project.alt }>
                       <div className="project-board">
-                        <img src={ activeLook === 'acid' && project.whiteSrc ? project.whiteSrc : project.src } alt={ project.alt } />
+                        <img src={ lookBase === 'acid' && project.whiteSrc ? project.whiteSrc : project.src } alt={ project.alt } />
                       </div>
                       <span className="tape">{ project.alt }</span>
                     </li>
@@ -1315,7 +1318,7 @@ function App ()
       <section id="contact" className="contact-screen cyc cyc-flow cyc-contact" ref={ contactRef } aria-labelledby="contact-title">
         <div className="contact-inner">
           <div className="cyc-wall" aria-hidden="true" />
-          <LookScenery look={ activeLook } page="contact" />
+          <LookScenery look={ lookBase } page="contact" />
           <div className="contact-content">
             <h2 id="contact-title" className="contact-title cyc-title" aria-label="Contact Us">
               <CueLine className="contact-title-line" text="Contact" />

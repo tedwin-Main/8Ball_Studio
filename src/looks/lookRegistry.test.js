@@ -9,11 +9,20 @@ import {
   getLookConfig,
   getRevealVars,
   getThemeColor,
+  getLookBase,
 } from './lookRegistry.js'
 
-test( 'lookRegistry exposes three looks in dropdown order, with Main as the default', () =>
+test( 'Espresso is a theme over Main: it renders with Main\'s layout sheet', () =>
 {
-  assert.deepEqual( LOOK_IDS, [ 'acid', 'cyc', 'downlight' ] )
+  assert.equal( getLookBase( 'espresso' ), 'acid' )
+  assert.equal( getLookBase( 'acid' ), 'acid' )
+  assert.equal( getLookBase( 'downlight' ), 'downlight' )
+  assert.equal( getLookBase( 'nope' ), 'acid' )
+} )
+
+test( 'lookRegistry exposes four looks in dropdown order, with Main as the default', () =>
+{
+  assert.deepEqual( LOOK_IDS, [ 'acid', 'espresso', 'cyc', 'downlight' ] )
   assert.equal( DEFAULT_LOOK_ID, 'acid' )
   assert.equal( LOOK_CONFIGS.acid.label, 'Main' )
 } )
