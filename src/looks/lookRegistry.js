@@ -22,6 +22,16 @@ export const REVEALS = Object.freeze( {
   fade: Object.freeze( { usesOpacity: true, from: () => ( { clipPath: 'none', autoAlpha: 0 } ), to: () => ( { autoAlpha: 1, ease: 'none' } ) } ),
 } )
 
+// Main's Studio cue, shared by the themes over Main (Espresso, Mono).
+const MAIN_THEME_MOTION = Object.freeze( {
+  reveal: 'fade',
+  origin: '50% 50%',
+  entrance: Object.freeze( { yPercent: 115 } ),
+  letterFrom: 'start',
+  letterEase: 'power3.out',
+  label: Object.freeze( { from: Object.freeze( { autoAlpha: 0, y: 20 } ), ease: 'power2.out' } ),
+} )
+
 const CYC_MOTION = Object.freeze( {
   reveal: 'circle',
   // Studio light spills out of the pocket the 8-ball dropped into.
@@ -66,14 +76,18 @@ export const LOOK_CONFIGS = Object.freeze( {
     base: 'acid',
     themeColors: Object.freeze( { intro: '#110c08', studio: '#140f0b', services: '#0d0907', projects: '#0d0907', contact: '#070504' } ),
     keyLight: '.title-screen > .cyc-wall',
-    motion: Object.freeze( {
-      reveal: 'fade',
-      origin: '50% 50%',
-      entrance: Object.freeze( { yPercent: 115 } ),
-      letterFrom: 'start',
-      letterEase: 'power3.out',
-      label: Object.freeze( { from: Object.freeze( { autoAlpha: 0, y: 20 } ), ease: 'power2.out' } ),
-    } ),
+    motion: MAIN_THEME_MOTION,
+  } ),
+
+  // A second theme over Main (base: 'acid'): pure black and white, no colour signal. Main's type,
+  // layout and motion as they are; the accent becomes white and the second title line an outline.
+  mono: Object.freeze( {
+    id: 'mono',
+    label: 'Main · Mono',
+    base: 'acid',
+    themeColors: Object.freeze( { intro: '#000000', studio: '#000000', services: '#000000', projects: '#000000', contact: '#000000' } ),
+    keyLight: '.title-screen > .cyc-wall',
+    motion: MAIN_THEME_MOTION,
   } ),
 
   // A photo-studio floor: after the break, the lights come up on an infinity cove, one gel per Page.
@@ -116,7 +130,7 @@ export const LOOK_CONFIGS = Object.freeze( {
   } ),
 } )
 
-// Dropdown order: Main first (the default; id 'acid', kept so ?look=acid links still work), its Espresso theme, then Cyc Wall, then Pool Table (id 'downlight', kept so ?look=downlight links still work).
+// Dropdown order: Main first (the default; id 'acid', kept so ?look=acid links still work), its Espresso and Mono themes, then Cyc Wall, then Pool Table (id 'downlight', kept so ?look=downlight links still work).
 export const LOOK_IDS = Object.freeze( Object.keys( LOOK_CONFIGS ) )
 export const DEFAULT_LOOK_ID = 'acid'
 

@@ -108,3 +108,23 @@
     font-size: clamp(48px, 11vw, 96px);
   }
 }
+
+/* ---------- Mono (?look=mono): black and white only ----------
+   Pure black grounds, white type, no colour signal: the accent is white, so both title lines are
+   solid white, like the service names. Main's type is kept as it is. */
+.experience[data-look='acid'][data-theme='mono'] {
+  --an-ink: #000;
+  --an-night: #000;
+  --an-black: #000;
+  --an-tile: #141414;
+  --an-paper: #fff;
+  --an-acid: #fff;
+  --an-glow: rgb(255 255 255 / 0.05);
+  --an-hall: #000;
+  --gaffer-soft: rgb(0 0 0 / 0.72);
+}
+
+/* Studio's name sits flush left on both lines, like the other Page titles (Main steps "Studio" in). */
+.experience[data-look='acid'][data-theme='mono'] .final-title > span + span {
+  padding-left: 0;
+}
