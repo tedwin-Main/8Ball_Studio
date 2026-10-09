@@ -1067,7 +1067,7 @@ function App ()
       {/* Fixed, outside the pinned stage, so navigation stays on screen over the scrolling sections. */}
       <header className="site-header">
         <a className="wordmark" href="#top" onClick={ ( event ) => { event.preventDefault(); replay() } } aria-label="8 Ball Studio — return to start">
-          <img className="brand-logo" src={ brandLogo } alt="8 Ball Studio" />
+          <img className="brand-logo" src={ brandLogo } alt="8 Ball Studio" fetchPriority="high" decoding="async" />
         </a>
         {/* Nav tapes are coloured with the gel of the Page they lead to. */}
         <nav className="header-meta" aria-label="Page navigation">
@@ -1278,7 +1278,7 @@ function App ()
                   { PROJECT_ITEMS.map( ( project ) => (
                     <li className={ `project-card${project.type ? ` is-${project.type}` : ''}` } key={ project.alt }>
                       <div className="project-board">
-                        <img src={ lookBase === 'acid' && project.whiteSrc ? project.whiteSrc : project.src } alt={ project.alt } />
+                        <img src={ lookBase === 'acid' && project.whiteSrc ? project.whiteSrc : project.src } alt={ project.alt } loading="lazy" decoding="async" />
                       </div>
                       <span className="tape">{ project.alt }</span>
                     </li>
@@ -1328,7 +1328,7 @@ function App ()
                 break's last beat (flowMotion.js). At rest (and with reduced motion) it lies in the pocket. */}
             <div className="contact-pocket" aria-hidden="true">
               <span className="contact-pocket-hole" />
-              <img className="contact-pocket-ball" src={ brandLogo } alt="" />
+              <img className="contact-pocket-ball" src={ brandLogo } alt="" loading="lazy" decoding="async" />
             </div>
             <div className="call-sheet">
               <p className="contact-lead">Tell us about your brand.</p>
