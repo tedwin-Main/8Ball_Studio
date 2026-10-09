@@ -1267,6 +1267,9 @@ button.tape:focus-visible {
 
 .call-sheet {
   position: relative;
+  /* A size container, so the channel list lays out by the sheet's own width (the table squeezes it on
+     laptops), not the viewport's. */
+  container: call-sheet / inline-size;
   padding: clamp(20px, 2vw, 30px) clamp(18px, 2.2vw, 32px) clamp(10px, 1.2vw, 16px);
   background: var(--sheet);
   color: var(--gaffer);
@@ -1292,6 +1295,20 @@ button.tape:focus-visible {
   letter-spacing: var(--ui-tracking);
 }
 
+/* One column grid for every channel row: each row joins it through subgrid, so the channel column
+   is as wide as the longest name and every detail and action lines up down the list. */
+.contact-list {
+  display: grid;
+  column-gap: clamp(20px, 2.2vw, 36px);
+  grid-template-columns: 36px auto minmax(0, 1fr) auto;
+}
+
+.contact-list li {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+}
+
 .contact-list li + li {
   border-top: 1px solid rgb(23 23 26 / 0.16);
 }
@@ -1299,11 +1316,12 @@ button.tape:focus-visible {
 .contact-item {
   display: grid;
   min-width: 0;
-  padding: clamp(12px, 1.4vw, 18px) 2px;
+  padding: clamp(14px, 1.6vw, 22px) 2px;
   align-items: center;
-  gap: 16px;
+  grid-column: 1 / -1;
   grid-template-areas: 'icon channel detail action';
-  grid-template-columns: 36px auto minmax(0, 1fr) auto;
+  /* Columns (and their gap) come from .contact-list. */
+  grid-template-columns: subgrid;
   text-decoration: none;
 }
 
@@ -1368,6 +1386,8 @@ button.tape:focus-visible {
 .contact-action {
   display: inline-flex;
   grid-area: action;
+  /* The action column is as wide as the longest label: shorter ones hug the right edge. */
+  justify-self: end;
   align-items: center;
   gap: 8px;
   font-family: var(--ui-font);
@@ -1396,6 +1416,27 @@ button.tape:focus-visible {
 .contact-item:hover .contact-action svg,
 .contact-item:focus-visible .contact-action svg {
   translate: 5px 0;
+}
+
+/* Under ~560px, four columns leave the detail too little room and the email breaks at its @. The
+   detail drops under the channel name instead, where it has the row's full middle width. */
+@container call-sheet (max-width: 559px) {
+  .contact-list {
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+  }
+
+  .contact-item {
+    row-gap: 2px;
+    grid-template-areas:
+      'icon channel action'
+      'icon detail action';
+  }
+
+  /* Pulled back by its highlighter padding so the name's letters sit flush with the detail under it. */
+  .contact-channel {
+    justify-self: start;
+    margin-inline-start: -2px;
+  }
 }
 
 @media (max-width: 768px), (max-height: 540px) {
@@ -1552,13 +1593,17 @@ button.tape:focus-visible {
     display: none;
   }
 
+  /* Phones and short landscape screens: always the stacked list, with a smaller icon and gap. */
+  .contact-list {
+    column-gap: 14px;
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+  }
+
   .contact-item {
-    column-gap: 12px;
     row-gap: 4px;
     grid-template-areas:
       'icon channel action'
       'icon detail action';
-    grid-template-columns: 32px minmax(0, 1fr) auto;
   }
 
   .contact-icon {
