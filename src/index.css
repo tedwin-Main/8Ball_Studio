@@ -1049,6 +1049,12 @@ a {
     width: 34vw;
   }
 
+  /* No colour/opacity transitions on the moving rows: they restart style work while the scroll is running. */
+  .drum-row,
+  .drum-detail {
+    transition: none;
+  }
+
   /* The drum's mask and the page's fixed film grain are re-composited on every scroll frame; drop both here. */
   .drum-window {
     mask-image: none;

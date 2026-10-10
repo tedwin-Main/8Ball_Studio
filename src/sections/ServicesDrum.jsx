@@ -10,11 +10,11 @@ const SETTLE_MS = 180
 
 // One service's tile: its poster image always, and the reel only while it is the active row. Only one
 // <video> is mounted at a time, so the page decodes a single reel instead of six.
-function ReelTile( { service, isActive, reelRef } ) {
+function ReelTile( { service, isActive, hasReel, reelRef } ) {
   return (
     <figure className={ `drum-tile${ isActive ? ' is-active' : '' }` }>
       <img src={ service.reel.poster } alt="" loading="lazy" decoding="async" />
-      { isActive && (
+      { hasReel && (
         <video ref={ reelRef } src={ service.reel.src } muted loop playsInline preload="auto" />
       ) }
     </figure>
@@ -30,6 +30,9 @@ export function ServicesDrum( { variant } ) {
   const rootRef = useRef( null )
   const reelRef = useRef( null )
   const [ activeIndex, setActiveIndex ] = useState( 0 )
+  // The row whose <video> is mounted. It only catches up to activeIndex once the scroll rests, so a
+  // video is never created or decoded mid-scroll (that was the phone lag).
+  const [ reelIndex, setReelIndex ] = useState( 0 )
   // Playback state lives in a ref, so scroll frames never re-render the drum.
   const playback = useRef( { allowed: true, inView: false, scrolling: false, timer: 0 } )
 
@@ -45,12 +48,14 @@ export function ServicesDrum( { variant } ) {
   // A new active row mounts a new <video>; start it if it should be playing.
   useEffect( () => {
     syncPlayback()
-  }, [ activeIndex, syncPlayback ] )
+  }, [ reelIndex, syncPlayback ] )
 
   useLayoutEffect( () => {
     const root = rootRef.current
     const windowEl = root.querySelector( '.drum-window' )
     const rows = [ ...root.querySelectorAll( '.drum-row' ) ]
+    // Phone address-bar show/hide must not trigger a ScrollTrigger refresh (re-measure) mid-scroll.
+    ScrollTrigger.config( { ignoreMobileResize: true } )
     const reduced = window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches
     const state = playback.current
     let rowPx = 0
@@ -88,11 +93,15 @@ export function ServicesDrum( { variant } ) {
 
     // The reel pauses for the length of each scroll and resumes once the scroll has rested for SETTLE_MS.
     const pauseWhileScrolling = () => {
-      state.scrolling = true
-      syncPlayback()
+      // Pause once per scroll burst, not on every frame.
+      if ( !state.scrolling ) {
+        state.scrolling = true
+        syncPlayback()
+      }
       window.clearTimeout( state.timer )
       state.timer = window.setTimeout( () => {
         state.scrolling = false
+        setReelIndex( active )
         syncPlayback()
       }, SETTLE_MS )
     }
@@ -165,7 +174,7 @@ export function ServicesDrum( { variant } ) {
                     <span className="drum-name">{ service.name }</span>
                     <span className="drum-detail">{ service.detail }</span>
                   </span>
-                  { variant === 'drum-cards' && <ReelTile service={ service } isActive={ isActive } reelRef={ reelRef } /> }
+                  { variant === 'drum-cards' && <ReelTile service={ service } isActive={ isActive } hasReel={ index === reelIndex } reelRef={ reelRef } /> }
                 </li>
               )
             } ) }
@@ -173,7 +182,7 @@ export function ServicesDrum( { variant } ) {
           { variant === 'drum-media' && (
             <div className="drum-media" aria-hidden="true">
               { SERVICES.map( ( service, index ) => (
-                <ReelTile service={ service } isActive={ index === activeIndex } reelRef={ reelRef } key={ service.name } />
+                <ReelTile service={ service } isActive={ index === activeIndex } hasReel={ index === reelIndex } reelRef={ reelRef } key={ service.name } />
               ) ) }
             </div>
           ) }
