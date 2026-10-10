@@ -4,6 +4,11 @@
 // Service media lives in src/assets/services (sample pieces, see SOURCES.json). Vite resolves the URLs at build time.
 const MEDIA = import.meta.glob( './assets/services/*.{mp4,webp}', { eager: true, import: 'default' } )
 const media = ( name ) => MEDIA[ `./assets/services/${name}` ]
+// A reel piece for a strip tile: the clip plus its poster. A still piece is one image.
+const reelPiece = ( name ) => ( { type: 'video', src: media( `${name}.mp4` ), poster: media( `${name}-poster.webp` ) } )
+const stillPiece = ( name ) => ( { type: 'image', src: media( `${name}.webp` ) } )
+// Each service's five-tile strip, in the old site's running order. Motion and stills alternate so the eye gets a rest.
+const serviceMedia = ( slug, order ) => order.map( ( piece ) => ( piece.startsWith( 'reel' ) ? reelPiece( `${slug}-${piece}` ) : stillPiece( `${slug}-${piece}` ) ) )
 
 // Each service: a reel (video + poster) and a still, shown in the horizontal accordion.
 export const SERVICES = [
@@ -12,36 +17,42 @@ export const SERVICES = [
     detail: 'Brand films, reels and short-form edits',
     reel: { src: media( 'video-reel.mp4' ), poster: media( 'video-reel-poster.webp' ) },
     still: media( 'video-still.webp' ),
+    media: serviceMedia( 'video', [ 'reel-3', 'still', 'reel', 'still-2', 'reel-2' ] ),
   },
   {
     name: 'Graphic design',
     detail: 'Brand assets, social posts and print',
     reel: { src: media( 'design-reel.mp4' ), poster: media( 'design-reel-poster.webp' ) },
     still: media( 'design-still.webp' ),
+    media: serviceMedia( 'design', [ 'still', 'reel', 'still-3', 'reel-2', 'still-2' ] ),
   },
   {
     name: 'Performance marketing',
     detail: 'Paid campaigns, tracked and tuned',
     reel: { src: media( 'marketing-reel.mp4' ), poster: media( 'marketing-reel-poster.webp' ) },
     still: media( 'marketing-still.webp' ),
+    media: serviceMedia( 'marketing', [ 'reel', 'still', 'reel-3', 'still-2', 'reel-2' ] ),
   },
   {
     name: 'Social media management',
     detail: 'Calendars, posting and community',
     reel: { src: media( 'social-reel.mp4' ), poster: media( 'social-reel-poster.webp' ) },
     still: media( 'social-still.webp' ),
+    media: serviceMedia( 'social', [ 'reel', 'still', 'reel-3', 'still-2', 'reel-2' ] ),
   },
   {
     name: 'Web design',
     detail: 'Websites and landing pages',
     reel: { src: media( 'web-reel.mp4' ), poster: media( 'web-reel-poster.webp' ) },
     still: media( 'web-still.webp' ),
+    media: serviceMedia( 'web', [ 'still', 'reel', 'still-3', 'reel-2', 'still-2' ] ),
   },
   {
     name: 'AI generated content',
     detail: 'AI UGC, synthetic media, virtual production',
     reel: { src: media( 'ai-reel.mp4' ), poster: media( 'ai-reel-poster.webp' ) },
     still: media( 'ai-still.webp' ),
+    media: serviceMedia( 'ai', [ 'reel', 'still', 'reel-3', 'still-2', 'reel-2' ] ),
   },
 ]
 

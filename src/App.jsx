@@ -9,7 +9,7 @@ import { Manifesto } from './sections/Manifesto'
 import { ServicesAccordion } from './sections/ServicesAccordion'
 import { ServicesDrum } from './sections/ServicesDrum'
 import { TuneSelect } from './sections/TuneSelect'
-import { ClientStack } from './sections/ClientStack'
+import { ClientLoop } from './sections/ClientLoop'
 import { Marquee } from './sections/Marquee'
 import { Footer } from './sections/Footer'
 import { normalizeServicesStyle } from './servicesStyle'
@@ -60,7 +60,7 @@ export default function App() {
         ? <ServicesAccordion />
         // The flat drums: one layout per ?tune choice, keyed so each mounts its own scroll triggers.
         : <ServicesDrum key={ servicesStyle } variant={ servicesStyle } /> }
-      <ClientStack />
+      <ClientLoop />
       { TUNE_REQUESTED && <TuneSelect value={ servicesStyle } onChange={ switchServicesStyle } /> }
       <Marquee />
       <Footer />

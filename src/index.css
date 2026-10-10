@@ -141,9 +141,12 @@ a {
 
 .nav-pill {
   pointer-events: auto;
-  display: flex;
+  /* Three equal columns: brand left, links dead-center on the pill, CTA right.
+     A flex row centered the links in the leftover space, which shifted them
+     whenever the brand and CTA widths differed. */
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 1.5rem;
   width: min(100%, 880px);
   padding: 0.5rem 0.5rem 0.5rem 0.75rem;
   border: 1px solid var(--line);
@@ -155,8 +158,10 @@ a {
 
 .nav-brand {
   display: inline-flex;
+  justify-self: start;
   align-items: center;
   gap: 0.6rem;
+  min-width: 0;
   font-weight: 600;
   text-decoration: none;
   white-space: nowrap;
@@ -170,19 +175,37 @@ a {
 
 .nav-links {
   display: flex;
-  flex: 1;
   justify-content: center;
-  gap: 2rem;
+  gap: 2.25rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .nav-links a {
+  position: relative;
   color: var(--cream-dim);
   font-size: 0.9rem;
   text-decoration: none;
   transition: color 0.3s;
+}
+
+/* Thin underline grows in on hover, so the links read as one deliberate group. */
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.35rem;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.4s ease;
+}
+
+.nav-links a:hover::after {
+  transform: scaleX(1);
 }
 
 .nav-links a:hover {
@@ -190,6 +213,7 @@ a {
 }
 
 .nav-cta {
+  justify-self: end;
   min-height: 40px;
   padding: 0.5rem 1rem;
 }
@@ -572,55 +596,54 @@ a {
   }
 }
 
-/* ---------- Desire: stacking client cards ---------- */
-.stack-section {
-  padding-bottom: calc(var(--section-y) / 2);
+/* ---------- Desire: client logo loop ---------- */
+/* The row is cut at the section edges and fades out at both ends, so logos melt in and out of the loop. */
+.clients {
+  overflow: hidden;
 }
 
-.stack-card {
-  position: sticky;
-  top: calc(16svh + var(--i) * 28px);
-  height: 62svh;
-  min-height: 360px;
-  margin-bottom: 12svh;
+.clients-loop {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
 }
 
-.stack-inner {
+/* Two groups side by side; GSAP moves the track by one group's width for a seamless loop. */
+.clients-track {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2rem;
-  height: 100%;
-  padding: 2rem;
-  border: 1px solid var(--line);
-  border-radius: 28px;
-  background: linear-gradient(160deg, #13261d, var(--felt-soft));
-  transform-origin: center top;
+  width: max-content;
+  will-change: transform;
 }
 
-.stack-inner img {
-  width: min(60%, 360px);
-  max-height: 140px;
+.clients-group {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.clients-group li {
+  display: flex;
+  align-items: center;
+  padding-right: clamp(3rem, 8vw, 7rem);
+}
+
+/* Logos start greyed out and dim, then light up in full colour on hover. */
+.clients-group img {
+  display: block;
+  width: auto;
+  height: clamp(40px, 6vw, 72px);
+  max-width: none;
   object-fit: contain;
   filter: brightness(1.7) grayscale(1);
+  opacity: 0.7;
+  transition: filter 0.7s ease-out, opacity 0.7s ease-out, transform 0.7s ease-out;
 }
 
-.stack-name {
-  margin: 0;
-  font-size: clamp(2rem, 5vw, 4.5rem);
-  font-weight: 600;
-  letter-spacing: -0.035em;
-  text-align: center;
-}
-
-.stack-next {
-  background: var(--lime);
-  color: var(--ink);
-}
-
-.stack-next .stack-name {
-  color: var(--ink);
+.clients-group li:hover img {
+  filter: none;
+  opacity: 1;
+  transform: scale(1.05);
 }
 
 /* ---------- Marquee ---------- */
@@ -876,13 +899,6 @@ a {
   color: var(--cream);
 }
 
-.drum-index {
-  min-width: 2.2rem;
-  font-size: 0.85rem;
-  color: var(--lime);
-  font-variant-numeric: tabular-nums;
-}
-
 /* Fixed text column, so every card lines up at the same x whatever the name's length. */
 .drum-text {
   display: flex;
@@ -959,6 +975,66 @@ a {
   aspect-ratio: 16 / 9;
 }
 
+/* Names drum: the active service's five pieces run to the right of the names. The strip scrolls sideways
+   so a visitor can reach all five, and fades out at its right edge. */
+.drum-strip {
+  flex: 0 0 min(50vw, 760px);
+  display: flex;
+  gap: 1rem;
+  align-self: center;
+  min-width: 0;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  padding-block: 0.25rem;
+  -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent);
+  mask-image: linear-gradient(90deg, #000 85%, transparent);
+}
+
+.drum-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.drum-strip-tile {
+  position: relative;
+  flex: 0 0 min(26vw, 340px);
+  aspect-ratio: 4 / 5;
+  margin: 0;
+  scroll-snap-align: start;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--felt-soft);
+  border: 1px solid var(--line);
+}
+
+.drum-strip-tile img,
+.drum-strip-tile video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Tiles rise and fade in one after another each time the strip changes. */
+@media (prefers-reduced-motion: no-preference) {
+  .drum-strip-tile {
+    animation: drum-strip-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(var(--n, 0) * 70ms);
+  }
+}
+
+@keyframes drum-strip-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* The select on ?tune: fixed bottom-right, like the review panel. */
 .tune-select {
   position: fixed;
@@ -1008,11 +1084,6 @@ a {
     padding: 0.7rem 0;
   }
 
-  /* No numbering on phones: the names carry it. */
-  .drum-index {
-    display: none;
-  }
-
   /* The text column shrinks and wraps inside its share, so a long name can never run under the reel tile. */
   .drum-text {
     flex: 1 1 0;
@@ -1035,6 +1106,18 @@ a {
     max-height: 40svh;
   }
 
+  /* Strip above the column on phones: full width, tiles sized so about two show at once. */
+  .drum-strip {
+    flex: none;
+    width: 100%;
+    max-height: 36svh;
+    gap: 0.6rem;
+  }
+
+  .drum-strip-tile {
+    flex: 0 0 44vw;
+  }
+
   /* The compact select sits at the bottom edge so it covers less of the drum. */
   .tune-select {
     right: 0.75rem;
@@ -1049,10 +1132,16 @@ a {
     width: 34vw;
   }
 
-  /* No colour/opacity transitions on the moving rows: they restart style work while the scroll is running. */
+  /* No colour/detail transitions on phones: they restart style work while the scroll is running. */
   .drum-row,
   .drum-detail {
     transition: none;
+  }
+
+  /* Stepped drum (ServicesDrum adds .is-stepped on phones): JS sets each row's slot only when the centre row
+     changes; this transition glides it there on the compositor, so no JS runs per scroll frame. */
+  .services-drum.is-stepped .drum-row {
+    transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.45s;
   }
 
   /* The drum's mask and the page's fixed film grain are re-composited on every scroll frame; drop both here. */
@@ -1101,5 +1190,30 @@ a {
 
   .drum-detail {
     opacity: 1;
+  }
+
+  /* Clients: no loop, so the logos wrap into a centred row and the duplicate group is hidden. */
+  .clients-loop {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .clients-track {
+    flex-wrap: wrap;
+    justify-content: center;
+    width: auto;
+    row-gap: 2rem;
+  }
+
+  /* Only one set of logos shows as a still row; the repeats and the duplicate group are loop-only. */
+  .clients-group[aria-hidden="true"],
+  .clients-repeat {
+    display: none;
+  }
+
+  .clients-group {
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 2rem;
   }
 }

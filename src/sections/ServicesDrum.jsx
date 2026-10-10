@@ -21,6 +21,28 @@ function ReelTile( { service, isActive, hasReel, reelRef } ) {
   )
 }
 
+// The five pieces of one service, shown to the right of the names. Only the first reel mounts a <video>
+// (the drum's one-reel rule); the other reels show their poster until the strip is wider than the screen.
+// Keyed by service in the parent, so the strip remounts and its entrance replays on each new active row.
+function MediaStrip( { service, hasReel, reelRef } ) {
+  let reelUsed = false
+  return (
+    <div className="drum-strip" aria-hidden="true">
+      { service.media.map( ( piece, index ) => {
+        const playable = piece.type === 'video' && hasReel && !reelUsed
+        if ( playable ) reelUsed = true
+        return (
+          <figure className="drum-strip-tile" style={ { '--n': index } } key={ `${ service.name }-${ index }` }>
+            { playable
+              ? <video ref={ reelRef } src={ piece.src } poster={ piece.poster } muted loop playsInline preload="auto" />
+              : <img src={ piece.type === 'video' ? piece.poster : piece.src } alt="" loading="lazy" decoding="async" /> }
+          </figure>
+        )
+      } ) }
+    </div>
+  )
+}
+
 // Desire, ?tune draft: the six services on a flat drum. The section sticks for one screen while the
 // scroll slides the column up past the centre line, one service per step. The row at the centre is
 // active: lit, its detail shown, and its reel plays once the scroll settles while the drum is on screen.
@@ -57,6 +79,9 @@ export function ServicesDrum( { variant } ) {
     // Phone address-bar show/hide must not trigger a ScrollTrigger refresh (re-measure) mid-scroll.
     ScrollTrigger.config( { ignoreMobileResize: true } )
     const reduced = window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches
+    // Phones step between rows instead of scrubbing (same breakpoint as the phone CSS in index.css).
+    const stepped = window.matchMedia( '(max-width: 767px)' ).matches
+    root.classList.toggle( 'is-stepped', stepped && !reduced )
     const state = playback.current
     let rowPx = 0
     let active = 0
@@ -76,19 +101,28 @@ export function ServicesDrum( { variant } ) {
       setActiveIndex( next )
     }
 
-    // Rows move with translate3d; rows fully faded out are skipped. Pauses the reel while the scroll moves.
-    const render = ( progress ) => {
-      const turn = progress * ( rows.length - 1 )
+    // Places every row for a turn (fractional row index at the centre line). Rows fully faded out keep their
+    // old transform unless `all` is set (stepped mode needs every row placed so its CSS transition is right).
+    const placeRows = ( turn, all ) => {
       rows.forEach( ( row, index ) => {
         const { y, opacity } = flatDrumRow( index - turn, { rowPx, visible: VISIBLE_ROWS } )
-        if ( opacity === 0 ) {
+        if ( opacity === 0 && !all ) {
           if ( row.style.opacity !== '0' ) row.style.opacity = '0'
           return
         }
         row.style.transform = `translate3d(0, calc(-50% + ${ y }px), 0)`
         row.style.opacity = opacity
       } )
-      setActive( flatDrumActive( progress, rows.length ) )
+    }
+
+    // Desktop: rows track the scroll continuously. Phones (stepped): JS writes the row styles only when the
+    // centre row changes, and a CSS transition glides them to their new slots on the compositor. Moving rows from
+    // scroll events lags the native touch scroll by a frame or more, which read as ~30fps on phones.
+    const render = ( progress, force ) => {
+      const next = flatDrumActive( progress, rows.length )
+      if ( !stepped ) placeRows( progress * ( rows.length - 1 ), false )
+      else if ( force || next !== active ) placeRows( next, true )
+      setActive( next )
     }
 
     // The reel pauses for the length of each scroll and resumes once the scroll has rested for SETTLE_MS.
@@ -139,16 +173,17 @@ export function ServicesDrum( { variant } ) {
       },
       onRefresh: ( self ) => {
         measure()
-        render( self.progress )
+        render( self.progress, true )
       },
     } )
-    render( slideTrigger.progress )
+    render( slideTrigger.progress, true )
 
     return () => {
       window.clearTimeout( state.timer )
       slideTrigger.kill()
       viewTrigger.kill()
       document.body.classList.remove( 'drum-in-view' )
+      root.classList.remove( 'is-stepped' )
       state.inView = false
       reelRef.current?.pause()
     }
@@ -169,7 +204,6 @@ export function ServicesDrum( { variant } ) {
               const isActive = index === activeIndex
               return (
                 <li className={ `drum-row${ isActive ? ' is-active' : '' }` } key={ service.name }>
-                  <span className="drum-index">{ String( index + 1 ).padStart( 2, '0' ) }</span>
                   <span className="drum-text">
                     <span className="drum-name">{ service.name }</span>
                     <span className="drum-detail">{ service.detail }</span>
@@ -179,6 +213,9 @@ export function ServicesDrum( { variant } ) {
               )
             } ) }
           </ol>
+          { variant === 'drum-names' && (
+            <MediaStrip key={ SERVICES[ activeIndex ].name } service={ SERVICES[ activeIndex ] } hasReel={ activeIndex === reelIndex } reelRef={ reelRef } />
+          ) }
           { variant === 'drum-media' && (
             <div className="drum-media" aria-hidden="true">
               { SERVICES.map( ( service, index ) => (

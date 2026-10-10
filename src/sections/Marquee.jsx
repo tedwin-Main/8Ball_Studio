@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef } from 'react'
-import gsap from 'gsap'
+import { startMarqueeLoop } from '../marqueeLoop'
 import { ChartLineUp, Browser, ChatsCircle, PenNib, Sparkle, VideoCamera } from '@phosphor-icons/react'
 import { SERVICES } from '../content'
 
@@ -13,8 +13,7 @@ export function Marquee() {
   useLayoutEffect( () => {
     // Reduced-motion visitors get a still row.
     if ( window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches ) return undefined
-    const tween = gsap.to( trackRef.current, { xPercent: -50, ease: 'none', duration: 28, repeat: -1 } )
-    return () => tween.kill()
+    return startMarqueeLoop( trackRef.current )
   }, [] )
 
   const row = SERVICES.map( ( service, index ) => {

@@ -5,7 +5,8 @@ import { CONTACT_CHANNELS, PRIMARY_CONTACT } from '../content'
 export function Footer() {
   return (
     <footer className="footer" id="footer">
-      <div className="section footer-cta">
+      {/* id="contact" lives here now: the Nav's Contact link points at this call to action. */}
+      <div className="section footer-cta" id="contact">
         <h2 className="cta-title">Send us the brief.</h2>
         <div className="cta-actions">
           <a className="btn btn-lime btn-xl" href={ PRIMARY_CONTACT.href } target="_blank" rel="noreferrer">
