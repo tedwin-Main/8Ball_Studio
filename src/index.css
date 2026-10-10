@@ -868,6 +868,8 @@ a {
   padding: 0.6rem 0;
   color: var(--cream-dim);
   transition: color 0.6s;
+  /* Rows move on every scroll frame. Promoting them keeps those moves on the compositor, so the text is not re-rastered each frame. */
+  will-change: transform, opacity;
 }
 
 .drum-row.is-active {
@@ -1056,6 +1058,14 @@ a {
   body:has(.services-drum)::after {
     display: none;
   }
+
+  /* The nav's blur is re-rendered over the moving rows on every scroll frame, so while the drum is on screen
+     (ServicesDrum sets body.drum-in-view) the phone nav is a solid pill instead. */
+  body.drum-in-view .nav-pill {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: rgba(7, 17, 13, 0.92);
+  }
 }
 
 /* Reduced motion: a plain static list, the first row shown, no sticky stage. */
@@ -1080,6 +1090,7 @@ a {
     transform: none !important;
     opacity: 1 !important;
     transition: none;
+    will-change: auto;
   }
 
   .drum-detail {

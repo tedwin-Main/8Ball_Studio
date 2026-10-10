@@ -104,6 +104,8 @@ export function ServicesDrum( { variant } ) {
       end: 'bottom top',
       onToggle: ( self ) => {
         state.inView = self.isActive
+        // The phone nav goes solid while the drum is on screen (body.drum-in-view rule in index.css).
+        document.body.classList.toggle( 'drum-in-view', self.isActive )
         syncPlayback()
       },
     } )
@@ -112,6 +114,7 @@ export function ServicesDrum( { variant } ) {
     if ( reduced ) {
       return () => {
         viewTrigger.kill()
+        document.body.classList.remove( 'drum-in-view' )
         reelRef.current?.pause()
       }
     }
@@ -136,6 +139,7 @@ export function ServicesDrum( { variant } ) {
       window.clearTimeout( state.timer )
       slideTrigger.kill()
       viewTrigger.kill()
+      document.body.classList.remove( 'drum-in-view' )
       state.inView = false
       reelRef.current?.pause()
     }
