@@ -482,6 +482,161 @@
   object-fit: cover;
 }
 
+/* ---------- Services drum (?tune Services style): the six services on a vertical wheel ---------- */
+/* Replaces the panels when picked. The drum's screen sticks while the scroll turns it, one service
+   per --drum-step (flowMotion.js sets each face's turn and fade). --drum-radius is the cylinder's
+   radius as a share of the window's height: larger faces need a larger drum to keep apart. */
+.experience[data-look='acid'] .service-drum {
+  --drum-step: 50svh;
+  --drum-radius: 0.42;
+  position: relative;
+  display: block;
+  height: calc(100svh + 5 * var(--drum-step));
+}
+
+.experience[data-look='acid'] .service-drum-stage {
+  position: sticky;
+  top: 0;
+  display: grid;
+  height: 100svh;
+  column-gap: clamp(16px, 2vw, 32px);
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1fr);
+  padding: clamp(96px, 13vh, 140px) var(--gutter) clamp(40px, 7vh, 72px);
+  border-top: 1px solid color-mix(in srgb, var(--an-paper) 14%, transparent);
+  background: var(--an-black);
+  transform-origin: 50% 0;
+}
+
+/* The fade at the drum's start and end: faces dissolve as they turn over the top and under the bottom. */
+.experience[data-look='acid'] .service-drum-window {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  grid-column: 1 / -1;
+  list-style: none;
+  perspective: 1400px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 30%, #000 70%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 30%, #000 70%, transparent);
+}
+
+.experience[data-look='acid'] .service-drum-face {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  display: grid;
+  gap: clamp(8px, 1.4vh, 16px);
+  justify-items: center;
+  text-align: center;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+}
+
+.experience[data-look='acid'] .service-drum-name {
+  color: color-mix(in srgb, var(--an-paper) 50%, transparent);
+  font-family: var(--font);
+  font-size: clamp(48px, 7.4vw, 140px);
+  font-stretch: 62%;
+  font-weight: 900;
+  line-height: 0.86;
+  text-transform: uppercase;
+  text-wrap: balance;
+  transition: color 300ms ease;
+}
+
+.experience[data-look='acid'] .service-drum-face.is-active .service-drum-name {
+  color: var(--an-acid);
+}
+
+/* The detail line shows only on the front face (cards keep theirs, below). */
+.experience[data-look='acid'] .service-drum-detail {
+  color: color-mix(in srgb, var(--an-paper) 78%, transparent);
+  font-family: var(--ui-font);
+  font-size: clamp(17px, 1.4vw, 22px);
+  font-stretch: var(--ui-stretch);
+  font-weight: var(--ui-weight);
+  letter-spacing: var(--ui-tracking);
+  line-height: 1.3;
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+.experience[data-look='acid'] .service-drum-face.is-active .service-drum-detail {
+  opacity: 1;
+}
+
+/* Names + media: the drum on the left, the front service's reel crossfading in on the right. */
+.experience[data-look='acid'][data-services-style='drum-media'] .service-drum {
+  --drum-radius: 0.5;
+}
+
+.experience[data-look='acid'][data-services-style='drum-media'] .service-drum-window {
+  grid-column: 1 / 7;
+}
+
+.experience[data-look='acid'][data-services-style='drum-media'] .service-drum-face {
+  justify-items: start;
+  text-align: left;
+}
+
+.experience[data-look='acid'][data-services-style='drum-media'] .service-drum-name {
+  font-size: clamp(30px, 3.4vw, 64px);
+}
+
+.experience[data-look='acid'] .service-drum-media {
+  position: relative;
+  grid-column: 7 / -1;
+}
+
+.experience[data-look='acid'] .service-drum-media .service-tile {
+  position: absolute;
+  inset: 0;
+  height: auto;
+  aspect-ratio: auto;
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+
+.experience[data-look='acid'] .service-drum-media .service-tile.is-active {
+  opacity: 1;
+}
+
+/* Cards: each face is the service's name and detail beside a wide tile; the whole card turns. */
+.experience[data-look='acid'][data-services-style='drum-cards'] .service-drum {
+  --drum-radius: 1.6;
+}
+
+.experience[data-look='acid'][data-services-style='drum-cards'] .service-drum-face {
+  max-width: 1000px;
+  margin-inline: auto;
+  align-items: center;
+  column-gap: clamp(20px, 3vw, 48px);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  justify-items: start;
+  text-align: left;
+}
+
+.experience[data-look='acid'][data-services-style='drum-cards'] .service-drum-name {
+  grid-row: 1;
+  align-self: end;
+  font-size: clamp(36px, 4vw, 76px);
+}
+
+.experience[data-look='acid'][data-services-style='drum-cards'] .service-drum-detail {
+  grid-row: 2;
+  align-self: start;
+  opacity: 1;
+}
+
+.experience[data-look='acid'][data-services-style='drum-cards'] .service-drum-face .service-tile {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  grid-column: 2;
+  grid-row: 1 / 3;
+}
+
 /* ---------- Projects: black, the clients' logos run past in white (after airrlabs.com) ---------- */
 /* Black from its first pixel, like a partner wall: no cards, just each client's logo, minimal and
    pure white, sliding by in the run. A paper hairline marks the sheet's edge as it rises over the
@@ -1015,6 +1170,31 @@
   .experience[data-look='acid'] .service-tile {
     height: min(105vw, 58svh);
   }
+
+  /* Drum on phones: names + media stacks the reel above the drum; cards stack the tile under the name. */
+  .experience[data-look='acid'][data-services-style='drum-media'] .service-drum-stage {
+    row-gap: 16px;
+    grid-template-rows: 40svh minmax(0, 1fr);
+  }
+
+  .experience[data-look='acid'][data-services-style='drum-media'] .service-drum-media {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .experience[data-look='acid'][data-services-style='drum-media'] .service-drum-window {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .experience[data-look='acid'][data-services-style='drum-cards'] .service-drum-face {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .experience[data-look='acid'][data-services-style='drum-cards'] .service-drum-face .service-tile {
+    grid-column: 1;
+    grid-row: 3;
+  }
 }
 
 /* Short landscape screens keep the side-by-side panel, sized to the height. */
@@ -1064,7 +1244,7 @@
     display: block;
   }
 
-  .experience[data-look='acid'] .service-panels {
+  .experience[data-look='acid'] :is(.service-panels, .service-drum) {
     display: none;
   }
 }

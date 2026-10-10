@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { getRunDistance, getRunScrollTarget, liftAt, sectionAt, skewFromVelocity } from './flowMath.js'
+import { drumFace, getRunDistance, getRunScrollTarget, liftAt, sectionAt, skewFromVelocity } from './flowMath.js'
 
 test( 'the Projects run slides the track by its overflow, never backwards', () =>
 {
@@ -55,4 +55,14 @@ test( 'velocity leans the content, clamped both ways, upright without a velocity
   assert.equal( skewFromVelocity( -100, feel ), -4 )
   assert.equal( skewFromVelocity( Number.NaN, feel ), 0 )
   assert.equal( skewFromVelocity( 10, { gain: 0.35, maxDeg: 0 } ), 0 )
+} )
+
+test( 'a drum face turns away and fades the further it is from the front', () =>
+{
+  const drum = { stepDeg: 24, visible: 2.5 }
+  assert.deepEqual( drumFace( 0, drum ), { angle: -0, opacity: 1 } )
+  // Below the front tips back (negative angle), above tips forward, both half faded at 1.25 faces.
+  assert.deepEqual( drumFace( 1.25, drum ), { angle: -30, opacity: 0.5 } )
+  assert.deepEqual( drumFace( -1.25, drum ), { angle: 30, opacity: 0.5 } )
+  assert.equal( drumFace( 4, drum ).opacity, 0 )
 } )

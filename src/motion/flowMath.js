@@ -29,6 +29,13 @@ export function getRunScrollTarget ( { sectionTop, runDistance, boardLeft, board
   return Math.round( sectionTop + progress * runDistance )
 }
 
+// A face on the Services drum, `offset` faces from the front (negative: above it). It turns
+// stepDeg per face around the drum's axis and fades out `visible` faces from the front.
+export function drumFace ( offset, { stepDeg, visible } )
+{
+  return { angle: -offset * stepDeg, opacity: Math.max( 0, 1 - Math.abs( offset ) / visible ) }
+}
+
 // Which part of the Story sits under a line at scroll position y (the header, or the pointer):
 // the pinned stage, Services, Projects, or Contact. Starts are the scroll positions where each
 // section reaches that line.

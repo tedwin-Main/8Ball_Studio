@@ -134,6 +134,20 @@ export const LOOK_CONFIGS = Object.freeze( {
 export const LOOK_IDS = Object.freeze( Object.keys( LOOK_CONFIGS ) )
 export const DEFAULT_LOOK_ID = 'acid'
 
+// Main's Services layouts, tried from ?tune (?services=<id>): the pinned panels (the default), or the
+// six services on a vertical drum, carrying names beside the active reel, names alone, or cards.
+export const SERVICES_STYLES = Object.freeze( {
+  panels: 'Panels',
+  'drum-media': 'Drum · names + media',
+  'drum-names': 'Drum · names',
+  'drum-cards': 'Drum · cards',
+} )
+
+export function normalizeServicesStyle ( queryValue )
+{
+  return Object.hasOwn( SERVICES_STYLES, queryValue ?? '' ) ? queryValue : 'panels'
+}
+
 // Resolves a ?look= query value to a known look id, falling back to the default.
 export function normalizeLookId ( queryValue )
 {

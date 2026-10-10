@@ -978,8 +978,9 @@ button.tape:focus-visible {
 }
 
 /* The Services panels (one carousel per service) are Main's alone (acid.css); every other look
-   shows the ruled list. */
-.service-panels {
+   shows the ruled list. So is the Services drum (?tune). */
+.service-panels,
+.service-drum {
   display: none;
 }
 

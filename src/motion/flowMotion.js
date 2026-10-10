@@ -1,6 +1,6 @@
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { getRunDistance, getRunScrollTarget, liftAt, sectionAt } from './flowMath.js'
+import { drumFace, getRunDistance, getRunScrollTarget, liftAt, sectionAt } from './flowMath.js'
 
 gsap.registerPlugin( ScrollTrigger )
 
@@ -94,6 +94,99 @@ function createServicePanels ( { panels, scrub, scrollDriven } )
     } )
   } )
   return () => cleanups.forEach( ( cleanup ) => cleanup() )
+}
+
+// The Services drum's geometry: degrees between neighbouring faces, and how many faces from the
+// front a face has faded out (the window's mask fades the top and bottom on top of this).
+const DRUM = { stepDeg: 24, visible: 2.6 }
+
+/**
+ * The Services drum (?tune Services style, App.jsx, acid.css): the six services on a vertical wheel.
+ * Its screen sticks while the scroll turns the drum, one service per --drum-step of scroll. Each face
+ * sits on a cylinder of radius --drum-radius × the window's height; the face at the front is active
+ * (lit, its detail shown, its reel playing while the drum is on screen). Returns a cleanup.
+ */
+function createServiceDrum ( drum )
+{
+  const windowEl = drum.querySelector( '.service-drum-window' )
+  const faces = [ ...drum.querySelectorAll( '.service-drum-face' ) ]
+  // Names + media keeps one tile per service beside the drum; cards carry their own.
+  const sideTiles = [ ...drum.querySelectorAll( '.service-drum-media .service-tile' ) ]
+  const videos = ( sideTiles.length ? sideTiles : faces ).map( ( tile ) => tile.querySelector( 'video' ) )
+  let radius = 0
+  let active = -1
+  let inView = false
+
+  const measure = () =>
+  {
+    radius = windowEl.clientHeight * ( parseFloat( window.getComputedStyle( drum ).getPropertyValue( '--drum-radius' ) ) || 0.42 )
+  }
+
+  // Only the front service's reel plays, and only while the drum is on screen.
+  const play = () => videos.forEach( ( video, index ) =>
+  {
+    if ( !video ) return
+    if ( inView && index === active ) video.play()?.catch( () => {} )
+    else video.pause()
+  } )
+
+  const render = ( progress ) =>
+  {
+    const turn = progress * ( faces.length - 1 )
+    faces.forEach( ( face, index ) =>
+    {
+      const { angle, opacity } = drumFace( index - turn, DRUM )
+      // Pivot on the drum's axis (radius behind the screen), so the front face sits at its rest size.
+      face.style.transform = `translateY(-50%) translateZ(${-radius}px) rotateX(${angle}deg) translateZ(${radius}px)`
+      face.style.opacity = opacity
+      // Siblings paint in page order, not depth: the nearer the front, the higher it sits.
+      face.style.zIndex = Math.round( 100 - Math.abs( index - turn ) * 10 )
+    } )
+    const front = Math.round( turn )
+    if ( front === active ) return
+    active = front
+    faces.forEach( ( face, index ) => face.classList.toggle( 'is-active', index === active ) )
+    sideTiles.forEach( ( tile, index ) => tile.classList.toggle( 'is-active', index === active ) )
+    play()
+  }
+
+  measure()
+  const turnTrigger = ScrollTrigger.create( {
+    trigger: drum,
+    start: 'top top',
+    end: 'bottom bottom',
+    onUpdate: ( self ) => render( self.progress ),
+    onRefresh: ( self ) =>
+    {
+      measure()
+      render( self.progress )
+    },
+  } )
+  render( turnTrigger.progress )
+  const viewTrigger = ScrollTrigger.create( {
+    trigger: drum,
+    start: 'top bottom',
+    end: 'bottom top',
+    onToggle: ( self ) =>
+    {
+      inView = self.isActive
+      play()
+    },
+  } )
+
+  return () =>
+  {
+    turnTrigger.kill()
+    viewTrigger.kill()
+    videos.forEach( ( video ) => video?.pause() )
+    faces.forEach( ( face ) =>
+    {
+      face.style.removeProperty( 'transform' )
+      face.style.removeProperty( 'opacity' )
+      face.style.removeProperty( 'z-index' )
+    } )
+    faces.concat( sideTiles ).forEach( ( el ) => el.classList.remove( 'is-active' ) )
+  }
 }
 
 /**
@@ -198,9 +291,14 @@ export function createFlowMotion ( { root, motion, charRest, compact, touch = fa
   const servicePanels = panelList && window.getComputedStyle( panelList ).display !== 'none'
     ? gsap.utils.toArray( '.service-panel', panelList )
     : []
-  // What shrinks back as Projects rises: the whole Page, or, when Services is a tall run of panels,
-  // the last panel's screen (shrinking the tall Page from its top would slide the visible part up).
-  const servicesBack = servicePanels.at( -1 )?.querySelector( '.service-panel-sticky' ) ?? servicesInner
+  // The Services drum, when ?tune picks it over the panels (display: none in other looks and reduced motion).
+  const drumEl = services.querySelector( '.service-drum' )
+  const serviceDrum = drumEl && window.getComputedStyle( drumEl ).display !== 'none' ? drumEl : null
+  // What shrinks back as Projects rises: the whole Page, or, when Services is a tall run of panels
+  // or the drum, the last screen (shrinking the tall Page from its top would slide the visible part up).
+  const servicesBack = serviceDrum?.querySelector( '.service-drum-stage' )
+    ?? servicePanels.at( -1 )?.querySelector( '.service-panel-sticky' )
+    ?? servicesInner
 
   const titleScreen = root.querySelector( '.title-screen' )
   const stageBackdrop = root.querySelector( '.stage-backdrop' )
@@ -426,6 +524,7 @@ export function createFlowMotion ( { root, motion, charRest, compact, touch = fa
 
   // Main shows each service as a pinned panel with its own carousel instead of the list (hidden by CSS elsewhere).
   if ( servicePanels.length ) cleanups.push( createServicePanels( { panels: servicePanels, scrub: pinnedScrub, scrollDriven } ) )
+  if ( serviceDrum ) cleanups.push( createServiceDrum( serviceDrum ) )
   revealTitle( contact, '.contact-title .cue-char', 'top 75%', 'top 10%' )
 
   const rows = contact.querySelectorAll( '.contact-lead, .contact-primary, .contact-list li, .call-sheet-foot' )

@@ -10,14 +10,15 @@ import {
   subscribeTuning,
 } from '../motion/runtimeTuning'
 import { getDraftOptions } from '../drafts/draftRegistry'
-import { LOOK_CONFIGS, LOOK_IDS } from '../looks/lookRegistry'
+import { LOOK_CONFIGS, LOOK_IDS, SERVICES_STYLES } from '../looks/lookRegistry'
 
 const DRAFT_OPTIONS = getDraftOptions()
 
 // The ?tune panel, the owner's one place to try the site: the Intro Draft and the Look (visitors
 // always see Draft 01 in Main), then one slider per STORY_SETTINGS dial; "Copy values" gives
-// lines for src/storyTiming.js. Choosing a Draft or Look also writes ?draft= / ?look= to the URL.
-export default function TunePanel ( { activeDraft, onDraftChange, activeLook, onLookChange } )
+// lines for src/storyTiming.js. Choosing a Draft, Look or Services style also writes ?draft= / ?look= /
+// ?services= to the URL.
+export default function TunePanel ( { activeDraft, onDraftChange, activeLook, onLookChange, servicesStyle, onServicesStyleChange } )
 {
   const [ values, setValues ] = useState( getTuning )
   // Slider positions while dragging a scrub, before they are committed on release.
@@ -80,6 +81,12 @@ export default function TunePanel ( { activeDraft, onDraftChange, activeLook, on
             <span>Look</span>
             <select value={ activeLook } onChange={ ( event ) => onLookChange?.( event.target.value ) }>
               { LOOK_IDS.map( ( id ) => <option value={ id } key={ id }>{ LOOK_CONFIGS[ id ].label }</option> ) }
+            </select>
+          </label>
+          <label className="tune-panel-row tune-panel-choice">
+            <span>Services</span>
+            <select value={ servicesStyle } onChange={ ( event ) => onServicesStyleChange?.( event.target.value ) }>
+              { Object.entries( SERVICES_STYLES ).map( ( [ id, label ] ) => <option value={ id } key={ id }>{ label }</option> ) }
             </select>
           </label>
           { TUNING_FIELDS.map( ( field ) =>

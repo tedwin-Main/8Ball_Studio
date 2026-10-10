@@ -6,7 +6,7 @@ import { useStoryPager } from './hooks/useStoryPager'
 import { CursorBall } from './components/CursorBall'
 import { Preloader } from './components/Preloader'
 import { LookScenery } from './looks/LookScenery'
-import { DEFAULT_LOOK_ID, getLookBase, getLookConfig, getRevealVars, getThemeColor, normalizeLookId } from './looks/lookRegistry'
+import { DEFAULT_LOOK_ID, getLookBase, getLookConfig, getRevealVars, getThemeColor, normalizeLookId, normalizeServicesStyle } from './looks/lookRegistry'
 import { createFlowMotion, createNavSections } from './motion/flowMotion'
 import { createVelocitySkew } from './motion/velocitySkew'
 import { createIntroEntrance } from './motion/introEntrance'
@@ -49,6 +49,12 @@ const getInitialLook = () =>
 {
   if ( typeof window === 'undefined' ) return DEFAULT_LOOK_ID
   return normalizeLookId( new URLSearchParams( window.location.search ).get( 'look' ) )
+}
+
+const getInitialServicesStyle = () =>
+{
+  if ( typeof window === 'undefined' ) return 'panels'
+  return normalizeServicesStyle( new URLSearchParams( window.location.search ).get( 'services' ) )
 }
 
 // The Intro's small beats on the pinned timeline, in units as [start, duration] (the 8-ball hits the
@@ -166,6 +172,16 @@ const SERVICE_REELS = {
 }
 const serviceMedia = ( slug ) => SERVICE_REELS[ slug ].map( ( piece ) =>
   piece.startsWith( 'reel' ) ? serviceReel( `${slug}-${piece}` ) : serviceStill( `${slug}-${piece}` ) )
+// One sample piece as a tile: reels stay unloaded until flowMotion.js plays them.
+const renderServiceTile = ( item, key ) => (
+  <figure className="service-tile" key={ key }>
+    { item.type === 'video'
+      ? <video className="service-media" src={ item.src } poster={ item.poster } muted loop playsInline preload="none" />
+      : <img className="service-media" src={ item.src } alt="" loading="lazy" decoding="async" /> }
+  </figure>
+)
+// The drum styles show one piece per service: its first reel, so the drum always has motion beside it.
+const leadMedia = ( service ) => service.media.find( ( item ) => item.type === 'video' ) ?? service.media[ 0 ]
 
 // media: the service's carousel in Main (five sample pieces).
 const SERVICE_ITEMS = [
@@ -329,6 +345,8 @@ function App ()
   const activeDraftRef = useRef( getInitialDraft() )
   const [ activeDraft, setActiveDraft ] = useState( getInitialDraft )
   const [ activeLook, setActiveLook ] = useState( getInitialLook )
+  // Main's Services layout (?tune): the panels, or one of the drums.
+  const [ servicesStyle, setServicesStyle ] = useState( getInitialServicesStyle )
   // The layout sheet the look renders with: Main for Main and its themes (Espresso), else the look.
   const lookBase = getLookBase( activeLook )
   const [ activePage, setActivePage ] = useState( 'intro' )
@@ -469,6 +487,18 @@ function App ()
     setActiveLook( look )
   }, [ captureScrollSpot ] )
 
+  // Switch Main's Services layout the same way: no reload, the Story position kept.
+  const switchServicesStyle = useCallback( ( nextStyle ) =>
+  {
+    const style = normalizeServicesStyle( nextStyle )
+    captureScrollSpot()
+
+    const url = new URL( window.location.href )
+    url.searchParams.set( 'services', style )
+    window.history.replaceState( {}, '', `${url.pathname}${url.search}${url.hash}` )
+    setServicesStyle( style )
+  }, [ captureScrollSpot ] )
+
   const handleWebglUnavailable = useCallback( ( draftId ) =>
   {
     const config = getDraftConfig( draftId )
@@ -515,7 +545,7 @@ function App ()
       window.cancelAnimationFrame( refreshFrame )
       if ( restoreFrame ) window.cancelAnimationFrame( restoreFrame )
     }
-  }, [ activeDraft, activeLook, tuneVersion, seekProgress ] )
+  }, [ activeDraft, activeLook, servicesStyle, tuneVersion, seekProgress ] )
 
   // ?tune: glide and wheel distance apply to Lenis at once; a scrub change rebuilds the timelines.
   useEffect( () => subscribeTuning( ( next, previous ) =>
@@ -1011,7 +1041,7 @@ function App ()
       stopNavSections?.()
       animationContext.revert()
     }
-  }, [ activeLook, tuneVersion, getVelocity, scrollToY, subscribeScroll ] )
+  }, [ activeLook, servicesStyle, tuneVersion, getVelocity, scrollToY, subscribeScroll ] )
 
   // Top (and the wordmark, and Home) returns to the Intro as a clean cut: the night fades up, the
   // page jumps, and the Intro fades back in. Gliding back would play the whole break in reverse.
@@ -1054,6 +1084,7 @@ function App ()
       className={ `experience draft-${activeDraft}` }
       data-look={ lookBase }
       data-theme={ activeLook }
+      data-services-style={ servicesStyle }
       ref={ rootRef }
       data-story-page={ activePage }
       data-story-indicator-page={ indicatorPage }
@@ -1224,7 +1255,9 @@ function App ()
             {/* Main's Services panels: one per service, its title on the left and a carousel of its
                 work on the right. Each panel pins while its carousel runs sideways to the end, then
                 the next service scrolls up (flowMotion.js). Other looks and reduced motion show the
-                ruled list above instead (CSS). Reels load and play only while their panel runs. */}
+                ruled list above instead (CSS). Reels load and play only while their panel runs.
+                ?tune can swap them for a drum (servicesStyle), which takes the panels' place. */}
+            { servicesStyle === 'panels' ? (
             <div className="service-panels">
               { SERVICE_ITEMS.map( ( service, index ) => (
                 <article className="service-panel" key={ service.name } aria-labelledby={ `service-${index}` }>
@@ -1235,19 +1268,36 @@ function App ()
                     </div>
                     <div className="service-panel-window" aria-hidden="true">
                       <div className="service-panel-track">
-                        { service.media.map( ( item, mediaIndex ) => (
-                          <figure className="service-tile" key={ mediaIndex }>
-                            { item.type === 'video'
-                              ? <video className="service-media" src={ item.src } poster={ item.poster } muted loop playsInline preload="none" />
-                              : <img className="service-media" src={ item.src } alt="" loading="lazy" decoding="async" /> }
-                          </figure>
-                        ) ) }
+                        { service.media.map( renderServiceTile ) }
                       </div>
                     </div>
                   </div>
                 </article>
               ) ) }
             </div>
+            ) : (
+            /* The drum: the six services on a vertical wheel that the scroll turns, one service per
+               step, while its screen sticks; the window fades the faces out at the top and bottom
+               (flowMotion.js, acid.css). The front face is lit; its reel plays (media and cards). */
+            <div className="service-drum">
+              <div className="service-drum-stage">
+                <ol className="service-drum-window" aria-label="Services">
+                  { SERVICE_ITEMS.map( ( service ) => (
+                    <li className="service-drum-face" key={ service.name }>
+                      <span className="service-drum-name">{ service.name }</span>
+                      <span className="service-drum-detail">{ service.detail }</span>
+                      { servicesStyle === 'drum-cards' && renderServiceTile( leadMedia( service ) ) }
+                    </li>
+                  ) ) }
+                </ol>
+                { servicesStyle === 'drum-media' && (
+                  <div className="service-drum-media" aria-hidden="true">
+                    { SERVICE_ITEMS.map( ( service ) => renderServiceTile( leadMedia( service ), service.name ) ) }
+                  </div>
+                ) }
+              </div>
+            </div>
+            ) }
           </div>
         </div>
         {/* Dims Services as Projects rises over it (flowMotion.js). */}
@@ -1386,7 +1436,7 @@ function App ()
 
       { TUNE_REQUESTED && (
         <Suspense fallback={ null }>
-          <TunePanel activeDraft={ activeDraft } onDraftChange={ switchDraft } activeLook={ activeLook } onLookChange={ switchLook } />
+          <TunePanel activeDraft={ activeDraft } onDraftChange={ switchDraft } activeLook={ activeLook } onLookChange={ switchLook } servicesStyle={ servicesStyle } onServicesStyleChange={ switchServicesStyle } />
         </Suspense>
       ) }
     </main>

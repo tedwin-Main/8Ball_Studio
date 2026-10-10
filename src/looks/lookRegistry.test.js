@@ -6,6 +6,8 @@ import {
   DEFAULT_LOOK_ID,
   REVEALS,
   normalizeLookId,
+  normalizeServicesStyle,
+  SERVICES_STYLES,
   getLookConfig,
   getRevealVars,
   getThemeColor,
@@ -123,4 +125,11 @@ test( 'every look names the elements that read the pointer key light', () =>
     assert.equal( typeof LOOK_CONFIGS[ id ].keyLight, 'string', id )
     assert.ok( LOOK_CONFIGS[ id ].keyLight.length > 0, id )
   } )
+} )
+
+test( 'an unknown ?services= falls back to the panels', () =>
+{
+  Object.keys( SERVICES_STYLES ).forEach( ( id ) => assert.equal( normalizeServicesStyle( id ), id ) )
+  assert.equal( normalizeServicesStyle( null ), 'panels' )
+  assert.equal( normalizeServicesStyle( 'wheel' ), 'panels' )
 } )
