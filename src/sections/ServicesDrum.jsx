@@ -32,6 +32,7 @@ export function ServicesDrum( { variant } ) {
     let rowPx = 0
     let active = -1
     let inView = false
+    let settleTimer = 0
 
     // Row pitch: the tallest row plus the column gap, so rows never overlap.
     const measure = () => {
@@ -52,14 +53,26 @@ export function ServicesDrum( { variant } ) {
       play()
     }
 
+    // Scrolling stays light: rows fully faded out are skipped, rows move on the compositor (translate3d),
+    // and the reel is paused while the scroll moves and resumes once it settles, so no video decodes mid-scroll.
     const render = ( progress ) => {
       const turn = progress * ( rows.length - 1 )
       rows.forEach( ( row, index ) => {
         const { y, opacity } = flatDrumRow( index - turn, { rowPx, visible: VISIBLE_ROWS } )
-        row.style.transform = `translateY(calc(-50% + ${ y }px))`
+        if ( opacity === 0 ) {
+          if ( row.style.opacity !== '0' ) row.style.opacity = '0'
+          return
+        }
+        row.style.transform = `translate3d(0, calc(-50% + ${ y }px), 0)`
         row.style.opacity = opacity
       } )
       setActive( flatDrumActive( progress, rows.length ) )
+    }
+
+    const pauseWhileScrolling = () => {
+      videos.forEach( ( video ) => video.pause() )
+      window.clearTimeout( settleTimer )
+      settleTimer = window.setTimeout( play, 180 )
     }
 
     // Plays the active reel only while the drum is on screen.
@@ -87,7 +100,10 @@ export function ServicesDrum( { variant } ) {
       trigger: root,
       start: 'top top',
       end: 'bottom bottom',
-      onUpdate: ( self ) => render( self.progress ),
+      onUpdate: ( self ) => {
+        render( self.progress )
+        pauseWhileScrolling()
+      },
       onRefresh: ( self ) => {
         measure()
         render( self.progress )
@@ -96,6 +112,7 @@ export function ServicesDrum( { variant } ) {
     render( slideTrigger.progress )
 
     return () => {
+      window.clearTimeout( settleTimer )
       slideTrigger.kill()
       viewTrigger.kill()
       videos.forEach( ( video ) => video.pause() )

@@ -856,6 +856,7 @@ a {
 
 /* Each row sits at the centre of the window; JS offsets it by its distance from the front. */
 .drum-row {
+  will-change: transform, opacity;
   position: absolute;
   top: 50%;
   left: 0;
@@ -999,17 +1000,20 @@ a {
     padding: 0.7rem 0;
   }
 
+  /* No numbering on phones: the names carry it. */
   .drum-index {
-    min-width: 1.6rem;
-    font-size: 0.75rem;
+    display: none;
   }
 
+  /* The text column shrinks and wraps inside its share, so a long name can never run under the reel tile. */
   .drum-text {
-    flex: 1 1 auto;
+    flex: 1 1 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   .drum-name {
-    font-size: clamp(1.2rem, 5.6vw, 1.6rem);
+    font-size: clamp(1.1rem, 5vw, 1.5rem);
   }
 
   .drum-detail {
@@ -1033,8 +1037,18 @@ a {
 
   /* Cards: a small reel tile to the right of each name. */
   .services-drum.is-drum-cards .drum-row .drum-tile {
-    flex: 0 0 40vw;
-    width: 40vw;
+    flex: 0 0 34vw;
+    width: 34vw;
+  }
+
+  /* The drum's mask and the page's fixed film grain are re-composited on every scroll frame; drop both here. */
+  .drum-window {
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+
+  body:has(.services-drum)::after {
+    display: none;
   }
 }
 
