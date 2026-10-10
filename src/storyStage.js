@@ -5,7 +5,9 @@ const freeze = ( value ) => Object.freeze( value )
 const clamp = ( value ) => Math.min( 1, Math.max( 0, value ) )
 
 const VIEWPORTS_PER_UNIT = 3
-const APPROACH_END = 0.28
+// Where the 8-ball hits the rack. 0 → APPROACH_END is the roll, so raising it lengthens the roll's scroll.
+// .break in index.css is sized (372svh) so SCATTER keeps its 132svh; keep the two in step.
+const APPROACH_END = 0.40
 const SCATTER = 0.22
 const EXIT = 0.16
 const POCKET_CUT_LEAD = 0.04

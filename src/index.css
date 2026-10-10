@@ -203,8 +203,10 @@ a {
 /* ---------- Break hero: the pool table is the page's first chapter ---------- */
 .break {
   position: relative;
-  /* 300svh: the pinned stage holds for the first 200svh, then scrolls away under Statement. */
-  height: 300svh;
+  /* 372svh: scroll progress runs over the full height. The roll takes 240svh (APPROACH_END 0.40 of 0.62) and
+     the scatter 132svh (SCATTER 0.22 of 0.62). The stage stays pinned for the first 272svh, then scrolls away.
+     Keep in step with APPROACH_END / SCATTER in src/storyStage.js. */
+  height: 372svh;
 }
 
 .break-stage {
