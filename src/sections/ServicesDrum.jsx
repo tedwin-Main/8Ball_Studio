@@ -1,38 +1,62 @@
-import { useLayoutEffect, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { SERVICES } from '../content'
 import { flatDrumActive, flatDrumRow } from '../servicesStyle'
 
 // How many rows from the centre a row has faded out (the window's mask fades its edges on top of this).
 const VISIBLE_ROWS = 2.4
+// How long the scroll must rest before the reel plays again.
+const SETTLE_MS = 180
 
-// One service's reel tile: poster until it is the active row, then the reel plays (JS below).
-const ReelTile = ( { service } ) => (
-  <figure className="drum-tile">
-    <video src={ service.reel.src } poster={ service.reel.poster } muted loop playsInline preload="none" />
-  </figure>
-)
+// One service's tile: its poster image always, and the reel only while it is the active row. Only one
+// <video> is mounted at a time, so the page decodes a single reel instead of six.
+function ReelTile( { service, isActive, reelRef } ) {
+  return (
+    <figure className={ `drum-tile${ isActive ? ' is-active' : '' }` }>
+      <img src={ service.reel.poster } alt="" loading="lazy" decoding="async" />
+      { isActive && (
+        <video ref={ reelRef } src={ service.reel.src } muted loop playsInline preload="auto" />
+      ) }
+    </figure>
+  )
+}
 
 // Desire, ?tune draft: the six services on a flat drum. The section sticks for one screen while the
-// scroll slides the column up past the centre line, one service per step (--drum-step). The row at the
-// centre is active: lit, its detail shown, its reel playing while the drum is on screen.
+// scroll slides the column up past the centre line, one service per step. The row at the centre is
+// active: lit, its detail shown, and its reel plays once the scroll settles while the drum is on screen.
 // variant: 'drum-media' (names, with the active reel beside them), 'drum-names' (names alone),
 // 'drum-cards' (each row is a card carrying its own reel).
 export function ServicesDrum( { variant } ) {
   const rootRef = useRef( null )
+  const reelRef = useRef( null )
+  const [ activeIndex, setActiveIndex ] = useState( 0 )
+  // Playback state lives in a ref, so scroll frames never re-render the drum.
+  const playback = useRef( { allowed: true, inView: false, scrolling: false, timer: 0 } )
+
+  // The one mounted reel plays only when playback is allowed, the drum is on screen, and the scroll is at rest.
+  const syncPlayback = useCallback( () => {
+    const video = reelRef.current
+    if ( !video ) return
+    const { allowed, inView, scrolling } = playback.current
+    if ( allowed && inView && !scrolling ) video.play()?.catch( () => {} )
+    else video.pause()
+  }, [] )
+
+  // A new active row mounts a new <video>; start it if it should be playing.
+  useEffect( () => {
+    syncPlayback()
+  }, [ activeIndex, syncPlayback ] )
 
   useLayoutEffect( () => {
     const root = rootRef.current
     const windowEl = root.querySelector( '.drum-window' )
     const rows = [ ...root.querySelectorAll( '.drum-row' ) ]
-    const sideTiles = [ ...root.querySelectorAll( '.drum-media .drum-tile' ) ]
-    // The reels that play: the side tiles (names + media) or the rows' own (cards).
-    const videos = [ ...root.querySelectorAll( '.drum-tile video' ) ]
     const reduced = window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches
+    const state = playback.current
     let rowPx = 0
-    let active = -1
-    let inView = false
-    let settleTimer = 0
+    let active = 0
+    state.allowed = !reduced
+    state.scrolling = false
 
     // Row pitch: the tallest row plus the column gap, so rows never overlap.
     const measure = () => {
@@ -40,21 +64,14 @@ export function ServicesDrum( { variant } ) {
       rowPx = Math.max( ...rows.map( ( row ) => row.offsetHeight ) ) + gap
     }
 
-    const play = () => videos.forEach( ( video, index ) => {
-      if ( inView && index === active ) video.play()?.catch( () => {} )
-      else video.pause()
-    } )
-
+    // Re-renders only when the centre row changes (about six times in a run), not on every frame.
     const setActive = ( next ) => {
       if ( next === active ) return
       active = next
-      rows.forEach( ( row, index ) => row.classList.toggle( 'is-active', index === active ) )
-      sideTiles.forEach( ( tile, index ) => tile.classList.toggle( 'is-active', index === active ) )
-      play()
+      setActiveIndex( next )
     }
 
-    // Scrolling stays light: rows fully faded out are skipped, rows move on the compositor (translate3d),
-    // and the reel is paused while the scroll moves and resumes once it settles, so no video decodes mid-scroll.
+    // Rows move with translate3d; rows fully faded out are skipped. Pauses the reel while the scroll moves.
     const render = ( progress ) => {
       const turn = progress * ( rows.length - 1 )
       rows.forEach( ( row, index ) => {
@@ -69,29 +86,33 @@ export function ServicesDrum( { variant } ) {
       setActive( flatDrumActive( progress, rows.length ) )
     }
 
+    // The reel pauses for the length of each scroll and resumes once the scroll has rested for SETTLE_MS.
     const pauseWhileScrolling = () => {
-      videos.forEach( ( video ) => video.pause() )
-      window.clearTimeout( settleTimer )
-      settleTimer = window.setTimeout( play, 180 )
+      state.scrolling = true
+      syncPlayback()
+      window.clearTimeout( state.timer )
+      state.timer = window.setTimeout( () => {
+        state.scrolling = false
+        syncPlayback()
+      }, SETTLE_MS )
     }
 
-    // Plays the active reel only while the drum is on screen.
+    // Reel playback only while the drum is on screen.
     const viewTrigger = ScrollTrigger.create( {
       trigger: root,
       start: 'top bottom',
       end: 'bottom top',
       onToggle: ( self ) => {
-        inView = self.isActive
-        play()
+        state.inView = self.isActive
+        syncPlayback()
       },
     } )
 
-    // Reduced motion: a plain list (CSS), the first service active, no scroll-driven slide.
+    // Reduced motion: a plain list (CSS), the first service active, no scroll-driven slide and no autoplay.
     if ( reduced ) {
-      setActive( 0 )
       return () => {
         viewTrigger.kill()
-        videos.forEach( ( video ) => video.pause() )
+        reelRef.current?.pause()
       }
     }
 
@@ -112,12 +133,13 @@ export function ServicesDrum( { variant } ) {
     render( slideTrigger.progress )
 
     return () => {
-      window.clearTimeout( settleTimer )
+      window.clearTimeout( state.timer )
       slideTrigger.kill()
       viewTrigger.kill()
-      videos.forEach( ( video ) => video.pause() )
+      state.inView = false
+      reelRef.current?.pause()
     }
-  }, [ variant ] )
+  }, [ variant, syncPlayback ] )
 
   return (
     <section
@@ -130,20 +152,25 @@ export function ServicesDrum( { variant } ) {
         <h2 id="services-title" className="section-title drum-title">What we make</h2>
         <div className="drum-body">
           <ol className="drum-window" aria-label="Services">
-            { SERVICES.map( ( service, index ) => (
-              <li className="drum-row" key={ service.name }>
-                <span className="drum-index">{ String( index + 1 ).padStart( 2, '0' ) }</span>
-                <span className="drum-text">
-                  <span className="drum-name">{ service.name }</span>
-                  <span className="drum-detail">{ service.detail }</span>
-                </span>
-                { variant === 'drum-cards' && <ReelTile service={ service } /> }
-              </li>
-            ) ) }
+            { SERVICES.map( ( service, index ) => {
+              const isActive = index === activeIndex
+              return (
+                <li className={ `drum-row${ isActive ? ' is-active' : '' }` } key={ service.name }>
+                  <span className="drum-index">{ String( index + 1 ).padStart( 2, '0' ) }</span>
+                  <span className="drum-text">
+                    <span className="drum-name">{ service.name }</span>
+                    <span className="drum-detail">{ service.detail }</span>
+                  </span>
+                  { variant === 'drum-cards' && <ReelTile service={ service } isActive={ isActive } reelRef={ reelRef } /> }
+                </li>
+              )
+            } ) }
           </ol>
           { variant === 'drum-media' && (
             <div className="drum-media" aria-hidden="true">
-              { SERVICES.map( ( service ) => <ReelTile service={ service } key={ service.name } /> ) }
+              { SERVICES.map( ( service, index ) => (
+                <ReelTile service={ service } isActive={ index === activeIndex } reelRef={ reelRef } key={ service.name } />
+              ) ) }
             </div>
           ) }
         </div>

@@ -856,7 +856,6 @@ a {
 
 /* Each row sits at the centre of the window; JS offsets it by its distance from the front. */
 .drum-row {
-  will-change: transform, opacity;
   position: absolute;
   top: 50%;
   left: 0;
@@ -928,6 +927,7 @@ a {
 }
 
 .drum-tile {
+  position: relative;
   margin: 0;
   border-radius: 16px;
   overflow: hidden;
@@ -935,7 +935,11 @@ a {
   border: 1px solid var(--line);
 }
 
+/* The poster image sits under the reel; the reel covers it once it is mounted and playing. */
+.drum-tile img,
 .drum-tile video {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
