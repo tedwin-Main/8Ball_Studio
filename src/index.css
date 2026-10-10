@@ -976,51 +976,65 @@ a {
   font: inherit;
 }
 
-/* Phones: the column fills the width, the reel tile sits above it, cards shrink. */
+/* Phones: the same sticky drum as desktop. The reel (names + media) sits above the column; cards sit to the
+   right of their names; the centre row is still the active one. */
 @media (max-width: 767px) {
-  .services-drum {
-    height: auto;
+  /* The drum takes the screen: the title is small, the stage has only the nav's clearance. */
+  .drum-stage {
+    gap: 0.75rem;
+    padding: 4.5rem var(--gutter) 1rem;
   }
 
-  .drum-stage {
-    position: static;
-    height: auto;
-    gap: 1.25rem;
+  .drum-title {
+    font-size: 2rem;
   }
 
   .drum-body {
     flex-direction: column;
-  }
-
-  .drum-window {
-    position: static;
-    mask-image: none;
-    -webkit-mask-image: none;
+    gap: 0.75rem;
   }
 
   .drum-row {
-    position: static;
-    transform: none !important;
-    opacity: 1 !important;
+    gap: 0.85rem;
+    padding: 0.7rem 0;
+  }
+
+  .drum-index {
+    min-width: 1.6rem;
+    font-size: 0.75rem;
+  }
+
+  .drum-text {
+    flex: 1 1 auto;
+  }
+
+  .drum-name {
+    font-size: clamp(1.2rem, 5.6vw, 1.6rem);
   }
 
   .drum-detail {
-    opacity: 1;
+    font-size: 0.85rem;
   }
 
+  /* The reel stays in view above the column, 16:9, never taller than a third of the screen. */
   .drum-media {
     flex: none;
     width: 100%;
+    max-height: 40svh;
   }
 
-  .services-drum.is-drum-cards .drum-row {
-    flex-direction: column;
-    align-items: flex-start;
+  /* The compact select sits at the bottom edge so it covers less of the drum. */
+  .tune-select {
+    right: 0.75rem;
+    bottom: 0.75rem;
+    padding: 0.35rem 0.55rem;
+    font-size: 0.75rem;
   }
 
+  /* Cards: a small reel tile to the right of each name. */
   .services-drum.is-drum-cards .drum-row .drum-tile {
-    flex: none;
-    width: 100%;
+    flex: 0 0 40vw;
+    width: 40vw;
   }
 }
 
