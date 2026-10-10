@@ -469,6 +469,16 @@ const advanceBalls = ( balls, duration, config ) =>
   } )
 }
 
+// Roll spin faster than the no-slip value for the ball's speed (|v| / R) drops to that value. It only ever removes
+// spin energy, so it never adds energy. Slower spin is left for cloth friction to settle. Side spin (wy) is kept.
+const dropOverSpin = ( ball, radius ) =>
+{
+  const speed = magnitude2( ball.vx, ball.vz )
+  if ( magnitude2( ball.wx, ball.wz ) <= speed / radius ) return
+  ball.wx = ball.vz / radius
+  ball.wz = -ball.vx / radius
+}
+
 const resolveBallCollision = ( first, second, nx, nz, config, diagnostics ) =>
 {
   const relativeX = second.vx - first.vx
@@ -509,6 +519,11 @@ const resolveBallCollision = ( first, second, nx, nz, config, diagnostics ) =>
 
   first.wy += radius * tangentImpulse / firstInertia
   second.wy += radius * tangentImpulse / secondInertia
+
+  // The 8-ball checks up at contact: spin faster than its new speed allows is dropped, so it stops spinning
+  // instead of spinning on while it barely moves. The rack balls keep their spin.
+  if ( first.checksUp ) dropOverSpin( first, radius )
+  if ( second.checksUp ) dropOverSpin( second, radius )
 
   diagnostics.ballImpacts += 1
   diagnostics.maxEnergyCorrection = Math.max(
@@ -878,6 +893,8 @@ export function createBreakSimulation ( suppliedConfig = {} )
     pocketIndex: -1,
     pocketTime: 0,
     pocketDepth: 0,
+    // Ball 0 is the 8-ball; contact with it re-syncs its roll spin (see resolveBallCollision).
+    checksUp: index === 0,
   } ) )
   const tableGeometry = createTableGeometry( config )
   const rackBounds = {
