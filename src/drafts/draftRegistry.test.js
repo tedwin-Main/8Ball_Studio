@@ -1,46 +1,23 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {
-  DRAFT_CONFIGS,
-  DRAFT_IDS,
-  normalizeDraftId,
-  getDraftOptions,
-  getDraftConfig,
-} from './draftRegistry.js'
+import { DRAFT_CONFIGS, DRAFT_IDS, normalizeDraftId } from './draftRegistry.js'
 
-test( 'draftRegistry exports consolidated active drafts', () =>
+test( 'the Intro has one draft: 01 3D POV', () =>
 {
-  assert.deepEqual( DRAFT_IDS, [ 'cinematic', 'photoreal', 'original' ] )
-  assert.equal( Object.keys( DRAFT_CONFIGS ).length, 3 )
+  assert.deepEqual( DRAFT_IDS, [ 'cinematic' ] )
+  assert.equal( DRAFT_CONFIGS.cinematic.label, '01 3D POV' )
 } )
 
-test( 'normalizeDraftId handles direct IDs, aliases, and invalid fallbacks', () =>
+test( 'normalizeDraftId falls back to the one draft, so retired drafts still render', () =>
 {
   assert.equal( normalizeDraftId( 'cinematic' ), 'cinematic' )
-  assert.equal( normalizeDraftId( 'photoreal' ), 'photoreal' )
-  assert.equal( normalizeDraftId( 'original' ), 'original' )
-
-  // Legacy aliases map correctly
+  // Retired 02 (3D Break, photoreal) and 03 (Original) links, and the old aliases, show 01.
+  assert.equal( normalizeDraftId( 'photoreal' ), 'cinematic' )
+  assert.equal( normalizeDraftId( 'original' ), 'cinematic' )
+  assert.equal( normalizeDraftId( 'webgl' ), 'cinematic' )
+  assert.equal( normalizeDraftId( 'classic' ), 'cinematic' )
   assert.equal( normalizeDraftId( 'photo' ), 'cinematic' )
-  assert.equal( normalizeDraftId( 'webgl' ), 'photoreal' )
-  assert.equal( normalizeDraftId( 'classic' ), 'photoreal' )
-
-  // Invalid / null
   assert.equal( normalizeDraftId( null ), 'cinematic' )
   assert.equal( normalizeDraftId( undefined ), 'cinematic' )
-  assert.equal( normalizeDraftId( 'nonexistent' ), 'cinematic' )
-} )
-
-test( 'getDraftOptions returns labels and IDs for all drafts', () =>
-{
-  const options = getDraftOptions()
-  assert.equal( options.length, 3 )
-  assert.deepEqual( options.map( ( o ) => o.id ), DRAFT_IDS )
-  assert.equal( options.find( ( o ) => o.id === 'photoreal' )?.label, '02 3D Break' )
-} )
-
-test( 'getDraftConfig returns correct fallback metadata', () =>
-{
-  assert.equal( getDraftConfig( 'photoreal' ).fallbackId, 'cinematic' )
-  assert.equal( getDraftConfig( 'cinematic' ).fallbackId, null )
+  assert.equal( normalizeDraftId( 'toString' ), 'cinematic' )
 } )

@@ -5,7 +5,7 @@
    every smaller word is Archivo 700 at 85% width, in sentence case. Thin orbit rings hang
    behind Studio.
    It is the one look whose palette changes along the Story: Studio is ink, Services is black,
-   Projects is black with the clients' logos in white, and Contact is the Pool Table look's table under its lamp, in the black hall.
+   Projects is black with the clients' logos in white, and Contact is a table under its lamp, in the black hall.
    Each Page is a sheet in its own colour from its first pixel, so a Handoff
    cuts cleanly at the sheet's edge and never shows a mid-tone (the Sheet Rule in DESIGN.md).
    ========================================================================== */
@@ -16,7 +16,7 @@
   --an-felt: #0b5b3b;
   --an-night: #07110d;
   /* The black of Services, Projects and the header over them; the empty tile; Studio's pointer
-     glow; Contact's hall. Tokens so a theme over Main (themes.css) can re-colour them. */
+     glow; Contact's hall. Tokens, so the colours live in one place. */
   --an-black: #000;
   --an-tile: #111;
   --an-glow: rgb(48 145 96 / 0.12);
@@ -756,9 +756,9 @@
   outline-color: var(--an-paper);
 }
 
-/* ---------- Contact: the Pool Table look's table under its lamp ---------- */
-/* The last Page is laid on the Pool Table look's table (LookScenery.jsx draws it; its plate geometry,
-   cloth and pockets come from downlight.css). The hall is black from Contact's first pixel, so
+/* ---------- Contact: the table under its lamp ---------- */
+/* The last Page is laid on the table (LookScenery.jsx draws it; its plate geometry,
+   cloth and pockets come from contact-table.css). The hall is black from Contact's first pixel, so
    Projects still lifts off a sheet in its own colour. Type is ivory on the cloth, the WhatsApp
    action a dark outlined chip, and the 8-ball drops into the table's own top-right pocket. */
 .experience[data-look='acid'] .contact-screen {
@@ -772,7 +772,7 @@
 }
 
 /* Main has no Draft or Look controls under the table, so on every screen the table takes the room
-   down to a small margin (downlight.css keeps space for them). Higher specificity: downlight.css loads later. */
+   down to a small margin (contact-table.css keeps space for them). Higher specificity: contact-table.css loads later. */
 .experience[data-look='acid'] .contact-screen.cyc {
   --hall-bottom: clamp(28px, 6vh, 64px);
 }
@@ -797,7 +797,7 @@
   pointer-events: none;
 }
 
-/* ---------- The table's finish (Main's Contact only; the render itself is downlight.css) ---------- */
+/* ---------- The table's finish (Main's Contact only; the render itself is contact-table.css) ---------- */
 /* A touch more depth in the render: deeper cloth and richer walnut. Static, so it is drawn once. */
 .experience[data-look='acid'] .contact-screen .dl-table {
   filter: saturate(1.08) contrast(1.06);
@@ -823,7 +823,7 @@
   font-size: clamp(60px, 8.6vw, 160px);
 }
 
-/* Overhead light: a soft shadow straight under each letter, as on the Pool Table. */
+/* Overhead light: a soft shadow straight under each letter, as on the table. */
 .experience[data-look='acid'] .contact-title .cue-char {
   text-shadow: 0 0 14px rgb(0 0 0 / 0.45);
 }
@@ -911,7 +911,7 @@
 }
 
 /* The closing shot drops the 8-ball into the table's top-right corner pocket (centre and size are
-   shares of the plate, as in downlight.css), not a drawn hole beside the title. */
+   shares of the plate, as in contact-table.css), not a drawn hole beside the title. */
 .experience[data-look='acid'] .contact-pocket {
   top: calc(var(--plate-h) * 0.1113 - var(--rail));
   right: auto;

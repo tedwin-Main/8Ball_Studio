@@ -9,16 +9,12 @@ import {
   setTuning,
   subscribeTuning,
 } from '../motion/runtimeTuning'
-import { getDraftOptions } from '../drafts/draftRegistry'
-import { LOOK_CONFIGS, LOOK_IDS, SERVICES_STYLES } from '../looks/lookRegistry'
+import { SERVICES_STYLES } from '../looks/lookRegistry'
 
-const DRAFT_OPTIONS = getDraftOptions()
-
-// The ?tune panel, the owner's one place to try the site: the Intro Draft and the Look (visitors
-// always see Draft 01 in Main), then one slider per STORY_SETTINGS dial; "Copy values" gives
-// lines for src/storyTiming.js. Choosing a Draft, Look or Services style also writes ?draft= / ?look= /
-// ?services= to the URL.
-export default function TunePanel ( { activeDraft, onDraftChange, activeLook, onLookChange, servicesStyle, onServicesStyleChange } )
+// The ?tune panel, the owner's one place to try the site: one Design list (Studio2, or a Main layout
+// of Services), then one slider per STORY_SETTINGS dial; "Copy values" gives lines for
+// src/storyTiming.js. Choosing a Main Design also writes ?services= to the URL.
+export default function TunePanel ( { servicesStyle, onServicesStyleChange } )
 {
   const [ values, setValues ] = useState( getTuning )
   // Slider positions while dragging a scrub, before they are committed on release.
@@ -46,6 +42,13 @@ export default function TunePanel ( { activeDraft, onDraftChange, activeLook, on
     setTuning( { [ key ]: value } )
   }
 
+  // Studio2 is its own page (studio2.html) with its own stylesheet, so picking it leaves Main.
+  const chooseDesign = ( id ) =>
+  {
+    if ( id === 'studio2' ) window.location.assign( '/studio2.html?tune' )
+    else onServicesStyleChange?.( id )
+  }
+
   const copy = async () =>
   {
     try
@@ -62,7 +65,7 @@ export default function TunePanel ( { activeDraft, onDraftChange, activeLook, on
   }
 
   return (
-    <aside className="tune-panel" aria-label="Draft, look and scroll feel tuning" data-lenis-prevent>
+    <aside className="tune-panel" aria-label="Design and scroll feel tuning" data-lenis-prevent>
       <div className="tune-panel-head">
         <strong>Tune</strong>
         <button type="button" onClick={ () => setOpen( ( current ) => !current ) } aria-expanded={ open }>
@@ -72,20 +75,8 @@ export default function TunePanel ( { activeDraft, onDraftChange, activeLook, on
       { open && (
         <>
           <label className="tune-panel-row tune-panel-choice">
-            <span>Intro draft</span>
-            <select value={ activeDraft } onChange={ ( event ) => onDraftChange?.( event.target.value ) }>
-              { DRAFT_OPTIONS.map( ( option ) => <option value={ option.id } key={ option.id }>{ option.label }</option> ) }
-            </select>
-          </label>
-          <label className="tune-panel-row tune-panel-choice">
-            <span>Look</span>
-            <select value={ activeLook } onChange={ ( event ) => onLookChange?.( event.target.value ) }>
-              { LOOK_IDS.map( ( id ) => <option value={ id } key={ id }>{ LOOK_CONFIGS[ id ].label }</option> ) }
-            </select>
-          </label>
-          <label className="tune-panel-row tune-panel-choice">
-            <span>Services</span>
-            <select value={ servicesStyle } onChange={ ( event ) => onServicesStyleChange?.( event.target.value ) }>
+            <span>Design</span>
+            <select value={ servicesStyle } onChange={ ( event ) => chooseDesign( event.target.value ) }>
               { Object.entries( SERVICES_STYLES ).map( ( [ id, label ] ) => <option value={ id } key={ id }>{ label }</option> ) }
             </select>
           </label>

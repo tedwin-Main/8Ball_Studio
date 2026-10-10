@@ -5,7 +5,7 @@ import { STAGE, toStoryProgress } from './storyStage.js'
 
 test( 'Story schedule exposes domain Page ids and stable targets', () =>
 {
-  const pages = getStoryPages( 'cinematic' )
+  const pages = getStoryPages()
   const { pinnedRange, servicesTop, projectsTop, documentRange } = getDefaultStoryLayout()
 
   assert.deepEqual( pages.map( ( page ) => page.id ), [ 'intro', 'studio', 'services', 'projects', 'contact' ] )
@@ -21,7 +21,7 @@ test( 'Story schedule exposes domain Page ids and stable targets', () =>
 
 test( 'Studio holds before the stage releases, and every Page starts after the one before it', () =>
 {
-  const pages = getStoryPages( 'cinematic' )
+  const pages = getStoryPages()
   const { pinnedRange, documentRange } = getDefaultStoryLayout()
 
   // The release hold keeps Studio pinned past its stable mark before Services can take over.
@@ -41,32 +41,21 @@ test( 'Studio holds before the stage releases, and every Page starts after the o
 test( 'the handoff overlap is a valid layout: Services may start exactly where the stage releases', () =>
 {
   const layout = { viewport: 800, pinnedRange: 3600, servicesTop: 3600, projectsTop: 4400, contactTop: 6400, documentRange: 6400 }
-  const pages = getStoryPages( 'cinematic', layout )
+  const pages = getStoryPages( layout )
   assert.equal( pages[ 2 ].startProgress, 3200 / 6400 )
   assert.equal( pages[ 2 ].targetProgress, 3600 / 6400 )
   assert.equal( pages[ 3 ].targetProgress, 4400 / 6400 )
   assert.equal( pages[ 4 ].targetProgress, 1 )
   // Services cannot start before the stage's last screen begins, and Projects cannot precede it.
-  assert.throws( () => getStoryPages( 'cinematic', { ...layout, servicesTop: 3599 } ), /in order/ )
-  assert.throws( () => getStoryPages( 'cinematic', { ...layout, projectsTop: 3599 } ), /in order/ )
-} )
-
-test( 'Draft 2 gets its measured Studio threshold without moving stable targets', () =>
-{
-  const cinematicPages = getStoryPages( 'cinematic' )
-  const webglPages = getStoryPages( 'webgl' )
-
-  assert.ok( webglPages[ 1 ].startProgress > cinematicPages[ 1 ].startProgress )
-  assert.equal( webglPages[ 1 ].targetProgress, cinematicPages[ 1 ].targetProgress )
-  assert.equal( getStoryPages( 'original' )[ 1 ].startProgress, cinematicPages[ 1 ].startProgress )
-  assert.equal( getStudioStartUnits( 'photoreal' ), STAGE.pages.draft2StudioStart )
+  assert.throws( () => getStoryPages( { ...layout, servicesTop: 3599 } ), /in order/ )
+  assert.throws( () => getStoryPages( { ...layout, projectsTop: 3599 } ), /in order/ )
 } )
 
 test( 'measured layouts put Services, Projects and Contact on their real section tops', () =>
 {
   // 800px viewport, a 2800px pinned stage, and a Contact section taller than one screen.
   const layout = { viewport: 800, pinnedRange: 2800, servicesTop: 2800, projectsTop: 3600, contactTop: 4400, documentRange: 4700 }
-  const pages = getStoryPages( 'cinematic', layout )
+  const pages = getStoryPages( layout )
 
   assert.equal( pages[ 2 ].targetProgress, 2800 / 4700 )
   assert.equal( pages[ 3 ].targetProgress, 3600 / 4700 )
@@ -74,17 +63,17 @@ test( 'measured layouts put Services, Projects and Contact on their real section
   assert.equal( pages[ 4 ].targetProgress, 4400 / 4700 )
 
   // A short Contact section lands at the end of the page instead of past it.
-  const short = getStoryPages( 'cinematic', { ...layout, documentRange: 4300 } )
+  const short = getStoryPages( { ...layout, documentRange: 4300 } )
   assert.equal( short[ 4 ].targetProgress, 1 )
 } )
 
 test( 'invalid layouts are rejected', () =>
 {
   const layout = getDefaultStoryLayout()
-  assert.throws( () => getStoryPages( 'cinematic', { ...layout, documentRange: 0 } ), /documentRange/ )
-  assert.throws( () => getStoryPages( 'cinematic', { ...layout, projectsTop: Number.NaN } ), /projectsTop/ )
-  assert.throws( () => getStoryPages( 'cinematic', { ...layout, servicesTop: Number.NaN } ), /servicesTop/ )
-  assert.throws( () => getStoryPages( 'cinematic', { ...layout, contactTop: layout.projectsTop - 1 } ), /in order/ )
+  assert.throws( () => getStoryPages( { ...layout, documentRange: 0 } ), /documentRange/ )
+  assert.throws( () => getStoryPages( { ...layout, projectsTop: Number.NaN } ), /projectsTop/ )
+  assert.throws( () => getStoryPages( { ...layout, servicesTop: Number.NaN } ), /servicesTop/ )
+  assert.throws( () => getStoryPages( { ...layout, contactTop: layout.projectsTop - 1 } ), /in order/ )
 } )
 
 test( 'Story Page records and schedule are immutable', () =>

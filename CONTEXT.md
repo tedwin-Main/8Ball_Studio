@@ -13,11 +13,11 @@ A named, stable chapter in the Story: Intro, Studio, Services, Projects, or Cont
 _Avoid_: section, screen
 
 **Draft**:
-A selectable visual treatment of the Intro page, such as Cinematic, WebGL, or Original.
+The Intro page's visual treatment. Only Cinematic remains; `?draft=` values for retired drafts fall back to it.
 _Avoid_: version, mode
 
 **Look**:
-A whole-site visual theme over the one shared markup and motion: Main (the default), Cyc Wall, or Pool Table. Chosen with `?look=`, or in the `?tune` panel.
+A whole-site visual theme over the one shared markup and motion. Main is the only one left (the default); retired `?look=` values fall back to it. The `?tune` panel's Design list picks Main's Services layout, or Studio2 (its own page).
 _Avoid_: skin, theme (a look's per-Page palettes are its section themes)
 
 **Handoff**:

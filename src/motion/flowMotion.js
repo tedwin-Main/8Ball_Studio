@@ -247,8 +247,6 @@ export function createNavSections ( { root, onNavSection } )
  * 2. The Projects run: the section pins while its track of boards slides sideways, each board
  *    lifting (--lift) as it crosses the centre; the wall pushes in for depth while the title holds still.
  * 3. Projects → Contact: Projects scrolls away and Contact is uncovered from beneath it.
- *    A look with motion.handoff 'sameTable' (Pool Table) keeps one still table under all three
- *    Pages instead: Studio does not shrink or dim, and no sheet shows its own table while it moves.
  * 4. Titles are set with the look's own letter entrance; Contact's rows settle in.
  *
  * Every sheet arrives in its final colour: nothing here changes a Page's ground while it moves, so
@@ -307,14 +305,6 @@ export function createFlowMotion ( { root, motion, charRest, compact, touch = fa
   const projectsDepth = projects.querySelectorAll( ':scope .projects-sticky > .cyc-wall, :scope .projects-sticky > .look-scenery' )
   const contactInner = contact.querySelector( '.contact-inner' )
   const contactShade = contact.querySelector( '.contact-shade' )
-  // Pool Table: one table under every Page. The sheets still rise and uncover as in every look, but
-  // each Page's own hall and table stay hidden while they move, so the visitor sees one table that
-  // never moves and only the things on its cloth change. Each swap happens where the two tables
-  // cover the same pixels, so it cannot be seen.
-  const sameTable = motion.handoff === 'sameTable'
-  const studioItems = root.querySelectorAll( '.title-screen :is(.final-content, .studio-floor, .final-meta, .dl-balls)' )
-  const contactContent = contact.querySelector( '.contact-content' )
-  const contactSurface = contact.querySelectorAll( ':scope .contact-inner > .cyc-wall, :scope .contact-inner > .look-scenery' )
   const cleanups = []
   // Phones travel shorter: the same moves at a little over half the distance.
   const reach = compact ? 0.6 : 1
@@ -347,27 +337,14 @@ export function createFlowMotion ( { root, motion, charRest, compact, touch = fa
       duration: 1,
       ease: 'power2.out',
     }, 0 )
-  if ( sameTable )
-  {
-    // Studio's title, services, and resting balls clear off the cloth in the first half of the rise;
-    // Studio's table stays, full size and fully lit, under Services' incoming content. (A CSS
-    // variable, read in downlight.css, so the Studio cue keeps sole use of these items' opacity.)
-    riseOver
-      .fromTo( titleScreen, { '--studio-clear': 1 }, { '--studio-clear': 0, duration: 0.5, ease: 'power1.in' }, 0 )
-      // Services' own table switches on when its sheet reaches the top: exactly over Studio's.
-      .fromTo( services, { '--table-in': 0 }, { '--table-in': 1, duration: 0.001, ease: 'none' }, 0.999 )
-  }
-  else
-  {
-    riseOver
-      .fromTo( titleScreen, { scale: 1, yPercent: 0 }, {
-        scale: flow.shrinkScale,
-        yPercent: -flow.shrinkLiftPercent,
-        duration: 1,
-        ease: 'none',
-      }, 0 )
-      .fromTo( stageShade, { opacity: 0 }, { opacity: flow.shrinkDim, duration: 1, ease: 'none' }, 0 )
-  }
+  riseOver
+    .fromTo( titleScreen, { scale: 1, yPercent: 0 }, {
+      scale: flow.shrinkScale,
+      yPercent: -flow.shrinkLiftPercent,
+      duration: 1,
+      ease: 'none',
+    }, 0 )
+    .fromTo( stageShade, { opacity: 0 }, { opacity: flow.shrinkDim, duration: 1, ease: 'none' }, 0 )
 
   // ---- 1b. Services → Projects: the same rise over, one sheet on. ----
   const riseOverServices = gsap.timeline( {
@@ -379,24 +356,14 @@ export function createFlowMotion ( { root, motion, charRest, compact, touch = fa
       duration: 1,
       ease: 'power2.out',
     }, 0 )
-  if ( sameTable )
-  {
-    // One table: Services' type clears off the cloth, and Projects' table switches on at the top.
-    riseOverServices
-      .fromTo( servicesContent, { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.5, ease: 'power1.in' }, 0 )
-      .fromTo( projects, { '--table-in': 0 }, { '--table-in': 1, duration: 0.001, ease: 'none' }, 0.999 )
-  }
-  else
-  {
-    riseOverServices
-      .fromTo( servicesBack, { scale: 1, yPercent: 0 }, {
-        scale: flow.shrinkScale,
-        yPercent: -flow.shrinkLiftPercent,
-        duration: 1,
-        ease: 'none',
-      }, 0 )
-      .fromTo( servicesShade, { opacity: 0 }, { opacity: flow.shrinkDim, duration: 1, ease: 'none' }, 0 )
-  }
+  riseOverServices
+    .fromTo( servicesBack, { scale: 1, yPercent: 0 }, {
+      scale: flow.shrinkScale,
+      yPercent: -flow.shrinkLiftPercent,
+      duration: 1,
+      ease: 'none',
+    }, 0 )
+    .fromTo( servicesShade, { opacity: 0 }, { opacity: flow.shrinkDim, duration: 1, ease: 'none' }, 0 )
 
   // ---- 2. The Projects run. ----
   const runTrigger = () => ( {
@@ -409,7 +376,7 @@ export function createFlowMotion ( { root, motion, charRest, compact, touch = fa
   // Touch screens with scroll-driven animations: CSS slides the track from Projects' own scroll
   // timeline (styles.css, .is-scroll-driven) on the compositor, in step with native scrolling; the
   // wall push is left out there. Elsewhere GSAP scrubs the run.
-  const runScrollDriven = scrollDriven && !sameTable
+  const runScrollDriven = scrollDriven
   if ( runScrollDriven )
   {
     projects.classList.add( 'is-scroll-driven' )
@@ -418,9 +385,8 @@ export function createFlowMotion ( { root, motion, charRest, compact, touch = fa
   const run = runScrollDriven ? null : gsap.to( track, { x: () => -runDistance, ease: 'none', scrollTrigger: runTrigger() } )
   if ( !runScrollDriven )
   {
-    // Depth: the wall (or table) pushes in slightly. The title holds still while the boards run.
-    // (Not with one table: a pushed-in table would no longer match the next Page's.)
-    if ( projectsDepth.length && !sameTable ) gsap.fromTo( projectsDepth, { scale: 1 }, { scale: 1.04, ease: 'none', scrollTrigger: runTrigger() } )
+    // Depth: the wall pushes in slightly. The title holds still while the boards run.
+    if ( projectsDepth.length ) gsap.fromTo( projectsDepth, { scale: 1 }, { scale: 1.04, ease: 'none', scrollTrigger: runTrigger() } )
   }
 
   // Each board lifts as it crosses the centre; every look turns --lift into its own gesture.
@@ -464,34 +430,7 @@ export function createFlowMotion ( { root, motion, charRest, compact, touch = fa
     scrollTrigger: { trigger: contact, start: 'top bottom', end: 'top top', scrub, invalidateOnRefresh: true },
   } )
     .fromTo( contactInner, { yPercent: -flow.contactRevealOffsetPercent * reach }, { yPercent: 0, duration: 1, ease: 'none' }, 0 )
-  if ( sameTable )
-  {
-    // Contact's table is held above its sheet's top edge during the reveal: the sheet must not clip it.
-    contact.style.overflow = 'visible'
-    cleanups.push( () => contact.style.removeProperty( 'overflow' ) )
-    // Contact's table is held still on screen while its sheet comes up: this offset cancels the
-    // sheet's climb (one screen) less the inner screen's own settle, both linear in scroll.
-    uncover
-      .fromTo( contactSurface, { y: () => -window.innerHeight * ( 1 - flow.contactRevealOffsetPercent * reach / 100 ) }, {
-        y: 0,
-        duration: 1,
-        ease: 'none',
-      }, 0 )
-      // Contact's type comes up from under the bottom rail, never across the hall floor below the
-      // table: its bottom edge is clipped where its settled position ends, by the same offset.
-      // (Negative insets leave the top and sides free: the corner pocket's 8-ball sits above the box.)
-      .fromTo( contactContent, { clipPath: () => `inset(-50vh -50vw ${Math.round( window.innerHeight * ( 1 - flow.contactRevealOffsetPercent * reach / 100 ) )}px -50vw)` }, {
-        clipPath: 'inset(-50vh -50vw 0px -50vw)',
-        duration: 1,
-        ease: 'none',
-      }, 0 )
-      // Projects' table switches off as the reveal starts, when Contact's lies exactly beneath it.
-      .fromTo( projects, { '--table-out': 1 }, { '--table-out': 0, duration: 0.001, ease: 'none' }, 0 )
-  }
-  else
-  {
-    uncover.fromTo( contactShade, { opacity: flow.contactShade }, { opacity: 0, duration: 1, ease: 'none' }, 0 )
-  }
+  uncover.fromTo( contactShade, { opacity: flow.contactShade }, { opacity: 0, duration: 1, ease: 'none' }, 0 )
 
   // ---- 4. Titles in the look's own entrance, and Contact's rows settling in. ----
   // Rows fade with opacity, never visibility, so their links stay reachable by keyboard.
@@ -553,17 +492,6 @@ export function createFlowMotion ( { root, motion, charRest, compact, touch = fa
         ease: 'power2.out',
       } )
       .to( ball, { scale: 0.64, filter: 'brightness(0.55)', duration: 0.3, ease: 'power2.in' } )
-  }
-
-  if ( sameTable )
-  {
-    cleanups.push( () =>
-    {
-      titleScreen?.style.removeProperty( '--studio-clear' )
-      services.style.removeProperty( '--table-in' )
-      projects.style.removeProperty( '--table-in' )
-      projects.style.removeProperty( '--table-out' )
-    } )
   }
 
   return () => cleanups.forEach( ( cleanup ) => cleanup() )

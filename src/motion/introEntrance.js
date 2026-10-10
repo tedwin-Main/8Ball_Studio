@@ -18,12 +18,8 @@ const SHOT = Object.freeze( {
   shadowSeconds: 0.6,
 } )
 
-// The layer each Draft paints its table in. Draft 3 (Original) is drawn by the scrubbed timeline
-// itself, so it has no layer to push in.
-const DRAFT_LAYERS = Object.freeze( {
-  cinematic: '.draft-layer-2d',
-  photoreal: '.draft-layer-photoreal',
-} )
+// The layer the intro draft (01 3D POV) paints its table in.
+const DRAFT_LAYER = '.draft-layer-2d'
 
 // A text-shadow with every colour made fully transparent, so it can fade in to the real one.
 const transparentShadow = ( shadow ) =>
@@ -40,7 +36,7 @@ const transparentShadow = ( shadow ) =>
  * Only the words, the service lines, the prompt's parts and the Draft layer are touched: the
  * scrubbed Intro timeline owns `.hero-copy` and `.scroll-prompt` themselves.
  */
-export function createIntroEntrance ( { root, draftId } )
+export function createIntroEntrance ( { root } )
 {
   let played = false
   let timeline = null
@@ -51,7 +47,7 @@ export function createIntroEntrance ( { root, draftId } )
     const wordInners = gsap.utils.toArray( '.hero-word-inner', root )
     const services = gsap.utils.toArray( '.hero-services li', root )
     const prompt = gsap.utils.toArray( '.scroll-prompt > *', root )
-    const layer = DRAFT_LAYERS[ draftId ] ? root.querySelector( DRAFT_LAYERS[ draftId ] ) : null
+    const layer = root.querySelector( DRAFT_LAYER )
 
     // The words are clipped below their line only: open above and to the sides, so ascenders and
     // the title's soft shadow are never cut into boxes. The clip and the held shadow clear once

@@ -4,44 +4,28 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#07110d" />
-    <!-- The first frame is the Intro's night, never the browser's white, before any stylesheet loads. -->
+    <!-- The first frame is the break's night, never the browser's white, before any stylesheet loads. -->
     <style>html { background: #07110d; }</style>
-    <!-- Main's face (Archivo, titles and small text alike) is preloaded so the first frame never flashes
-         a fallback. Space Grotesk is preloaded too: it draws the numbers on the 3D balls in the Intro. -->
-    <link rel="preload" href="/fonts/archivo-latin-var.woff2" as="font" type="font/woff2" crossorigin />
+    <!-- Space Grotesk draws the numbers on the 3D balls in the break, so it is preloaded. -->
     <link rel="preload" href="/fonts/space-grotesk-latin-var.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23060907'/%3E%3Ccircle cx='32' cy='32' r='13' fill='%23f2f1e9'/%3E%3Ctext x='32' y='39' text-anchor='middle' font-family='Georgia' font-size='22' font-weight='700' fill='%23060907'%3E8%3C/text%3E%3C/svg%3E" />
-    <meta
-      name="description"
-      content="8ightBall Studio: video production, design, web, social and AI content for brands in Greater Kuala Lumpur."
-    />
+    <meta name="description" content="8ightBall Studio: video production, design, web, social and AI content for brands in Greater Kuala Lumpur." />
     <title>8ightBall Studio</title>
-    <!-- Canonical + social cards. SITE URL: change every https://8ightball.studio below to the real
-         domain once it is live; Open Graph and Twitter need absolute URLs, relative ones are not
-         resolved reliably by every scraper. The card image is public/og.jpg (1200x630). -->
+    <!-- SITE URL: change every https://8ightball.studio below to the real domain once it is live. -->
     <link rel="canonical" href="https://8ightball.studio/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="8ightBall Studio" />
     <meta property="og:title" content="8ightBall Studio" />
-    <meta
-      property="og:description"
-      content="Video production, design, web, social and AI content for brands in Greater Kuala Lumpur."
-    />
+    <meta property="og:description" content="Video production, design, web, social and AI content for brands in Greater Kuala Lumpur." />
     <meta property="og:url" content="https://8ightball.studio/" />
     <meta property="og:image" content="https://8ightball.studio/og.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="The 8ightBall Studio mark on a dark green ground." />
     <meta property="og:locale" content="en_MY" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="8ightBall Studio" />
-    <meta
-      name="twitter:description"
-      content="Video production, design, web, social and AI content for brands in Greater Kuala Lumpur."
-    />
+    <meta name="twitter:description" content="Video production, design, web, social and AI content for brands in Greater Kuala Lumpur." />
     <meta name="twitter:image" content="https://8ightball.studio/og.jpg" />
-    <!-- Structured data: tells Google this is a local creative studio, which feeds the knowledge
-         panel and local results. Contact details mirror PRODUCT.md. -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -52,11 +36,7 @@
         "image": "https://8ightball.studio/og.jpg",
         "email": "8ightball.studio@gmail.com",
         "telephone": "+60127837511",
-        "address": {
-          "@type": "PostalAddress",
-          "addressRegion": "Greater Kuala Lumpur",
-          "addressCountry": "MY"
-        },
+        "address": { "@type": "PostalAddress", "addressRegion": "Greater Kuala Lumpur", "addressCountry": "MY" },
         "areaServed": "Greater Kuala Lumpur, Malaysia",
         "sameAs": [ "https://www.instagram.com/8ightball.studio/" ]
       }
@@ -64,6 +44,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script type="module" src="/src/studio2/main.jsx"></script>
   </body>
 </html>

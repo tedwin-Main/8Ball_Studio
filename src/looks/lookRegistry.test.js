@@ -11,21 +11,11 @@ import {
   getLookConfig,
   getRevealVars,
   getThemeColor,
-  getLookBase,
 } from './lookRegistry.js'
 
-test( 'Espresso is a theme over Main: it renders with Main\'s layout sheet', () =>
+test( 'lookRegistry exposes Main as the only look, and the default', () =>
 {
-  assert.equal( getLookBase( 'espresso' ), 'acid' )
-  assert.equal( getLookBase( 'mono' ), 'acid' )
-  assert.equal( getLookBase( 'acid' ), 'acid' )
-  assert.equal( getLookBase( 'downlight' ), 'downlight' )
-  assert.equal( getLookBase( 'nope' ), 'acid' )
-} )
-
-test( 'lookRegistry exposes five looks in dropdown order, with Main as the default', () =>
-{
-  assert.deepEqual( LOOK_IDS, [ 'acid', 'espresso', 'mono', 'cyc', 'downlight' ] )
+  assert.deepEqual( LOOK_IDS, [ 'acid' ] )
   assert.equal( DEFAULT_LOOK_ID, 'acid' )
   assert.equal( LOOK_CONFIGS.acid.label, 'Main' )
 } )
@@ -35,8 +25,10 @@ test( 'normalizeLookId accepts known ids and falls back to the default', () =>
   LOOK_IDS.forEach( ( id ) => assert.equal( normalizeLookId( id ), id ) )
   assert.equal( normalizeLookId( null ), 'acid' )
   assert.equal( normalizeLookId( 'neon' ), 'acid' )
-  // Retired looks resolve to the default instead of rendering an unstyled page.
-  assert.equal( normalizeLookId( 'marker' ), 'acid' )
+  // Retired looks (Espresso, Mono, Cyc Wall, Pool Table) resolve to Main, so old links still render.
+  assert.equal( normalizeLookId( 'espresso' ), 'acid' )
+  assert.equal( normalizeLookId( 'downlight' ), 'acid' )
+  assert.equal( normalizeLookId( 'cyc' ), 'acid' )
   assert.equal( getLookConfig( 'nope' ).id, 'acid' )
   // Inherited object keys are not looks.
   assert.equal( normalizeLookId( 'toString' ), 'acid' )
@@ -51,7 +43,7 @@ test( 'every look names its chrome colour per Page', () =>
       assert.match( getThemeColor( id, pageId ), /^#[0-9a-f]{6}$/, `${id} ${pageId}` )
     } )
   } )
-  // Main runs ink → black → black → the Pool Table's black hall.
+  // Main runs ink → black → black → the Contact table's black hall.
   assert.deepEqual(
     [ 'studio', 'services', 'projects', 'contact' ].map( ( pageId ) => getThemeColor( 'acid', pageId ) ),
     [ '#070908', '#000000', '#000000', '#030403' ],
@@ -129,7 +121,16 @@ test( 'every look names the elements that read the pointer key light', () =>
 
 test( 'an unknown ?services= falls back to the panels', () =>
 {
-  Object.keys( SERVICES_STYLES ).forEach( ( id ) => assert.equal( normalizeServicesStyle( id ), id ) )
+  // Every Main layout in the Design list is its own value; Studio2 is a page, not a Main layout.
+  Object.keys( SERVICES_STYLES ).filter( ( id ) => id !== 'studio2' ).forEach( ( id ) => assert.equal( normalizeServicesStyle( id ), id ) )
   assert.equal( normalizeServicesStyle( null ), 'panels' )
   assert.equal( normalizeServicesStyle( 'wheel' ), 'panels' )
+  assert.equal( normalizeServicesStyle( 'studio2' ), 'panels' )
+} )
+
+test( 'the Design list starts with Studio2, then Main\'s four layouts', () =>
+{
+  assert.deepEqual( Object.keys( SERVICES_STYLES ), [ 'studio2', 'panels', 'drum-media', 'drum-names', 'drum-cards' ] )
+  assert.equal( SERVICES_STYLES.studio2, 'Studio2' )
+  assert.equal( SERVICES_STYLES.panels, 'Main · Panels' )
 } )

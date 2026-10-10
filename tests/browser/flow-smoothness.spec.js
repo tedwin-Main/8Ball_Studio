@@ -7,7 +7,7 @@ const VIEWPORT = Object.freeze( { width: 1440, height: 900 } )
 const SLOW_FRAME_MS = 20
 const MAX_SLOW_SHARE = 0.02
 
-// Frame pace needs the machine's real GPU. Under SwiftShader (software GL, which the Draft 2 WebGL
+// Frame pace needs the machine's real GPU. Under SwiftShader (software GL, which the WebGL
 // checks rely on) the CPU does the compositing, so the numbers measure the emulator, not the site:
 // on 2026-09-25 untouched main dropped 7–10% of frames there against 0–3% on the Apple M4 GPU.
 test.use( {
@@ -18,7 +18,7 @@ test.use( {
   },
 } )
 
-for ( const look of [ 'acid', 'cyc', 'downlight' ] )
+for ( const look of [ 'acid' ] )
 {
   test( `${look}: handoffs and the Projects run hold frame pace under the wheel`, async ( { page } ) =>
   {

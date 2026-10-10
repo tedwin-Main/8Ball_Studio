@@ -1,6 +1,3 @@
-import brandLogo from '../assets/8BALL-V4.jpg'
-import { BREAK_REST_BALLS, ballColor, ballKind, toLandscapeCloth } from './breakRest.js'
-
 // Look-specific set pieces drawn behind each Page's content: the room a look puts the Story in.
 // Everything here is decorative (aria-hidden, no pointer events); the Page content, headings, and
 // links stay in App.jsx so every look shares one accessible structure and one set of class hooks.
@@ -13,39 +10,13 @@ function AcidOrbits ( { rings } )
   return rings.map( ( ring ) => <span className={ `acid-orbit acid-orbit-${ring}` } key={ ring } /> )
 }
 
-// The balls the Intro break left on the table, seen from the lamp (src/looks/breakRest.js).
-// Painted in CSS (downlight.css) at the size of a real ball on this cloth; the striker is the logo ball.
-// Each ball's number spot turns a different way, as balls stop at random.
-function BreakRest ()
-{
-  return (
-    <div className="dl-balls">
-      { BREAK_REST_BALLS.map( ( ball ) =>
-      {
-        const { u, v } = toLandscapeCloth( ball )
-        const kind = ballKind( ball.number )
-        const style = {
-          left: `${( u * 100 ).toFixed( 2 )}%`,
-          top: `${( v * 100 ).toFixed( 2 )}%`,
-          '--ball': ballColor( ball.number ),
-          '--spin': `${( ball.number * 137 ) % 360}deg`,
-        }
-        if ( kind === 'striker' ) return <img className="dl-ball is-striker" src={ brandLogo } alt="" style={ style } key={ ball.number } />
-        return <span className={ `dl-ball is-${kind}` } data-number={ ball.number } style={ style } key={ ball.number } />
-      } ) }
-    </div>
-  )
-}
-
-// Pool Table (id downlight): the rendered table seen from the lamp, and the cloth laid over its bed.
-// Studio keeps the balls where the break left them; on later Pages the table is cleared for the work.
-function DownlightTable ( { page } )
+// Main's Contact table: the rendered pool table seen from the lamp (src/looks/contact-table.css), with
+// the cloth laid over its bed. Contact's type sits on the cloth.
+function ContactTable ()
 {
   return (
     <div className="dl-table">
       <div className="dl-cloth" />
-      {/* A sibling of the cloth, not a child: the cloth blends in soft-light, and the balls must not. */}
-      { page === 'studio' && <BreakRest /> }
     </div>
   )
 }
@@ -53,14 +24,8 @@ function DownlightTable ( { page } )
 const SCENES = {
   acid: {
     studio: () => <AcidOrbits rings={ [ 'one', 'two' ] } />,
-    // The last Page is the Pool Table look's table under the lamp: Contact is laid on its cloth.
-    contact: () => <DownlightTable page="contact" />,
-  },
-  downlight: {
-    studio: () => <DownlightTable page="studio" />,
-    services: () => <DownlightTable page="services" />,
-    projects: () => <DownlightTable page="projects" />,
-    contact: () => <DownlightTable page="contact" />,
+    // The last Page is laid on the lamp-lit table (the cloth and its rails).
+    contact: () => <ContactTable />,
   },
 }
 

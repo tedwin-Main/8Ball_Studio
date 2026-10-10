@@ -1,0 +1,95 @@
+/* ==========================================================================
+   Main's Contact table (src/looks/contact-table.css, formerly downlight.css). Main's last Page lies
+   on the Pool Table's cloth under one rectangular canopy lamp: a render of the Intro's own 3D table
+   (src/assets/looks/contact-table/table-landscape.webp, see the .json beside it) with its rails,
+   pockets and cushions, and the felt nap laid over the bed. The table keeps its real proportions,
+   centred in the black hall. Only Main's Contact uses these rules; the class names keep their old
+   dl- prefix (renaming is out of scope).
+   ========================================================================== */
+
+/* Where Main's Contact table lies. The rendered plate keeps its real proportions and is as large
+   as the clear space allows (the header above, the controls below, a side margin), centred in it.
+   The Contact type is laid on the cloth using these values. */
+.experience[data-look='acid'] .contact-screen {
+  --hall-top: clamp(84px, 11vh, 112px);
+  --hall-bottom: clamp(64px, 9vh, 84px);
+  --hall-side: clamp(14px, 3vw, 48px);
+  /* The plate's width ÷ height (2880 × 1545), and the rendered rail-and-cushion band from its edge to
+     the cushion noses, as shares of its width and height (the bake reports these). */
+  --plate-ratio: 1.8641;
+  --plate-w: min(calc(100vw - 2 * var(--hall-side)), calc((100svh - var(--hall-top) - var(--hall-bottom)) * var(--plate-ratio)));
+  --plate-h: calc(var(--plate-w) / var(--plate-ratio));
+  --tbl-side: calc((100vw - var(--plate-w)) / 2);
+  --tbl-top: calc(var(--hall-top) + (100svh - var(--hall-top) - var(--hall-bottom) - var(--plate-h)) / 2);
+  --tbl-bottom: calc(100svh - var(--tbl-top) - var(--plate-h));
+  --rail-x: calc(var(--plate-w) * 0.0682);
+  --rail: calc(var(--plate-h) * 0.1132);
+  --inset-x: calc(var(--tbl-side) + var(--rail-x) + clamp(12px, 3vw, 56px));
+  color: var(--ivory);
+}
+
+/* ---------- The table: the rendered plate, and the cloth laid over its bed ---------- */
+/* The table stays horizontal on every screen (Contact's type is laid across it). */
+.experience[data-look='acid'] .dl-table {
+  position: absolute;
+  top: var(--tbl-top);
+  left: var(--tbl-side);
+  width: var(--plate-w);
+  height: var(--plate-h);
+  background: url('../assets/looks/contact-table/table-landscape.webp') center / 100% 100% no-repeat;
+  /* The table's own shadow on the hall floor: straight down under the lamp, soft on every side. */
+  box-shadow: 0 0 70px 8px rgb(0 0 0 / 0.8);
+}
+
+/* The playing bed inside the cushion noses. The render already holds the lamp's light and the
+   cushions' shadows; the page adds the cloth's fine nap, and the pointer sways a faint warm
+   hotspot across it the way a lamp sways over play (soft-light, so it never lifts the dark). */
+.experience[data-look='acid'] .dl-cloth {
+  position: absolute;
+  inset: var(--rail) var(--rail-x);
+  background: radial-gradient(ellipse 34% 40% at calc(50% + (var(--lx, 50) - 50) * 0.2%) calc(50% + (var(--ly, 50) - 50) * 0.16%), rgb(255 236 200 / 0.2), transparent 72%);
+  mix-blend-mode: soft-light;
+}
+
+/* Worsted nap: a neutral grey tile baked from the Intro's own felt material (fibre plus faint dye
+   mottle; see felt-nap.webp.json), overlaid 1:1 on the rendered cloth. */
+.experience[data-look='acid'] .dl-cloth::after {
+  position: absolute;
+  inset: 0;
+  background: url('../assets/looks/contact-table/felt-nap.webp') 0 0 / 512px 512px;
+  content: '';
+  mix-blend-mode: overlay;
+  opacity: 0.5;
+}
+
+/* Pocket depth. The render draws each pocket as a near-flat black disc; from the lamp you see a little
+   of the leather liner's inner wall, so a warm ring sits just inside each rim, fading to black at the
+   bottom of the drop. Centres and radii are shares of the plate (measured on the 2880 × 1545 bake). */
+.experience[data-look='acid'] .dl-table::before {
+  --pocket-wall: transparent 0 52%, rgb(92 58 34 / 0.34) 84%, rgb(120 78 46 / 0.2) 93%, transparent 100%;
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(2.78% 5.18% at 6.84% 11.13%, var(--pocket-wall)),
+    radial-gradient(2.78% 5.18% at 93.16% 11.13%, var(--pocket-wall)),
+    radial-gradient(2.78% 5.18% at 6.84% 88.87%, var(--pocket-wall)),
+    radial-gradient(2.78% 5.18% at 93.16% 88.87%, var(--pocket-wall)),
+    radial-gradient(2.6% 4.85% at 50% 9.51%, var(--pocket-wall)),
+    radial-gradient(2.6% 4.85% at 50% 90.49%, var(--pocket-wall));
+  content: '';
+  pointer-events: none;
+}
+
+/* The lamp's falloff, over everything on the table: full light in the middle of the bed, darker toward
+   the cushions and the rails, as under a real canopy lamp. It also darkens the outer edges of the side
+   rails, which the bake leaves lighter than the end rails. Darkening only, so ivory type keeps its contrast. */
+.experience[data-look='acid'] .dl-table::after {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgb(0 0 0 / 0.34), transparent 6%, transparent 94%, rgb(0 0 0 / 0.34)),
+    radial-gradient(ellipse 64% 72% at 50% 50%, transparent 38%, rgb(0 0 0 / 0.36) 100%),
+    rgb(0 0 0 / 0.08);
+  content: '';
+  pointer-events: none;
+}

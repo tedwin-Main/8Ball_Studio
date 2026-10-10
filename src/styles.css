@@ -174,199 +174,6 @@ a:focus-visible {
   mix-blend-mode: multiply;
 }
 
-.camera-grid {
-  position: absolute;
-  z-index: 3;
-  inset: 0;
-  opacity: 0.12;
-  pointer-events: none;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.14) 1px, transparent 1px);
-  background-size: 12.5vw 12.5vw;
-  mask-image: linear-gradient(to bottom, transparent 3%, #000 20%, #000 80%, transparent 97%);
-}
-
-.ambient {
-  position: absolute;
-  z-index: 1;
-  border-radius: 50%;
-  filter: blur(90px);
-  pointer-events: none;
-}
-
-.ambient-one {
-  top: -15vh;
-  left: 16vw;
-  width: 48vw;
-  height: 35vh;
-  background: rgba(141, 218, 129, 0.16);
-}
-
-.ambient-two {
-  right: -12vw;
-  bottom: -18vh;
-  width: 38vw;
-  height: 46vh;
-  background: rgba(0, 0, 0, 0.5);
-}
-
-.pool-table {
-  position: absolute;
-  z-index: 2;
-  top: 54%;
-  left: 50%;
-  width: min(86vw, 1200px);
-  aspect-ratio: 1.86;
-  transform-style: preserve-3d;
-  will-change: transform;
-}
-
-.table-shadow {
-  position: absolute;
-  inset: 6% 2% -10%;
-  border-radius: 9%;
-  background: rgba(0, 0, 0, 0.72);
-  filter: blur(34px);
-  transform: translateZ(-70px) translateY(42px);
-}
-
-.table-frame {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  border: clamp(13px, 2.15vw, 31px) solid #131613;
-  border-radius: clamp(28px, 3.1vw, 48px);
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.14), transparent 17%),
-    linear-gradient(135deg, #384139, #111512 42%, #262d27 72%, #090b09);
-  box-shadow:
-    inset 0 0 0 2px rgba(255, 255, 255, 0.14),
-    inset 0 0 0 clamp(5px, 0.8vw, 12px) rgba(0, 0, 0, 0.7),
-    0 44px 75px rgba(0, 0, 0, 0.62);
-}
-
-.wood-grain {
-  position: absolute;
-  z-index: 1;
-  inset: 0;
-  opacity: 0.36;
-  background:
-    repeating-linear-gradient(2deg, transparent 0 7px, rgba(255, 255, 255, 0.05) 8px, transparent 9px 15px),
-    repeating-linear-gradient(91deg, transparent 0 24px, rgba(0, 0, 0, 0.28) 25px, transparent 27px 46px);
-  mix-blend-mode: overlay;
-}
-
-.felt {
-  position: absolute;
-  z-index: 2;
-  inset: clamp(11px, 1.4vw, 21px);
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.13);
-  border-radius: clamp(14px, 1.55vw, 25px);
-  background:
-    radial-gradient(circle at 42% 45%, rgba(70, 180, 124, 0.31), transparent 31%),
-    linear-gradient(126deg, #116344 0%, #0b4d34 52%, #073822 100%);
-  box-shadow:
-    inset 0 0 54px rgba(0, 0, 0, 0.52),
-    inset 0 0 0 2px rgba(0, 0, 0, 0.38);
-}
-
-.felt::before {
-  position: absolute;
-  inset: 0;
-  opacity: 0.23;
-  pointer-events: none;
-  content: '';
-  background-image:
-    repeating-radial-gradient(circle at 0 0, transparent 0 2px, rgba(255, 255, 255, 0.08) 3px, transparent 4px),
-    repeating-linear-gradient(112deg, transparent 0 4px, rgba(0, 0, 0, 0.08) 5px, transparent 7px);
-  background-size: 9px 9px, 13px 13px;
-  mix-blend-mode: soft-light;
-}
-
-.felt-light {
-  position: absolute;
-  top: -18%;
-  left: 12%;
-  width: 60%;
-  height: 68%;
-  border-radius: 50%;
-  background: rgba(211, 255, 218, 0.09);
-  filter: blur(45px);
-  transform: rotate(-9deg);
-}
-
-.head-string {
-  position: absolute;
-  top: 10%;
-  bottom: 10%;
-  left: 25%;
-  width: 1px;
-  opacity: 0.18;
-  background: #d8ffdb;
-}
-
-.foot-spot {
-  position: absolute;
-  top: 50%;
-  right: 25%;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: rgba(240, 255, 241, 0.58);
-  box-shadow: 0 0 0 8px rgba(255, 255, 255, 0.025);
-  transform: translate(50%, -50%);
-}
-
-.rail-sight {
-  position: absolute;
-  width: 7px;
-  height: 7px;
-  border: 1px solid rgba(241, 255, 242, 0.58);
-  transform: rotate(45deg);
-}
-
-.sight-1,
-.sight-2,
-.sight-3 {
-  top: 3%;
-}
-
-.sight-4,
-.sight-5,
-.sight-6 {
-  bottom: 3%;
-}
-
-.sight-1,
-.sight-4 { left: 25%; }
-.sight-2,
-.sight-5 { left: 50%; }
-.sight-3,
-.sight-6 { left: 75%; }
-
-.ball-rig {
-  position: absolute;
-  z-index: 6;
-  top: 50%;
-  left: 50%;
-  width: clamp(78px, 7.4vw, 112px);
-  aspect-ratio: 1;
-  will-change: auto;
-}
-
-/* Use the brand logo as the ball while .ball-rig receives GSAP transforms. */
-.eight-ball-logo {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-  box-shadow: 0 11px 25px rgba(0, 0, 0, 0.62);
-  transform: translateZ(25px);
-}
-
 /* Behind Studio while it shrinks back for Projects: the look's hall colour, so the frozen Intro
    scene never shows around the receding Studio's edges (src/motion/flowMotion.js turns it on). */
 .stage-backdrop {
@@ -389,21 +196,6 @@ a:focus-visible {
   pointer-events: none;
   opacity: 0;
   will-change: opacity;
-}
-
-/* Black circle grows from the pocket and creates the warp into the Studio page. */
-.pocket-iris {
-  position: absolute;
-  z-index: 12;
-  top: 27%;
-  left: 88%;
-  width: 9vmin;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: #070908;
-  pointer-events: none;
-  transform-origin: center;
-  will-change: transform;
 }
 
 .scene-interface {
@@ -1448,19 +1240,6 @@ button.tape:focus-visible {
     --board-gap: 16px;
   }
 
-  .pool-table {
-    top: 53%;
-    width: 94vw;
-    aspect-ratio: 1.35;
-  }
-
-  /* Move the iris to the mobile pocket path before it expands full-screen. */
-  .pocket-iris {
-    top: calc(53% - 34.8vw);
-    left: 94%;
-    width: 11vmin;
-  }
-
   .site-header {
     padding:
       max(8px, env(safe-area-inset-top))
@@ -1626,18 +1405,6 @@ button.tape:focus-visible {
 }
 
 @media (max-height: 540px) and (orientation: landscape) {
-  .pool-table {
-    top: 55%;
-    width: 76vw;
-    aspect-ratio: 1.86;
-  }
-
-  /* Keep the warp origin aligned with the wider pocket on short landscape screens. */
-  .pocket-iris {
-    top: calc(55% - 20.45vw);
-    left: 88%;
-    width: 9vmin;
-  }
 
   .hero-copy {
     top: 20vh;
@@ -1702,19 +1469,12 @@ button.tape:focus-visible {
     transition-duration: 0.01ms !important;
   }
 
-  .camera-grid {
-    opacity: 0.25;
-  }
-
   .scroll-prompt {
     display: none;
   }
 }
 
 @media (pointer: coarse) {
-  .ambient {
-    filter: blur(54px);
-  }
 }
 
 /* Draft layers share the stage but only the selected layer is visible and interactive. */
@@ -1740,20 +1500,8 @@ button.tape:focus-visible {
   top: 10vh;
 }
 
-/* The original intro remains mounted as Draft 3, but cannot cover the new scenes. */
-.experience:not(.draft-original) .pool-table,
-.experience:not(.draft-original) .ball-rig,
-.experience:not(.draft-original) .pocket-iris,
-.experience:not(.draft-original) .camera-grid,
-.experience:not(.draft-original) .ambient {
-  visibility: hidden !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
-
 .pool-pov-visual,
-.pool-pov-balls-canvas,
-.webgl-pool-canvas {
+.pool-pov-balls-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -1776,7 +1524,7 @@ button.tape:focus-visible {
 
 .draft-layer-2d.is-active {
   /* The layer stays fully opaque: the Studio light flood wipes over it instead. Fading a group
-     that contains the WebGL canvas toward 0 stalled the main thread for ~750ms mid-transition. */
+     that contains the 3D canvas toward 0 stalled the main thread for ~750ms mid-transition. */
   opacity: 1;
   transition-delay: 0s;
 }
@@ -1833,8 +1581,7 @@ button.tape:focus-visible {
   }
 }
 
-.pool-pov-vignette,
-.webgl-vignette {
+.pool-pov-vignette {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -1848,72 +1595,9 @@ button.tape:focus-visible {
   z-index: 4;
 }
 
-.webgl-vignette {
-  z-index: 2;
-}
-
-.webgl-pool-canvas {
-  display: block;
-  outline: none;
-}
-
-/* Optical falloff stays restrained because the scene now supplies its own depth and shadows. */
-.draft-layer-webgl .webgl-vignette {
-  background:
-    radial-gradient(circle at 50% 54%, transparent 12%, rgba(0, 0, 0, 0.05) 48%, rgba(0, 0, 0, 0.52) 112%),
-    linear-gradient(180deg, rgba(0, 0, 0, 0.1), transparent 22%, transparent 74%, rgba(0, 0, 0, 0.26));
-}
-
-.webgl-fallback {
-  position: absolute;
-  z-index: 5;
-  top: 50%;
-  left: 50%;
-  display: none;
-  width: min(82vw, 420px);
-  margin: 0;
-  padding: 12px 14px;
-  border: 1px solid rgba(242, 241, 233, 0.22);
-  background: rgba(7, 9, 8, 0.78);
-  color: rgba(242, 241, 233, 0.8);
-  font-family: var(--ui-font);
-  font-stretch: var(--ui-stretch);
-  font-size: var(--ui-size-sm);
-  font-weight: var(--ui-weight-soft);
-  letter-spacing: var(--ui-tracking);
-  line-height: 1.4;
-  text-align: center;
-  transform: translate(-50%, -50%);
-}
-
-.webgl-phase {
-  position: absolute;
-  z-index: 4;
-  right: max(28px, 4vw);
-  bottom: max(92px, 12vh);
-  margin: 0;
-  color: rgba(242, 241, 233, 0.48);
-  font-family: var(--ui-font);
-  font-stretch: var(--ui-stretch);
-  font-size: var(--ui-size-xs);
-  font-variant-numeric: tabular-nums;
-  font-weight: var(--ui-weight);
-  letter-spacing: var(--ui-tracking);
-  line-height: 1;
-  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.7);
-}
-
-.draft-layer-webgl[data-webgl-error='true'] .webgl-fallback {
-  display: block;
-}
-
 /* Cinematic treatments: the 3D scenes supply the detail, the headline stays direct. */
 .experience.draft-cinematic .hero-copy {
   top: 10vh;
-}
-
-:is(.draft-webgl, .draft-photoreal) .webgl-phase {
-  display: none;
 }
 
 @media (max-width: 768px), (max-height: 540px) {
@@ -1921,10 +1605,6 @@ button.tape:focus-visible {
     top: max(68px, 10vh);
   }
 
-  .webgl-phase {
-    right: 18px;
-    bottom: max(136px, calc(env(safe-area-inset-bottom) + 126px));
-  }
 }
 
 /* Touch screens: every control is at least a 44 × 44px target. The wordmark and Top grow inward
@@ -2409,7 +2089,6 @@ button.tape:focus-visible {
     transform: translate3d(calc(-1 * var(--run, 0px)), 0, 0);
   }
 }
-
 
 .projects-screen.is-scroll-driven {
   --run: var(--run-distance, 0px);

@@ -272,12 +272,11 @@ export const resolveIntroCameraFraming = ( {
   ]
   // Explicit treatments remain in the shared progress contract. Rise finishes before
   // impact so scatter stays readable, and reverse seeks retrace the same path.
-  if ( !lockToPlate && ( treatment === 'break' || treatment === 'photoreal' ) )
+  if ( !lockToPlate && treatment === 'break' )
   {
     const rise = smoothstep( clamp( progress / ( safeTransition * 0.48 ) ) )
-    const photoreal = treatment === 'photoreal'
-    const opening = photoreal ? [ 0.48, 1.1, 6.9 ] : [ 0, 0.9, 6.5 ]
-    const overview = photoreal ? [ 3.5, 9.8, 12.8 ] : [ 0.5, 5.8, 4.8 ]
+    const opening = [ 0, 0.9, 6.5 ]
+    const overview = [ 0.5, 5.8, 4.8 ]
     const openingTarget = [ 0, -0.25, -1.8 ]
     const overviewTarget = [ 0, 0, -2.5 ]
     for ( let axis = 0; axis < 3; axis += 1 )

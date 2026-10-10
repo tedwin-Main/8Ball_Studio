@@ -12,35 +12,17 @@ test( 'localhost mounts the Story without a blank root or page errors', async ( 
   expect( pageErrors ).toEqual( [] )
 } )
 
-test( 'Draft 2 (3D break) renders without fallback activation or runtime errors', async ( { page } ) =>
-{
-  const pageErrors = []
-  const warnings = []
-  page.on( 'pageerror', ( error ) => pageErrors.push( error.message ) )
-  page.on( 'console', ( msg ) => {
-    if ( msg.type() === 'warning' && msg.text().includes( 'WebGL setup failed' ) ) {
-      warnings.push( msg.text() )
-    }
-  } )
-
-  await page.goto( '/?draft=webgl', { waitUntil: 'domcontentloaded' } )
-  const draftRoot = page.locator( '.draft-layer[data-draft-id="webgl"]' )
-  await expect( draftRoot ).toHaveAttribute( 'data-webgl-error', 'false' )
-  await expect( draftRoot ).toHaveClass( /is-active/ )
-
-  expect( warnings ).toEqual( [] )
-  expect( pageErrors ).toEqual( [] )
-} )
-
-test( 'Draft 4 (photoreal) renders without missing balls or runtime errors', async ( { page } ) =>
+test( 'retired Drafts 02 and 03 fall back to 01 (3D POV) and render without runtime errors', async ( { page } ) =>
 {
   const pageErrors = []
   page.on( 'pageerror', ( error ) => pageErrors.push( error.message ) )
 
-  await page.goto( '/?draft=photoreal', { waitUntil: 'domcontentloaded' } )
-  const draftRoot = page.locator( '.draft-layer-photoreal' )
-  await expect( draftRoot ).toHaveAttribute( 'data-webgl-error', 'false' )
-  await expect( draftRoot ).toHaveAttribute( 'data-webgl-progress', '0.0000' )
+  for ( const draft of [ 'photoreal', 'original' ] )
+  {
+    await page.goto( `/?draft=${draft}`, { waitUntil: 'domcontentloaded' } )
+    await expect( page.locator( '.experience' ) ).toHaveClass( /draft-cinematic/ )
+    await expect( page.locator( '.draft-layer-2d' ) ).toHaveClass( /is-active/ )
+  }
 
   expect( pageErrors ).toEqual( [] )
 } )
@@ -51,17 +33,23 @@ const waitForPreloader = ( page ) => page.waitForSelector( '.preloader', { state
 const sectionTop = ( page, selector ) =>
   page.evaluate( ( target ) => Math.round( document.querySelector( target ).getBoundingClientRect().top ), selector )
 
-test( 'Main is the default look; the Draft and Look choices live only in the ?tune panel', async ( { page } ) =>
+test( 'Main is the default look; the ?tune panel holds one Design list', async ( { page } ) =>
 {
   await page.goto( '/', { waitUntil: 'domcontentloaded' } )
   await expect( page.locator( '.experience' ) ).toHaveAttribute( 'data-look', 'acid' )
-  // Visitors see one site: no Draft or Look pickers.
+  // Visitors see one site: no tune panel.
   await expect( page.locator( '.tune-panel' ) ).toHaveCount( 0 )
   await page.goto( '/?tune', { waitUntil: 'domcontentloaded' } )
-  await expect( page.locator( '.tune-panel-choice' ).nth( 1 ).locator( 'option' ) ).toHaveText( [ 'Main', 'Cyc Wall', 'Pool Table' ] )
-  // A retired look falls back to the default instead of rendering unstyled.
-  await page.goto( '/?look=marker', { waitUntil: 'domcontentloaded' } )
-  await expect( page.locator( '.experience' ) ).toHaveAttribute( 'data-look', 'acid' )
+  await expect( page.locator( '.tune-panel-choice' ) ).toHaveCount( 1 )
+  await expect( page.locator( '.tune-panel-choice option' ) ).toHaveText( [
+    'Studio2', 'Main · Panels', 'Main · Drum names + media', 'Main · Drum names', 'Main · Drum cards',
+  ] )
+  // Retired looks fall back to Main instead of rendering unstyled.
+  for ( const look of [ 'downlight', 'cyc', 'espresso' ] )
+  {
+    await page.goto( `/?look=${look}`, { waitUntil: 'domcontentloaded' } )
+    await expect( page.locator( '.experience' ) ).toHaveAttribute( 'data-look', 'acid' )
+  }
 } )
 
 test( 'Projects runs its boards sideways and the header links land on each section', async ( { page } ) =>
@@ -147,5 +135,5 @@ test( 'the ?tune panel exists only on tune URLs', async ( { page } ) =>
   await page.goto( '/', { waitUntil: 'load' } )
   await expect( page.locator( '.tune-panel' ) ).toHaveCount( 0 )
   await page.goto( '/?tune', { waitUntil: 'load' } )
-  await expect( page.locator( '.tune-panel-row' ) ).toHaveCount( 6 )
+  await expect( page.locator( '.tune-panel-choice' ) ).toHaveCount( 1 )
 } )

@@ -11,24 +11,9 @@ function createPage( id, label, startProgress, targetProgress )
   } )
 }
 
-// Check if draft uses 3D break physics.
-function is3dBreakDraft( draftId )
+// Timeline unit where Studio takes over from the Intro (the one intro draft, 01 3D POV).
+export function getStudioStartUnits()
 {
-  if ( draftId === 'webgl' || draftId === 'photoreal' )
-  {
-    return true
-  }
-  return false
-}
-
-// Timeline unit where Studio takes over from the Intro for this draft.
-export function getStudioStartUnits( draftId = 'cinematic' )
-{
-  // Choose studio start milestone based on draft physics.
-  if ( is3dBreakDraft( draftId ) )
-  {
-    return STAGE.pages.draft2StudioStart
-  }
   return STAGE.pages.cinematicStudioStart
 }
 
@@ -74,10 +59,10 @@ function assertLayout( layout )
   }
 }
 
-// Return the Story pages for the given draft. Progress is a share of the whole document's scroll
-// range, which is what Story navigation measures: Intro and Studio sit inside the pinned stage,
-// Services, Projects and Contact land on their section tops.
-export function getStoryPages( draftId = 'cinematic', layout = getDefaultStoryLayout() )
+// Return the Story pages. Progress is a share of the whole document's scroll range, which is what
+// Story navigation measures: Intro and Studio sit inside the pinned stage, Services, Projects and
+// Contact land on their section tops.
+export function getStoryPages( layout = getDefaultStoryLayout() )
 {
   assertLayout( layout )
   const { viewport, pinnedRange, servicesTop, projectsTop, contactTop, documentRange } = layout
@@ -89,7 +74,7 @@ export function getStoryPages( draftId = 'cinematic', layout = getDefaultStoryLa
 
   const pages = [
     createPage( 'intro', 'Intro', 0, 0 ),
-    createPage( 'studio', 'Studio', pinned( getStudioStartUnits( draftId ) ), pinned( STAGE.pages.studioStable ) ),
+    createPage( 'studio', 'Studio', pinned( getStudioStartUnits() ), pinned( STAGE.pages.studioStable ) ),
     createPage( 'services', 'Services', sectionStart( servicesTop ), share( servicesTop ) ),
     createPage( 'projects', 'Projects', sectionStart( projectsTop ), share( projectsTop ) ),
     // The page cannot scroll past its end, so Contact lands there when its section is short.

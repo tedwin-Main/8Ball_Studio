@@ -6,16 +6,15 @@ import { useStoryPager } from './hooks/useStoryPager'
 import { CursorBall } from './components/CursorBall'
 import { Preloader } from './components/Preloader'
 import { LookScenery } from './looks/LookScenery'
-import { DEFAULT_LOOK_ID, getLookBase, getLookConfig, getRevealVars, getThemeColor, normalizeLookId, normalizeServicesStyle } from './looks/lookRegistry'
+import { DEFAULT_LOOK_ID, getLookConfig, getRevealVars, getThemeColor, normalizeLookId, normalizeServicesStyle } from './looks/lookRegistry'
 import { createFlowMotion, createNavSections } from './motion/flowMotion'
 import { createVelocitySkew } from './motion/velocitySkew'
 import { createIntroEntrance } from './motion/introEntrance'
 import { createLayoutResizeFilter } from './viewportResize'
 import { REBUILD_KEYS, getTuning, subscribeTuning } from './motion/runtimeTuning'
 import { PoolPovDraft } from './drafts/PoolPovDraft'
-import PhotorealPoolDraft from './drafts/PhotorealPoolDraft'
-import { DRAFT_IDS, normalizeDraftId, getDraftConfig } from './drafts/draftRegistry'
-import { STAGE, easeWeightedProgress, toStoryProgress, toTimelineUnits } from './storyStage'
+import { normalizeDraftId } from './drafts/draftRegistry'
+import { STAGE, toStoryProgress, toTimelineUnits } from './storyStage'
 import { getStoryPages, getStudioStartUnits } from './storySchedule'
 // One V4 asset supplies both the header brand mark and animated 8-ball surface.
 import brandLogo from './assets/8BALL-V4.jpg'
@@ -57,34 +56,22 @@ const getInitialServicesStyle = () =>
   return normalizeServicesStyle( new URLSearchParams( window.location.search ).get( 'services' ) )
 }
 
-// The Intro's small beats on the pinned timeline, in units as [start, duration] (the 8-ball hits the
-// rack at STAGE.intro.impact), and Studio's camera move per unit at depth 1.
-const IMPACT = STAGE.intro.impact
+// The Intro's small beats on the pinned timeline, in units as [start, duration], and Studio's camera
+// move per unit at depth 1.
 const BEATS = Object.freeze( {
-  tableOpen: 0.42,
   heroFade: [ 0.03, 0.28 ],
   promptFade: [ 0.05, 0.2 ],
-  cameraGrid: 0.7,
-  tableScale: [ IMPACT - 0.1, 0.26 ],
-  ballPocket: [ IMPACT + 0.12, 0.14 ],
-  ballVanish: [ IMPACT + 0.26, 0.04 ],
-  pocketIris: [ IMPACT + 0.3, 0.18 ],
   endEpsilon: 0.005,
   driftVh: 10,
   wallPush: 0.06,
 } )
 
-// Keep the Draft 2 camera cut aligned with the shared intro timeline.
-const DRAFT2_TRANSITION_READY_STORY_PROGRESS = toStoryProgress( STAGE.intro.draft2.transitionReady )
-// Cut the shared 8-ball before its old pocket-drop path starts; Draft 1 keeps its original animation.
-const DRAFT2_POCKET_CUT_STORY_PROGRESS = toStoryProgress( STAGE.intro.draft2.pocketCut )
-
 // GSAP scrub from the weight setting: seconds of catch-up lag, or true (locked exactly to the
 // Lenis-smoothed scroll, one smoothing layer) at 0. A bare 0 would turn scrubbing off entirely.
 const toScrub = ( seconds ) => ( seconds > 0 ? seconds : true )
 
-// Draft/Look switches jump the Story in one go; finish the GSAP scrub catch-up at once so the
-// new layer lands in place instead of replaying a weight-long slide from the old position.
+// Services-layout switches jump the Story in one go; finish the GSAP scrub catch-up at once so the
+// Story lands in place instead of replaying a weight-long slide from the old position.
 // Triggers locked to the scroll (scrub: true, the touch-screen run) have no catch-up tween to finish.
 const finishScrubCatchUp = () =>
   ScrollTrigger.getAll().forEach( ( trigger ) =>
@@ -98,16 +85,6 @@ const getDocumentRange = () => Math.max( 1, document.documentElement.scrollHeigh
 
 // Document-space top of an element, independent of the current scroll position.
 const getDocumentTop = ( element ) => element.getBoundingClientRect().top + window.scrollY
-
-const getDraft2ExitProgress = ( progress ) =>
-  Math.min( 1, Math.max( 0, ( progress - DRAFT2_TRANSITION_READY_STORY_PROGRESS ) /
-    STAGE.intro.draft2.transitionDurationProgress ) )
-
-// Draft 2's Studio cue starts with its exit but runs the full cue length,
-// so the title arrives at the same pace as in the other drafts and as the Projects and Contact titles.
-const getDraft2CueProgress = ( progress ) =>
-  Math.min( 1, Math.max( 0, ( progress - DRAFT2_TRANSITION_READY_STORY_PROGRESS ) /
-    STAGE.intro.studioCue.durationProgress ) )
 
 const getInitialDraft = () =>
 {
@@ -295,39 +272,6 @@ function ContactIcon ( { type } )
   )
 }
 
-function PoolTable ()
-{
-  return (
-    <div className="pool-table" aria-hidden="true">
-      <div className="table-shadow" />
-      <div className="table-frame">
-        <div className="wood-grain" />
-        <div className="felt">
-          <div className="felt-light" />
-          <div className="head-string" />
-          <div className="foot-spot" />
-          <span className="rail-sight sight-1" />
-          <span className="rail-sight sight-2" />
-          <span className="rail-sight sight-3" />
-          <span className="rail-sight sight-4" />
-          <span className="rail-sight sight-5" />
-          <span className="rail-sight sight-6" />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function EightBall ()
-{
-  return (
-    <div className="ball-rig" aria-hidden="true">
-      {/* Reuse the V4 brand asset while ball-rig keeps its GSAP movement and rotation. */ }
-      <img className="eight-ball-logo" src={ brandLogo } alt="" />
-    </div>
-  )
-}
-
 function App ()
 {
   const rootRef = useRef( null )
@@ -342,13 +286,12 @@ function App ()
   const timelineProgressRef = useRef( 0 )
   // Absolute scroll position captured when a Draft or Look switch starts, restored after it.
   const switchScrollYRef = useRef( null )
+  // One intro draft (01 3D POV) and one look (Main): ?draft= and ?look= links fall back to them.
   const activeDraftRef = useRef( getInitialDraft() )
-  const [ activeDraft, setActiveDraft ] = useState( getInitialDraft )
-  const [ activeLook, setActiveLook ] = useState( getInitialLook )
+  const [ activeDraft ] = useState( getInitialDraft )
+  const [ activeLook ] = useState( getInitialLook )
   // Main's Services layout (?tune): the panels, or one of the drums.
   const [ servicesStyle, setServicesStyle ] = useState( getInitialServicesStyle )
-  // The layout sheet the look renders with: Main for Main and its themes (Espresso), else the look.
-  const lookBase = getLookBase( activeLook )
   const [ activePage, setActivePage ] = useState( 'intro' )
   const [ indicatorPage, setIndicatorPage ] = useState( 'intro' )
   // The latest indicator Page for event handlers (the Top cut) without re-binding them per render.
@@ -362,8 +305,8 @@ function App ()
   // Bumped when ?tune changes a scrub, which is fixed per trigger: the Story's timelines rebuild.
   const [ tuneVersion, setTuneVersion ] = useState( 0 )
   const storyPages = useMemo(
-    () => ( storyLayout ? getStoryPages( activeDraft, storyLayout ) : getStoryPages( activeDraft ) ),
-    [ activeDraft, storyLayout ],
+    () => ( storyLayout ? getStoryPages( storyLayout ) : getStoryPages() ),
+    [ storyLayout ],
   )
 
   // Raw (Lenis-smoothed) scroll position, remembered so Draft/Look switches restore the exact spot.
@@ -448,44 +391,12 @@ function App ()
     ( controller ) => registerDraftController( 'cinematic', controller ),
     [ registerDraftController ],
   )
-  const registerPhotorealController = useCallback(
-    ( controller ) => registerDraftController( 'photoreal', controller ),
-    [ registerDraftController ],
-  )
-
   // Captures the absolute scroll spot before a switch; a refresh may change the page's height.
   const captureScrollSpot = useCallback( () =>
   {
     const currentProgress = getProgress()
     if ( Number.isFinite( currentProgress ) ) switchScrollYRef.current = currentProgress * getDocumentRange()
   }, [ getProgress ] )
-
-  const switchDraft = useCallback( ( nextDraft ) =>
-  {
-    if ( !DRAFT_IDS.includes( nextDraft ) ) return
-
-    // Capture Lenis's position before the draft-page effect can refresh it.
-    captureScrollSpot()
-
-    const url = new URL( window.location.href )
-    url.searchParams.set( 'draft', nextDraft )
-    // Replace only the query so changing a draft never reloads or adds history entries.
-    window.history.replaceState( {}, '', `${url.pathname}${url.search}${url.hash}` )
-    activeDraftRef.current = nextDraft
-    setActiveDraft( nextDraft )
-  }, [ captureScrollSpot ] )
-
-  // Switch the whole-site look without a reload; the Story position carries over exactly like a Draft switch.
-  const switchLook = useCallback( ( nextLook ) =>
-  {
-    const look = normalizeLookId( nextLook )
-    captureScrollSpot()
-
-    const url = new URL( window.location.href )
-    url.searchParams.set( 'look', look )
-    window.history.replaceState( {}, '', `${url.pathname}${url.search}${url.hash}` )
-    setActiveLook( look )
-  }, [ captureScrollSpot ] )
 
   // Switch Main's Services layout the same way: no reload, the Story position kept.
   const switchServicesStyle = useCallback( ( nextStyle ) =>
@@ -498,15 +409,6 @@ function App ()
     window.history.replaceState( {}, '', `${url.pathname}${url.search}${url.hash}` )
     setServicesStyle( style )
   }, [ captureScrollSpot ] )
-
-  const handleWebglUnavailable = useCallback( ( draftId ) =>
-  {
-    const config = getDraftConfig( draftId )
-    if ( activeDraftRef.current === draftId && config.fallbackId )
-    {
-      switchDraft( config.fallbackId )
-    }
-  }, [ switchDraft ] )
 
   useEffect( () =>
   {
@@ -574,7 +476,7 @@ function App ()
   useLayoutEffect( () =>
   {
     if ( window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches ) return undefined
-    const entrance = createIntroEntrance( { root: rootRef.current, draftId: activeDraftRef.current } )
+    const entrance = createIntroEntrance( { root: rootRef.current } )
     introEntranceRef.current = entrance
     const fallback = window.setTimeout( () => entrance.play(), INTRO_ENTRANCE_FALLBACK_MS )
     return () =>
@@ -586,8 +488,7 @@ function App ()
   }, [] )
   const playIntroEntrance = useCallback( () => introEntranceRef.current?.play(), [] )
 
-  // What the preloader waits for: the faces, the page's own resources, and the active intro Draft's
-  // first finished frame (drafts without a controller, like 03 Original, need only the page load).
+  // What the preloader waits for: the faces, the page's own resources, and the intro Draft's first finished frame.
   const whenIntroReady = useCallback( () =>
   {
     const fonts = document.fonts?.ready ?? Promise.resolve()
@@ -617,8 +518,7 @@ function App ()
   useLayoutEffect( () =>
   {
     const root = rootRef.current
-    const ballRig = root.querySelector( '.ball-rig' )
-    // The active look supplies the Studio cue's reveal shape and entrances; switching looks rebuilds this timeline.
+    // The look supplies the Studio cue's reveal shape and entrances.
     const look = getLookConfig( activeLook )
     const motion = look.motion
     // Weight and depth come from the tuning store: STORY_SETTINGS unless ?tune has changed them.
@@ -631,7 +531,6 @@ function App ()
     let pointerFrame = 0
     let pointerX = 0
     let pointerY = 0
-    let ballLayerIsPromoted = false
     const hasFinePointer = window.matchMedia( '(hover: hover) and (pointer: fine)' ).matches
     const prefersReducedMotion = window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches
 
@@ -664,13 +563,6 @@ function App ()
     const moveLightY = hasFinePointer && !prefersReducedMotion
       ? gsap.quickTo( keyLight, 'y', { duration: 0.9, ease: 'power3.out', onUpdate: applyKeyLight } )
       : null
-
-    const setBallLayerPromotion = ( active ) =>
-    {
-      if ( active === ballLayerIsPromoted ) return
-      ballLayerIsPromoted = active
-      ballRig.style.willChange = active ? 'transform, opacity' : 'auto'
-    }
 
     const movePointer = ( event ) =>
     {
@@ -706,32 +598,11 @@ function App ()
         {
           // Reduced motion has no scrub lag: raw stage progress is also the visual progress.
           driveDraftVisuals( progress )
-          const studioStartProgress = toStoryProgress( getStudioStartUnits( activeDraftRef.current ) )
+          const studioStartProgress = toStoryProgress( getStudioStartUnits() )
           const showIntro = progress < studioStartProgress
           const showStudio = !showIntro
           const showEndScreen = showStudio
 
-          gsap.set( '.pool-table', {
-            xPercent: -50,
-            yPercent: -50,
-            scale: showIntro ? 2.5 : 1,
-            rotationX: showIntro ? 0 : 5,
-          } )
-          gsap.set( '.ball-rig', {
-            xPercent: -50,
-            yPercent: -50,
-            x: showIntro ? 0 : '-5vw',
-            y: showIntro ? 0 : '8vh',
-            scale: showIntro ? 6.25 : 1,
-            autoAlpha: showEndScreen ? 0 : 1,
-          } )
-          // Reduced motion keeps the warp closed and invisible instead of leaving a black circle.
-          gsap.set( '.pocket-iris', {
-            xPercent: -50,
-            yPercent: -50,
-            scale: 0,
-            autoAlpha: 0,
-          } )
           gsap.set( '.hero-copy', { autoAlpha: showIntro ? 1 : 0 } )
           gsap.set( '.scroll-prompt', { autoAlpha: showIntro ? 1 : 0 } )
           gsap.set( '.scene-interface', { autoAlpha: showEndScreen ? 0 : 1 } )
@@ -778,47 +649,9 @@ function App ()
         ( context ) =>
         {
           const desktop = context.conditions.desktop
-          const compactLandscape = context.conditions.compact && context.conditions.landscape
-          const holdX = desktop ? '-5vw' : compactLandscape ? '-3vw' : '-7vw'
-          const holdY = desktop ? '8vh' : compactLandscape ? '5vh' : '6vh'
-          // Keep the roll target aligned with the old top-right pocket path.
-          const pocketX = () =>
-          {
-            if ( desktop ) return window.innerWidth * 0.375
-            if ( compactLandscape ) return window.innerWidth * 0.385 - 14
-            return window.innerWidth * 0.484 - 14
-          }
-          const pocketY = () =>
-          {
-            if ( desktop ) return window.innerHeight * -0.23
-            if ( compactLandscape ) return window.innerHeight * 0.05 - window.innerWidth * 0.2045
-            return window.innerHeight * 0.03 - window.innerWidth * 0.348 + 8
-          }
-          gsap.set( '.pool-table', {
-            xPercent: -50,
-            yPercent: -50,
-            scale: desktop ? 2.5 : compactLandscape ? 1.8 : 2.15,
-            rotationX: 0,
-          } )
-          gsap.set( '.ball-rig', {
-            xPercent: -50,
-            yPercent: -50,
-            scale: desktop ? 6.25 : compactLandscape ? 3.35 : 4.25,
-            x: 0,
-            y: 0,
-            rotation: 0,
-          } )
-          // Start the black-hole iris closed at the pocket; scroll progress opens it.
-          gsap.set( '.pocket-iris', {
-            xPercent: -50,
-            yPercent: -50,
-            scale: 0,
-            autoAlpha: 1,
-          } )
           gsap.set( '.title-screen', { autoAlpha: 0 } )
 
-          // The Studio lighting cue lives in its own paused timeline so both intro drafts can
-          // drive it: Draft 1 scrubs it from the master timeline, Draft 2 from its handoff progress.
+          // The Studio lighting cue lives in its own paused timeline, scrubbed from the master timeline.
           // 1. Light floods the cyc from the pocket (clip-path circle) while the wall warms up.
           // 2. The silhouette letters are set down on the floor, right to left, away from the light.
           // 3. The service and location tapes are slapped onto the floor.
@@ -835,14 +668,6 @@ function App ()
               ease: 'none',
               duration: 0.8,
             }, 0 )
-          // A look can move its Studio set piece in the cue too (Pool Table: the camera rise to the lamp).
-          if ( motion.scenery )
-          {
-            studioCue.fromTo( '.title-screen .look-scenery', motion.scenery.from, {
-              ...motion.scenery.to,
-              duration: 0.6,
-            }, 0 )
-          }
           studioCue
             .fromTo( '.final-title .cue-char', motion.entrance, {
               ...charRest,
@@ -855,36 +680,16 @@ function App ()
               duration: 0.2,
               stagger: 0.07,
             }, 0.58 )
-          // Draft 1 cue window: from the draft exit, one screen of scroll.
+          // The cue window: from the intro's exit, one screen of scroll.
           const studioCueDuration = STAGE.intro.studioCue.duration
 
-          const syncDraft2Handoff = ( progress ) =>
-          {
-            const is3dBreak = activeDraftRef.current === 'webgl' ||
-              activeDraftRef.current === 'photoreal'
-            if ( !is3dBreak ) return
-
-            const cutPocketDrop = progress >= DRAFT2_POCKET_CUT_STORY_PROGRESS
-            // Draft 2 skips the old 8-ball drop and iris hold; Draft 1 remains untouched.
-            gsap.set( '.ball-rig', { autoAlpha: cutPocketDrop ? 0 : 1 } )
-            gsap.set( '.pocket-iris', { autoAlpha: cutPocketDrop ? 0 : 1 } )
-
-            const exitProgress = getDraft2ExitProgress( progress )
-            gsap.set( '.scene-interface', { autoAlpha: 1 - exitProgress } )
-            // The screen switches on with the 3D exit; an opacity reveal (Main's fade) is left to the
-            // cue, which runs longer, so this set never jumps it ahead.
-            if ( !studioReveal.usesOpacity ) gsap.set( '.title-screen', { autoAlpha: exitProgress } )
-            studioCue.progress( getDraft2CueProgress( progress ) )
-          }
           // The scrubbed timeline is the single clock for every intro visual. Its progress trails
-          // the scroll by the weight setting, and the 3D draft plus the Draft 2 handoff read that same
-          // lagged value, so the ball, rack, titles, and gel floods never drift apart.
+          // the scroll by the weight setting, and the 3D draft reads that same lagged value, so the
+          // rack, titles, and gel floods never drift apart.
           // (The timeline is padded to exactly totalTimelineUnits, so its progress equals stage progress.)
           const syncStoryVisuals = ( progress ) =>
           {
             driveDraftVisuals( progress )
-            setBallLayerPromotion( progress > 0.001 && progress < 0.999 )
-            syncDraft2Handoff( progress )
           }
           const timeline = gsap.timeline( {
             // `this` is the timeline inside GSAP callbacks; avoids reading `timeline` before assignment.
@@ -907,21 +712,7 @@ function App ()
           timeline
             .addLabel( 'intro', 0 )
 
-            // Intro → Studio. The break plays, then the lights come up on the cyc.
-            .to( '.pool-table', {
-              scale: 1,
-              rotationX: desktop ? 8 : 4,
-              duration: BEATS.tableOpen,
-            }, 0 )
-            .to( '.ball-rig', {
-              scale: 1,
-              x: holdX,
-              y: holdY,
-              rotation: 0,
-              // Intro Draft 3 uses the same resistant-to-momentum curve as the shared ball sampler.
-              ease: easeWeightedProgress,
-              duration: STAGE.intro.approachEnd,
-            }, 0 )
+            // Intro → Studio: the hero copy and prompt clear, then the lights come up on the cyc.
             .to( '.hero-copy', {
               y: -36,
               autoAlpha: 0,
@@ -932,30 +723,6 @@ function App ()
               autoAlpha: 0,
               duration: BEATS.promptFade[ 1 ],
             }, BEATS.promptFade[ 0 ] )
-            .to( '.camera-grid', {
-              opacity: 0.38,
-              duration: BEATS.cameraGrid,
-            }, 0 )
-            .to( '.pool-table', {
-              scale: 0.84,
-              duration: BEATS.tableScale[ 1 ],
-            }, BEATS.tableScale[ 0 ] )
-            .to( '.ball-rig', {
-              x: pocketX,
-              y: pocketY,
-              rotation: 910,
-              duration: BEATS.ballPocket[ 1 ],
-            }, BEATS.ballPocket[ 0 ] )
-            .to( '.ball-rig', {
-              scale: 0.35,
-              autoAlpha: 0,
-              duration: BEATS.ballVanish[ 1 ],
-            }, BEATS.ballVanish[ 0 ] )
-            // Open the black-hole iris only after the ball has fully vanished.
-            .to( '.pocket-iris', {
-              scale: desktop ? 38 : 42,
-              duration: BEATS.pocketIris[ 1 ],
-            }, BEATS.pocketIris[ 0 ] )
             .to( '.scene-interface', {
               autoAlpha: 0,
               duration: STAGE.intro.draft1.transitionDuration,
@@ -1037,7 +804,6 @@ function App ()
         target.style.removeProperty( '--lx' )
         target.style.removeProperty( '--ly' )
       } )
-      ballRig.style.removeProperty( 'will-change' )
       stopNavSections?.()
       animationContext.revert()
     }
@@ -1082,8 +848,7 @@ function App ()
   return (
     <main
       className={ `experience draft-${activeDraft}` }
-      data-look={ lookBase }
-      data-theme={ activeLook }
+      data-look={ activeLook }
       data-services-style={ servicesStyle }
       ref={ rootRef }
       data-story-page={ activePage }
@@ -1158,25 +923,11 @@ function App ()
         data-story-transitioning={ String( isTransitioning ) }
       >
         <div className="stage" data-cursor={ indicatorPage === 'intro' ? 'Scroll to break' : undefined }>
-          <div className="camera-grid" aria-hidden="true" />
-          <div className="ambient ambient-one" aria-hidden="true" />
-          <div className="ambient ambient-two" aria-hidden="true" />
 
           <PoolPovDraft
             active={ activeDraft === 'cinematic' }
             onController={ registerCinematicController }
           />
-          <PhotorealPoolDraft
-            active={ activeDraft === 'photoreal' }
-            onController={ registerPhotorealController }
-            onUnavailable={ handleWebglUnavailable }
-            draftId="photoreal"
-          />
-
-          <PoolTable />
-          <EightBall />
-          {/* Expands from the target pocket to mask the transition into Studio. */}
-          <div className="pocket-iris" aria-hidden="true" />
 
           <div className="scene-interface">
             <div className="hero-copy">
@@ -1207,7 +958,7 @@ function App ()
           {/* Studio: the lights come up on a pink-gel cyc. */}
           <section className="title-screen cyc cyc-studio" aria-labelledby="studio-title">
             <div className="cyc-wall" aria-hidden="true" />
-            <LookScenery look={ lookBase } page="studio" />
+            <LookScenery look={ activeLook } page="studio" />
             <div className="final-content">
               <h2 id="studio-title" className="final-title cyc-title" aria-label="8ightBall Studio">
                 <CueLine className="final-title-line" text="8ightBall" />
@@ -1236,7 +987,7 @@ function App ()
       >
         <div className="services-inner">
           <div className="cyc-wall" aria-hidden="true" />
-          <LookScenery look={ lookBase } page="services" />
+          <LookScenery look={ activeLook } page="services" />
           <div className="services-content">
             <h2 id="services-title" className="services-title cyc-title" aria-label="Our Services">
               <CueLine className="services-title-line" text="Our" />
@@ -1314,7 +1065,7 @@ function App ()
       >
         <div className="projects-sticky">
           <div className="cyc-wall" aria-hidden="true" />
-          <LookScenery look={ lookBase } page="projects" />
+          <LookScenery look={ activeLook } page="projects" />
           <div className="projects-content">
             <h2 id="projects-title" className="projects-title cyc-title" aria-label="Our Projects">
               <CueLine className="projects-title-line" text="Our" />
@@ -1328,7 +1079,7 @@ function App ()
                   { PROJECT_ITEMS.map( ( project ) => (
                     <li className={ `project-card${project.type ? ` is-${project.type}` : ''}` } key={ project.alt }>
                       <div className="project-board">
-                        <img src={ lookBase === 'acid' && project.whiteSrc ? project.whiteSrc : project.src } alt={ project.alt } loading="lazy" decoding="async" />
+                        <img src={ project.whiteSrc ?? project.src } alt={ project.alt } loading="lazy" decoding="async" />
                       </div>
                       <span className="tape">{ project.alt }</span>
                     </li>
@@ -1368,7 +1119,7 @@ function App ()
       <section id="contact" className="contact-screen cyc cyc-flow cyc-contact" ref={ contactRef } aria-labelledby="contact-title">
         <div className="contact-inner">
           <div className="cyc-wall" aria-hidden="true" />
-          <LookScenery look={ lookBase } page="contact" />
+          <LookScenery look={ activeLook } page="contact" />
           <div className="contact-content">
             <h2 id="contact-title" className="contact-title cyc-title" aria-label="Contact Us">
               <CueLine className="contact-title-line" text="Contact" />
@@ -1436,7 +1187,7 @@ function App ()
 
       { TUNE_REQUESTED && (
         <Suspense fallback={ null }>
-          <TunePanel activeDraft={ activeDraft } onDraftChange={ switchDraft } activeLook={ activeLook } onLookChange={ switchLook } servicesStyle={ servicesStyle } onServicesStyleChange={ switchServicesStyle } />
+          <TunePanel servicesStyle={ servicesStyle } onServicesStyleChange={ switchServicesStyle } />
         </Suspense>
       ) }
     </main>

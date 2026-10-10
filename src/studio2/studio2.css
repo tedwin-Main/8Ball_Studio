@@ -1,0 +1,837 @@
+/* 8ball Studio 2: the Intro break (Draft 01) is kept from 8Ball_Studio. The rest of the page is written here.
+   Palette: ink and felt for the dark world, lime for the one primary action, cream for text. */
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("/fonts/space-grotesk-latin-var.woff2") format("woff2");
+  font-weight: 300 700;
+  font-display: swap;
+}
+
+:root {
+  --ink: #070908;
+  --felt: #07110d;
+  --felt-soft: #0b1a14;
+  --lime: #b7d95b;
+  --cream: #f2f1e9;
+  --cream-dim: rgba(242, 241, 233, 0.66);
+  --line: rgba(242, 241, 233, 0.14);
+  --ui-font: "Geist Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --section-y: 8rem;
+  --gutter: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --section-y: 12rem;
+    --gutter: 2rem;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--felt);
+}
+
+body {
+  margin: 0;
+  background: var(--felt);
+  color: var(--cream);
+  font-family: var(--ui-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Film grain over the whole page: a fixed noise tile that never blocks clicks. */
+body::after {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* clip, not hidden: hidden would make main a scroll box and stop the sticky break stage from pinning. */
+main {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+img,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 3px;
+}
+
+/* ---------- Buttons: dark ground = cream text, lime ground = ink text, never invisible ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.75rem 1.25rem;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.3s;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+.btn-lime {
+  background: var(--lime);
+  color: var(--ink);
+}
+
+.btn-outline {
+  border: 1px solid var(--cream);
+  color: var(--cream);
+  background: transparent;
+}
+
+.btn-xl {
+  min-height: 64px;
+  padding: 1rem 1.75rem;
+  font-size: clamp(1rem, 1.6vw, 1.25rem);
+}
+
+.section {
+  padding: var(--section-y) var(--gutter);
+}
+
+.section-title {
+  margin: 0 0 4rem;
+  font-size: clamp(2.25rem, 4.5vw, 4rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+/* ---------- Nav: a floating glass pill ---------- */
+.nav-wrap {
+  position: fixed;
+  z-index: 50;
+  top: 1rem;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--gutter);
+  pointer-events: none;
+}
+
+.nav-pill {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  width: min(100%, 880px);
+  padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(7, 17, 13, 0.55);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+.nav-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.nav-brand img {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+}
+
+.nav-links {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  gap: 2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nav-links a {
+  color: var(--cream-dim);
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.nav-links a:hover {
+  color: var(--cream);
+}
+
+.nav-cta {
+  min-height: 40px;
+  padding: 0.5rem 1rem;
+}
+
+@media (max-width: 640px) {
+  .nav-links {
+    display: none;
+  }
+}
+
+/* ---------- Break hero: the pool table is the page's first chapter ---------- */
+.break {
+  position: relative;
+  /* 300svh: the pinned stage holds for the first 200svh, then scrolls away under Statement. */
+  height: 300svh;
+}
+
+.break-stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
+  background: #0a100d;
+}
+
+.draft-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.break-copy {
+  position: absolute;
+  z-index: 6;
+  left: var(--gutter);
+  right: var(--gutter);
+  top: 22svh;
+  max-width: 62rem;
+  pointer-events: none;
+  /* The scrubbed fade runs on the compositor, so the shadowed title is not repainted every frame. */
+  will-change: transform, opacity;
+}
+
+/* One line on desktop: the width is wide, the font size is capped so the title never wraps past two lines. */
+.break-title {
+  margin: 0;
+  font-size: clamp(3rem, 8.5vw, 8.5rem);
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  line-height: 0.92;
+  text-shadow: 0 6px 40px rgba(0, 0, 0, 0.45);
+}
+
+.break-hint {
+  margin: 1.5rem 0 0;
+  color: var(--cream-dim);
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+}
+
+/* ---------- Interest: statement and bento ---------- */
+.statement {
+  max-width: 62rem;
+  margin: 0;
+  font-size: clamp(2.2rem, 5.2vw, 5.2rem);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 1.04;
+}
+
+/* Pictures set inside the heading: the same pill shape at the cap height of the type. */
+.pill-img {
+  display: inline-block;
+  width: 1.9em;
+  height: 0.9em;
+  margin: 0 0.12em;
+  border-radius: 999px;
+  vertical-align: middle;
+  background-size: cover;
+  background-position: center;
+  filter: grayscale(0.6) contrast(1.2);
+}
+
+.pill-img-wide {
+  width: 2.6em;
+}
+
+.bento {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-flow: dense;
+  grid-auto-rows: 26svh;
+  gap: 1rem;
+  margin-top: 5rem;
+}
+
+@media (min-width: 768px) {
+  .bento {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-rows: 30svh;
+  }
+}
+
+.bento-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  padding: 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: var(--felt-soft);
+  color: var(--cream);
+  text-decoration: none;
+}
+
+/* Desktop 4x2: reel takes the 2x2 block; clients 2x1; place and cta 1x1 each. Mobile 2x4 keeps the same spans. */
+.bento-reel {
+  grid-column: span 2;
+  grid-row: span 2;
+  padding: 0;
+  justify-content: flex-end;
+}
+
+.bento-clients {
+  grid-column: span 2;
+}
+
+.bento-place,
+.bento-cta {
+  grid-column: span 1;
+}
+
+.bento-media {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.bento-media video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(1) contrast(1.2);
+  transition: transform 0.7s ease-out, filter 0.7s;
+}
+
+/* Hover physics: the media scales inside its overflow-hidden card. */
+.bento-card:hover .bento-media video {
+  transform: scale(1.05);
+  filter: grayscale(0.2) contrast(1.2);
+}
+
+.bento-caption {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: 1.25rem;
+  max-width: 22rem;
+  font-size: 1.25rem;
+  font-weight: 500;
+  background: linear-gradient(0deg, rgba(7, 9, 8, 0.85), transparent);
+}
+
+.bento-kicker {
+  margin: 0;
+  color: var(--cream-dim);
+  font-size: 0.85rem;
+  text-transform: none;
+}
+
+.bento-big {
+  margin: 0;
+  font-size: clamp(1.25rem, 2.2vw, 1.9rem);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+}
+
+.bento-clients {
+  justify-content: center;
+}
+
+.logo-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  align-items: center;
+  gap: 1.25rem 2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 768px) {
+  .logo-row {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.logo-row img {
+  width: 100%;
+  max-height: 64px;
+  object-fit: contain;
+  filter: grayscale(1) brightness(1.7);
+  opacity: 0.9;
+  transition: filter 0.5s, opacity 0.5s;
+}
+
+.logo-row img:hover {
+  filter: none;
+  opacity: 1;
+}
+
+.bento-cta {
+  background: var(--lime);
+  border-color: transparent;
+  color: var(--ink);
+  transition: transform 0.7s ease-out;
+}
+
+.bento-cta .bento-kicker {
+  color: rgba(7, 9, 8, 0.7);
+}
+
+.bento-cta:hover {
+  transform: scale(1.03);
+}
+
+.bento-arrow {
+  align-self: flex-end;
+  font-size: 1.75rem;
+}
+
+/* ---------- Desire: scrubbed paragraph ---------- */
+.manifesto {
+  position: relative;
+  height: 200svh;
+}
+
+.manifesto-sticky {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  height: 100svh;
+  padding: 0 var(--gutter);
+}
+
+.manifesto-text {
+  max-width: 62rem;
+  margin: 0;
+  font-size: clamp(1.9rem, 4vw, 3.8rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+/* Words start at 0.1 opacity; the scrub brings each one to full. */
+.manifesto-text .word {
+  display: inline-block;
+  opacity: 0.1;
+}
+
+/* ---------- Desire: horizontal accordion ---------- */
+.accordion {
+  display: flex;
+  height: 72svh;
+  min-height: 420px;
+  margin: 0;
+  padding: 0;
+  gap: 0.5rem;
+  list-style: none;
+}
+
+.slice {
+  flex: 1;
+  min-width: 0;
+  transition: flex 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.slice.is-open {
+  flex: 6;
+}
+
+.slice-button {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--felt-soft);
+  cursor: pointer;
+}
+
+.slice-still {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(1) contrast(1.15);
+  transition: transform 0.9s ease-out, filter 0.9s;
+}
+
+.slice.is-open .slice-still {
+  filter: grayscale(0.3) contrast(1.2);
+}
+
+.slice-reel {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.slice-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(7, 9, 8, 0.9), rgba(7, 9, 8, 0.1) 60%);
+}
+
+.slice-label {
+  position: absolute;
+  left: 1.25rem;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  text-align: left;
+  color: var(--cream);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.slice-name {
+  font-size: clamp(1.1rem, 2vw, 1.8rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.slice-detail {
+  color: var(--cream-dim);
+  font-size: 0.95rem;
+  opacity: 0;
+  transition: opacity 0.6s 0.3s;
+}
+
+.slice.is-open .slice-detail {
+  opacity: 1;
+}
+
+/* Phones: slices stack and open downward on tap. */
+@media (max-width: 767px) {
+  .accordion {
+    flex-direction: column;
+    height: auto;
+    min-height: 0;
+  }
+
+  .slice {
+    flex: none;
+    height: 96px;
+    transition: height 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .slice.is-open {
+    height: 380px;
+  }
+
+  .slice-detail {
+    opacity: 1;
+  }
+}
+
+/* ---------- Desire: stacking client cards ---------- */
+.stack-section {
+  padding-bottom: calc(var(--section-y) / 2);
+}
+
+.stack-card {
+  position: sticky;
+  top: calc(16svh + var(--i) * 28px);
+  height: 62svh;
+  min-height: 360px;
+  margin-bottom: 12svh;
+}
+
+.stack-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  height: 100%;
+  padding: 2rem;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: linear-gradient(160deg, #13261d, var(--felt-soft));
+  transform-origin: center top;
+}
+
+.stack-inner img {
+  width: min(60%, 360px);
+  max-height: 140px;
+  object-fit: contain;
+  filter: brightness(1.7) grayscale(1);
+}
+
+.stack-name {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 4.5rem);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  text-align: center;
+}
+
+.stack-next {
+  background: var(--lime);
+  color: var(--ink);
+}
+
+.stack-next .stack-name {
+  color: var(--ink);
+}
+
+/* ---------- Marquee ---------- */
+.marquee {
+  overflow: hidden;
+  padding: 5rem 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  will-change: transform;
+}
+
+.marquee-track li {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+  padding-right: 2.5rem;
+  font-size: clamp(3rem, 8vw, 7rem);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+}
+
+.marquee-track svg {
+  color: var(--lime);
+}
+
+/* ---------- Action: footer ---------- */
+.footer-cta {
+  padding-bottom: calc(var(--section-y) / 2);
+}
+
+.cta-title {
+  margin: 0 0 3.5rem;
+  font-size: clamp(3rem, 9vw, 9rem);
+  font-weight: 600;
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+}
+
+.cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.footer-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem 2rem;
+  padding: 2rem var(--gutter) 3rem;
+  border-top: 1px solid var(--line);
+  color: var(--cream-dim);
+  font-size: 0.9rem;
+}
+
+.footer-row p {
+  margin: 0;
+}
+
+/* ---------- Motion preference ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .bento-media video,
+  .slice,
+  .slice-detail,
+  .btn {
+    transition: none;
+  }
+}
+
+/* ---------- The Intro break: Draft 01's scene, copied from 8Ball_Studio's styles.css ---------- */
+.pool-pov-visual,
+.pool-pov-balls-canvas,
+.webgl-pool-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.pool-pov-balls-canvas {
+  z-index: 3;
+  display: block;
+  outline: none;
+  pointer-events: none;
+}
+
+.draft-layer-2d {
+  --draft-exit-opacity: 1;
+  background: #0a100d;
+  /* Scroll owns this opacity exactly, so a CSS transition cannot lag behind reverse sampling. */
+  transition: visibility 0s linear 260ms;
+}
+
+.draft-layer-2d.is-active {
+  /* The layer stays fully opaque: the Studio light flood wipes over it instead. Fading a group
+     that contains the WebGL canvas toward 0 stalled the main thread for ~750ms mid-transition. */
+  opacity: 1;
+  transition-delay: 0s;
+}
+
+.draft-layer-2d::after {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  content: '';
+  background:
+    radial-gradient(circle at 50% 58%, transparent 0 23%, rgba(4, 11, 8, 0.12) 62%, rgba(2, 5, 4, 0.58) 100%),
+    linear-gradient(180deg, rgba(4, 7, 5, 0.08), rgba(4, 7, 5, 0.3));
+  mix-blend-mode: multiply;
+}
+
+.draft-layer-2d .pool-pov-visual {
+  z-index: 0;
+  display: block;
+  overflow: hidden;
+}
+
+.pool-pov-photo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transform: translate(-50%, -50%);
+}
+
+/* The upright plate's camera looks down more steeply than the wide one, so with a plain cover fit its
+   far cushion sat well above the rack, with open cloth between. The plate is placed so that its cloth
+   edge (27.9% down the photo) lands at 35.7% of the screen height, right on the rack's back row as on
+   the wide plate. Phones zoom the photo from its top edge (128% of the screen height, top edge kept
+   covered); wider portrait screens, whose cover fit is already taller than that, shift it up instead.
+   The 3D balls do not move. PLATE_CALIBRATIONS.portrait in PoolPovDraft.jsx holds the plate's
+   measurements after this placement. */
+@media (orientation: portrait) {
+  .draft-layer-2d .pool-pov-visual {
+    container-type: size;
+  }
+
+  .pool-pov-photo {
+    /* 1536 × 2752: the plate's own shape, so the sizing below is the drawn image. */
+    top: min(0px, calc(35.7cqh - 50cqw));
+    width: auto;
+    height: max(128cqh, calc(100cqw * 2752 / 1536));
+    aspect-ratio: 1536 / 2752;
+    transform: translateX(-50%);
+  }
+}
+
+.pool-pov-vignette,
+.webgl-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.46), transparent 24%, transparent 76%, rgba(0, 0, 0, 0.44)),
+    linear-gradient(0deg, rgba(0, 0, 0, 0.5), transparent 31%, transparent 72%, rgba(0, 0, 0, 0.28));
+}
+
+.pool-pov-vignette {
+  /* Keep optical falloff above both the plate and the physically lit balls. */
+  z-index: 4;
+}
+
+.webgl-vignette {
+  z-index: 2;
+}
+
+.webgl-pool-canvas {
+  display: block;
+  outline: none;
+}
+
+/* Optical falloff stays restrained because the scene now supplies its own depth and shadows. */
+.draft-layer-webgl .webgl-vignette {
+  background:
+    radial-gradient(circle at 50% 54%, transparent 12%, rgba(0, 0, 0, 0.05) 48%, rgba(0, 0, 0, 0.52) 112%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.1), transparent 22%, transparent 74%, rgba(0, 0, 0, 0.26));
+}
+
+
+/* ?tune Design picker (App.jsx): bottom-right, above the page, so it never covers the Nav. */
+.design-select {
+  position: fixed;
+  right: var(--gutter);
+  bottom: var(--gutter);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--line);
+  background: var(--felt);
+  color: var(--cream);
+  font: 500 0.8rem/1 var(--ui-font);
+}
+
+.design-select select {
+  font: inherit;
+  color: inherit;
+  background: var(--felt-soft);
+  border: 1px solid var(--line);
+  padding: 0.25rem 0.4rem;
+}
