@@ -8,7 +8,7 @@ export function ServicesAccordion() {
 
   return (
     <section className="section services" aria-labelledby="services-title">
-      <h2 id="services-title" className="section-title">What we make</h2>
+      <h2 id="services-title" className="section-title">Our Services</h2>
       <ul className="accordion">
         { SERVICES.map( ( service, index ) => {
           const isOpen = index === openIndex

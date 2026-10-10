@@ -8,19 +8,6 @@ const VISIBLE_ROWS = 2.4
 // How long the scroll must rest before the reel plays again.
 const SETTLE_MS = 180
 
-// One service's tile: its poster image always, and the reel only while it is the active row. Only one
-// <video> is mounted at a time, so the page decodes a single reel instead of six.
-function ReelTile( { service, isActive, hasReel, reelRef } ) {
-  return (
-    <figure className={ `drum-tile${ isActive ? ' is-active' : '' }` }>
-      <img src={ service.reel.poster } alt="" loading="lazy" decoding="async" />
-      { hasReel && (
-        <video ref={ reelRef } src={ service.reel.src } muted loop playsInline preload="auto" />
-      ) }
-    </figure>
-  )
-}
-
 // The five pieces of one service, shown to the right of the names. Only the first reel mounts a <video>
 // (the drum's one-reel rule); the other reels show their poster until the strip is wider than the screen.
 // Keyed by service in the parent, so the strip remounts and its entrance replays on each new active row.
@@ -46,8 +33,8 @@ function MediaStrip( { service, hasReel, reelRef } ) {
 // Desire, ?tune draft: the six services on a flat drum. The section sticks for one screen while the
 // scroll slides the column up past the centre line, one service per step. The row at the centre is
 // active: lit, its detail shown, and its reel plays once the scroll settles while the drum is on screen.
-// variant: 'drum-media' (names, with the active reel beside them), 'drum-names' (names alone),
-// 'drum-cards' (each row is a card carrying its own reel).
+// variant: 'drum-media' (names, with the active service's five-piece strip beside them), 'drum-cards' (each row
+// carries its own five-piece strip).
 export function ServicesDrum( { variant } ) {
   const rootRef = useRef( null )
   const reelRef = useRef( null )
@@ -98,6 +85,8 @@ export function ServicesDrum( { variant } ) {
     const setActive = ( next ) => {
       if ( next === active ) return
       active = next
+      // The reel stops as soon as the title changes; the next reel waits for the scroll to settle.
+      reelRef.current?.pause()
       setActiveIndex( next )
     }
 
@@ -197,7 +186,7 @@ export function ServicesDrum( { variant } ) {
       ref={ rootRef }
     >
       <div className="drum-stage">
-        <h2 id="services-title" className="section-title drum-title">What we make</h2>
+        <h2 id="services-title" className="section-title drum-title">Our Services</h2>
         <div className="drum-body">
           <ol className="drum-window" aria-label="Services">
             { SERVICES.map( ( service, index ) => {
@@ -208,20 +197,13 @@ export function ServicesDrum( { variant } ) {
                     <span className="drum-name">{ service.name }</span>
                     <span className="drum-detail">{ service.detail }</span>
                   </span>
-                  { variant === 'drum-cards' && <ReelTile service={ service } isActive={ isActive } hasReel={ index === reelIndex } reelRef={ reelRef } /> }
+                  { variant === 'drum-cards' && <MediaStrip service={ service } hasReel={ index === reelIndex } reelRef={ reelRef } /> }
                 </li>
               )
             } ) }
           </ol>
-          { variant === 'drum-names' && (
-            <MediaStrip key={ SERVICES[ activeIndex ].name } service={ SERVICES[ activeIndex ] } hasReel={ activeIndex === reelIndex } reelRef={ reelRef } />
-          ) }
           { variant === 'drum-media' && (
-            <div className="drum-media" aria-hidden="true">
-              { SERVICES.map( ( service, index ) => (
-                <ReelTile service={ service } isActive={ index === activeIndex } hasReel={ index === reelIndex } reelRef={ reelRef } key={ service.name } />
-              ) ) }
-            </div>
+            <MediaStrip key={ SERVICES[ activeIndex ].name } service={ SERVICES[ activeIndex ] } hasReel={ activeIndex === reelIndex } reelRef={ reelRef } />
           ) }
         </div>
       </div>

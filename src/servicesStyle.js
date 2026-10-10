@@ -4,7 +4,6 @@
 export const SERVICES_STYLES = Object.freeze( {
   accordion: 'Accordion',
   'drum-media': 'Flat drum · names + media',
-  'drum-names': 'Flat drum · names',
   'drum-cards': 'Flat drum · cards',
 } )
 
