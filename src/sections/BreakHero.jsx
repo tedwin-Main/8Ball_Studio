@@ -1,8 +1,8 @@
 import { useCallback, useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { PoolPovDraft } from '../../drafts/PoolPovDraft'
-import { STAGE } from '../../storyStage'
+import { PoolPovDraft } from '../drafts/PoolPovDraft'
+import { STAGE } from '../storyStage'
 
 const clamp = ( value ) => Math.min( 1, Math.max( 0, value ) )
 

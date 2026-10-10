@@ -811,27 +811,3 @@ a {
     linear-gradient(180deg, rgba(0, 0, 0, 0.1), transparent 22%, transparent 74%, rgba(0, 0, 0, 0.26));
 }
 
-
-/* ?tune Design picker (App.jsx): bottom-right, above the page, so it never covers the Nav. */
-.design-select {
-  position: fixed;
-  right: var(--gutter);
-  bottom: var(--gutter);
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.6rem;
-  border: 1px solid var(--line);
-  background: var(--felt);
-  color: var(--cream);
-  font: 500 0.8rem/1 var(--ui-font);
-}
-
-.design-select select {
-  font: inherit;
-  color: inherit;
-  background: var(--felt-soft);
-  border: 1px solid var(--line);
-  padding: 0.25rem 0.4rem;
-}

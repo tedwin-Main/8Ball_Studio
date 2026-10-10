@@ -1,5 +1,5 @@
 import { PRIMARY_CONTACT } from '../content'
-import brandLogo from '../../assets/8BALL-V4.jpg'
+import brandLogo from '../assets/8BALL-V4.jpg'
 
 // Floating glass pill at the top of every view. Anchors jump to the page's chapters.
 export function Nav() {

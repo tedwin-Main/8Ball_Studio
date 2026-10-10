@@ -11,5 +11,7 @@ Latin subsets downloaded from Google Fonts (fonts.gstatic.com) and self-hosted. 
 under the SIL Open Font License 1.1: https://openfontlicense.org
 
 - `space-grotesk-latin-var.woff2`: Space Grotesk (weight 300–700), by Florian Karsten. Every word of the Main look (Space Grotesk v22).
+- `schibsted-grotesk-latin-var.woff2`: Schibsted Grotesk (weight 400–900), by Bakken & Bæck. Every word of the Pool Table look.
 
-Space Grotesk (Main, the only look) is preloaded.
+Space Grotesk (Main, the default look) is preloaded; the other faces load when their look first renders text.
+- `fraunces-latin-var.woff2`, `fraunces-latin-italic-var.woff2`: Fraunces (optical size 9–144, weight 300–900, roman and italic), by Undercase Type. The titles of the Espresso theme (Fraunces v38).

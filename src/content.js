@@ -2,8 +2,8 @@
 // Nothing here is invented: no testimonials, metrics, case studies, pricing or awards.
 
 // Service media lives in src/assets/services (sample pieces, see SOURCES.json). Vite resolves the URLs at build time.
-const MEDIA = import.meta.glob( '../assets/services/*.{mp4,webp}', { eager: true, import: 'default' } )
-const media = ( name ) => MEDIA[ `../assets/services/${name}` ]
+const MEDIA = import.meta.glob( './assets/services/*.{mp4,webp}', { eager: true, import: 'default' } )
+const media = ( name ) => MEDIA[ `./assets/services/${name}` ]
 
 // Each service: a reel (video + poster) and a still, shown in the horizontal accordion.
 export const SERVICES = [
@@ -47,10 +47,10 @@ export const SERVICES = [
 
 // Client logos, from the studio's real projects.
 export const CLIENTS = [
-  { name: 'Artigusto Gelato', src: new URL( '../assets/Artigusto-Gelato_Clearned.webp', import.meta.url ).href },
-  { name: 'ERS Energy', src: new URL( '../assets/ers-energy-logo.png', import.meta.url ).href },
-  { name: 'Haruplate', src: new URL( '../assets/haruplate-logo.png', import.meta.url ).href },
-  { name: 'Shopee', src: new URL( '../assets/shopee-logo.svg', import.meta.url ).href },
+  { name: 'Artigusto Gelato', src: new URL( './assets/Artigusto-Gelato_Clearned.webp', import.meta.url ).href },
+  { name: 'ERS Energy', src: new URL( './assets/ers-energy-logo.png', import.meta.url ).href },
+  { name: 'Haruplate', src: new URL( './assets/haruplate-logo.png', import.meta.url ).href },
+  { name: 'Shopee', src: new URL( './assets/shopee-logo.svg', import.meta.url ).href },
 ]
 
 // The one primary way to reach the studio: local brands message on WhatsApp first.
