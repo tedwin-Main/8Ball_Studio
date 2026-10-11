@@ -36,10 +36,6 @@ const DRAFT1_PIXEL_RATIO_CAP = 1.5
 // (MSAA stays on: without it the ball edges stair-step), with lighter spheres and no clearcoat pass.
 const IS_TOUCH = typeof window !== 'undefined' && window.matchMedia( '(hover: none) and (pointer: coarse)' ).matches
 const PIXEL_RATIO_CAP = IS_TOUCH ? 1 : DRAFT1_PIXEL_RATIO_CAP
-// Phones paint the break at most ~30 times a second. A touch scroll asks for a new frame on every event; at
-// 60fps the GPU falls behind, frames queue and the whole page stalls, while a steady 30 keeps scrolling smooth.
-// The scheduler keeps a skipped frame alive, so the latest playhead is always painted on the next slot.
-const MIN_FRAME_MS = IS_TOUCH ? 30 : 0
 
 // Each plate stores its table, light, rail, and projected pocket measurements together.
 const PLATE_CALIBRATIONS = Object.freeze( {
@@ -605,19 +601,10 @@ export function PoolPovDraft ( { active, onController } )
       },
     }
 
-    let lastPaintAt = -Infinity
-    renderFrame = ( { timestamp } ) =>
+    renderFrame = () =>
     {
       renderContinuation = false
       if ( destroyed || !isActive || !world ) return
-
-      // Too soon after the last paint: hold this frame and try again on the next display frame.
-      if ( timestamp - lastPaintAt < MIN_FRAME_MS )
-      {
-        renderContinuation = true
-        return
-      }
-      lastPaintAt = timestamp
 
       if ( resizePending )
       {
