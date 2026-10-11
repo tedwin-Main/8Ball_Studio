@@ -257,13 +257,30 @@ a {
   }
 }
 
+/* ---------- Scroll distance: how far each scroll-driven section runs ----------
+   Desktop scrolls in wheel notches (Lenis smooths them); phones fling, and one swipe travels much further, so
+   phones get longer sections to keep the break, the paragraph and each drum row from flashing past. */
+:root {
+  --scroll-break: 480svh;
+  --scroll-manifesto: 260svh;
+  --scroll-drum-row: 80vh;
+}
+
+@media (max-width: 767px), (hover: none) and (pointer: coarse) {
+  :root {
+    --scroll-break: 600svh;
+    --scroll-manifesto: 320svh;
+    --scroll-drum-row: 100vh;
+  }
+}
+
 /* ---------- Break hero: the pool table is the page's first chapter ---------- */
 .break {
   position: relative;
-  /* 372svh: scroll progress runs over the full height. The roll takes 240svh (APPROACH_END 0.40 of 0.62) and
-     the scatter 132svh (SCATTER 0.22 of 0.62). The stage stays pinned for the first 272svh, then scrolls away.
-     Keep in step with APPROACH_END / SCATTER in src/storyStage.js. */
-  height: 372svh;
+  /* Scroll progress runs over the full height: the roll takes APPROACH_END / transitionReady of it (0.40 of
+     0.62, about 65%) and the scatter the rest; the stage stays pinned for all but the last 100svh. The height is
+     the scroll distance (--scroll-break, set per device in the scroll-distance block below). */
+  height: var(--scroll-break);
 }
 
 .break-stage {
@@ -486,7 +503,7 @@ a {
 /* ---------- Desire: scrubbed paragraph ---------- */
 .manifesto {
   position: relative;
-  height: 200svh;
+  height: var(--scroll-manifesto);
 }
 
 .manifesto-sticky {
@@ -873,7 +890,7 @@ a {
 /* ---------- Desire, ?tune only: flat Services drums ---------- */
 /* The section is as tall as one screen plus one step per row, so the sticky stage holds while the scroll turns the column. */
 .services-drum {
-  height: calc(100svh + var(--drum-rows, 6) * 60vh);
+  height: calc(100svh + var(--drum-rows, 6) * var(--scroll-drum-row));
   padding: 0 var(--gutter);
 }
 

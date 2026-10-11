@@ -6,7 +6,7 @@ const clamp = ( value ) => Math.min( 1, Math.max( 0, value ) )
 
 const VIEWPORTS_PER_UNIT = 3
 // Where the 8-ball hits the rack. 0 → APPROACH_END is the roll, so raising it lengthens the roll's scroll.
-// .break in index.css is sized (372svh) so SCATTER keeps its 132svh; keep the two in step.
+// .break's height in index.css (--scroll-break) is the whole run, so the roll and scatter scale with it.
 const APPROACH_END = 0.40
 const SCATTER = 0.22
 const EXIT = 0.16
