@@ -49,7 +49,7 @@ export const SERVICES = [
   },
   {
     name: 'AI generated content',
-    detail: 'AI UGC, synthetic media, virtual production',
+    detail: 'AI UGC, synthetic media, virtual production.\n*ps: all of this is AI generated',
     reel: { src: media( 'ai-reel.mp4' ), poster: media( 'ai-reel-poster.webp' ) },
     still: media( 'ai-still.webp' ),
     media: serviceMedia( 'ai', [ 'reel', 'still', 'reel-3', 'still-2', 'reel-2' ] ),

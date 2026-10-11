@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { CaretLeft, CaretRight } from '@phosphor-icons/react'
 import { SERVICES } from '../content'
 import { flatDrumActive, flatDrumRow } from '../servicesStyle'
+import { useRiseTitle } from '../titleMotion'
 
 // How many rows from the centre a row has faded out (the window's mask fades its edges on top of this).
 const VISIBLE_ROWS = 2.4
@@ -12,9 +14,35 @@ const SETTLE_MS = 180
 // (the drum's one-reel rule); the other reels show their poster until the strip is wider than the screen.
 // Keyed by service in the parent, so the strip remounts and its entrance replays on each new active row.
 function MediaStrip( { service, hasReel, reelRef } ) {
+  const stripRef = useRef( null )
   let reelUsed = false
+
+  // Marks the strip at its first and last tile, so the prev/next arrow fades out. Set on the element
+  // directly (not React state) so a sideways scroll never re-renders the strip.
+  const markEdges = () => {
+    const strip = stripRef.current
+    if ( !strip ) return
+    strip.classList.toggle( 'is-start', strip.scrollLeft <= 2 )
+    strip.classList.toggle( 'is-end', strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 2 )
+  }
+  useLayoutEffect( markEdges, [] )
+
+  // An arrow moves the strip one tile (tile width plus the gap) back or on; scroll-snap lands it on the tile's edge.
+  const step = ( dir ) => {
+    const strip = stripRef.current
+    const tile = strip.querySelector( '.drum-strip-tile' )
+    const gap = parseFloat( window.getComputedStyle( strip ).columnGap ) || 0
+    strip.scrollBy( { left: dir * ( tile.offsetWidth + gap ), behavior: 'smooth' } )
+  }
+
   return (
-    <div className="drum-strip" aria-hidden="true">
+    <div className="drum-strip" aria-hidden="true" ref={ stripRef } onScroll={ markEdges }>
+      {/* Zero-width anchor stuck to the strip's left edge; the arrow hangs off it over the first visible tile. */}
+      <span className="drum-strip-prev-anchor">
+        <button type="button" className="drum-strip-prev" aria-label="Previous" tabIndex={ -1 } onClick={ () => step( -1 ) }>
+          <CaretLeft size={ 18 } weight="bold" aria-hidden="true" />
+        </button>
+      </span>
       { service.media.map( ( piece, index ) => {
         const playable = piece.type === 'video' && hasReel && !reelUsed
         if ( playable ) reelUsed = true
@@ -26,6 +54,13 @@ function MediaStrip( { service, hasReel, reelRef } ) {
           </figure>
         )
       } ) }
+      {/* Zero-width anchor stuck to the strip's right edge; the arrow hangs off it over the last visible tile. */}
+      <span className="drum-strip-next-anchor">
+        {/* The strip is decorative (aria-hidden), so the arrow is a mouse/touch aid only, kept out of the tab order. */}
+        <button type="button" className="drum-strip-next" aria-label="Next" tabIndex={ -1 } onClick={ () => step( 1 ) }>
+          <CaretRight size={ 18 } weight="bold" aria-hidden="true" />
+        </button>
+      </span>
     </div>
   )
 }
@@ -38,6 +73,8 @@ function MediaStrip( { service, hasReel, reelRef } ) {
 export function ServicesDrum( { variant } ) {
   const rootRef = useRef( null )
   const reelRef = useRef( null )
+  const titleRef = useRef( null )
+  useRiseTitle( titleRef )
   const [ activeIndex, setActiveIndex ] = useState( 0 )
   // The row whose <video> is mounted. It only catches up to activeIndex once the scroll rests, so a
   // video is never created or decoded mid-scroll (that was the phone lag).
@@ -62,6 +99,8 @@ export function ServicesDrum( { variant } ) {
   useLayoutEffect( () => {
     const root = rootRef.current
     const windowEl = root.querySelector( '.drum-window' )
+    // The tall wrapper the stage pins inside; the slide runs over it, so it starts once the heading has scrolled by.
+    const track = root.querySelector( '.drum-track' )
     const rows = [ ...root.querySelectorAll( '.drum-row' ) ]
     // Phone address-bar show/hide must not trigger a ScrollTrigger refresh (re-measure) mid-scroll.
     ScrollTrigger.config( { ignoreMobileResize: true } )
@@ -153,7 +192,7 @@ export function ServicesDrum( { variant } ) {
 
     measure()
     const slideTrigger = ScrollTrigger.create( {
-      trigger: root,
+      trigger: track,
       start: 'top top',
       end: 'bottom bottom',
       onUpdate: ( self ) => {
@@ -185,26 +224,29 @@ export function ServicesDrum( { variant } ) {
       aria-labelledby="services-title"
       ref={ rootRef }
     >
-      <div className="drum-stage">
-        <h2 id="services-title" className="section-title drum-title">Our Services</h2>
-        <div className="drum-body">
-          <ol className="drum-window" aria-label="Services">
-            { SERVICES.map( ( service, index ) => {
-              const isActive = index === activeIndex
-              return (
-                <li className={ `drum-row${ isActive ? ' is-active' : '' }` } key={ service.name }>
-                  <span className="drum-text">
-                    <span className="drum-name">{ service.name }</span>
-                    <span className="drum-detail">{ service.detail }</span>
-                  </span>
-                  { variant === 'drum-cards' && <MediaStrip service={ service } hasReel={ index === reelIndex } reelRef={ reelRef } /> }
-                </li>
-              )
-            } ) }
-          </ol>
-          { variant === 'drum-media' && (
-            <MediaStrip key={ SERVICES[ activeIndex ].name } service={ SERVICES[ activeIndex ] } hasReel={ activeIndex === reelIndex } reelRef={ reelRef } />
-          ) }
+      {/* The heading scrolls past like any other; only the stage below it pins. */}
+      <h2 id="services-title" className="section-title drum-title" ref={ titleRef }>Our Services</h2>
+      <div className="drum-track">
+        <div className="drum-stage">
+          <div className="drum-body">
+            <ol className="drum-window" aria-label="Services">
+              { SERVICES.map( ( service, index ) => {
+                const isActive = index === activeIndex
+                return (
+                  <li className={ `drum-row${ isActive ? ' is-active' : '' }` } key={ service.name }>
+                    <span className="drum-text">
+                      <span className="drum-name">{ service.name }</span>
+                      <span className="drum-detail">{ service.detail }</span>
+                    </span>
+                    { variant === 'drum-cards' && <MediaStrip service={ service } hasReel={ index === reelIndex } reelRef={ reelRef } /> }
+                  </li>
+                )
+              } ) }
+            </ol>
+            { variant === 'drum-media' && (
+              <MediaStrip key={ SERVICES[ activeIndex ].name } service={ SERVICES[ activeIndex ] } hasReel={ activeIndex === reelIndex } reelRef={ reelRef } />
+            ) }
+          </div>
         </div>
       </div>
     </section>

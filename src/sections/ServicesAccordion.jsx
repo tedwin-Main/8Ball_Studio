@@ -1,14 +1,17 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { SERVICES } from '../content'
+import { useRiseTitle } from '../titleMotion'
 
 // Desire: six vertical slices side by side. The open slice widens to show its reel; the rest keep their stills.
 // Hover, focus and tap all open a slice, so keyboard and touch get the same behaviour.
 export function ServicesAccordion() {
   const [ openIndex, setOpenIndex ] = useState( 0 )
+  const titleRef = useRef( null )
+  useRiseTitle( titleRef )
 
   return (
     <section className="section services" aria-labelledby="services-title">
-      <h2 id="services-title" className="section-title">Our Services</h2>
+      <h2 id="services-title" className="section-title" ref={ titleRef }>Our Services</h2>
       <ul className="accordion">
         { SERVICES.map( ( service, index ) => {
           const isOpen = index === openIndex
