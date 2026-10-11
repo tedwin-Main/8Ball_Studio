@@ -32,6 +32,10 @@ const lerp = ( start, end, progress ) => start + ( end - start ) * progress
 
 // Match Draft 2's maximum backing density so Retina desktops do not pay excess fill rate.
 const DRAFT1_PIXEL_RATIO_CAP = 1.5
+// Phones redraw the full-screen scene on every scroll frame with a mobile GPU, so they render at 1x
+// (MSAA stays on: without it the ball edges stair-step), with lighter spheres and no clearcoat pass.
+const IS_TOUCH = typeof window !== 'undefined' && window.matchMedia( '(hover: none) and (pointer: coarse)' ).matches
+const PIXEL_RATIO_CAP = IS_TOUCH ? 1 : DRAFT1_PIXEL_RATIO_CAP
 
 // Each plate stores its table, light, rail, and projected pocket measurements together.
 const PLATE_CALIBRATIONS = Object.freeze( {
@@ -167,7 +171,15 @@ const createWarmEnvironment = ( renderer ) =>
   return target
 }
 
-const createBallMaterial = ( color, texture ) => new THREE.MeshPhysicalMaterial( {
+const createBallMaterial = ( color, texture ) => IS_TOUCH
+  ? new THREE.MeshStandardMaterial( {
+    color: texture ? '#ffffff' : color,
+    map: texture,
+    roughness: 0.06,
+    metalness: 0,
+    envMapIntensity: 0.9,
+  } )
+  : new THREE.MeshPhysicalMaterial( {
   color: texture ? '#ffffff' : color,
   map: texture,
   roughness: 0.075,
@@ -206,7 +218,7 @@ const buildWorld = ( canvas, simulation, requestRender ) =>
   scene.add( tableRoot )
 
   const radius = simulation.config.ball.radius
-  const ballGeometry = new THREE.SphereGeometry( radius, 48, 32 )
+  const ballGeometry = new THREE.SphereGeometry( radius, IS_TOUCH ? 32 : 48, IS_TOUCH ? 20 : 32 )
   const ballMeshes = []
   const contactShadowTexture = createContactShadowTexture( maximumAnisotropy )
   disposableTextures.add( contactShadowTexture )
@@ -253,7 +265,7 @@ const buildWorld = ( canvas, simulation, requestRender ) =>
     // The texture carries only the white glyph; the striker's resin shows through everywhere else.
     transparent: true,
     roughness: 0.12,
-    clearcoat: 0.9,
+    clearcoat: IS_TOUCH ? 0 : 0.9,
     clearcoatRoughness: 0.05,
     depthWrite: false,
     polygonOffset: true,
@@ -350,7 +362,7 @@ const buildWorld = ( canvas, simulation, requestRender ) =>
     setHoverResponse( hoverResponse )
 
     // Keep CSS size and camera framing unchanged while limiting internal render pixels.
-    const pixelRatio = Math.min( window.devicePixelRatio || 1, DRAFT1_PIXEL_RATIO_CAP )
+    const pixelRatio = Math.min( window.devicePixelRatio || 1, PIXEL_RATIO_CAP )
     renderer.setPixelRatio( pixelRatio )
     renderer.setSize( width, height, false )
 

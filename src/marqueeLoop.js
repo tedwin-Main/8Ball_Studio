@@ -25,7 +25,15 @@ export function startMarqueeLoop( track, { reverse = false } = {} ) {
   observer.observe( track )
   setSpeed()
 
+  // Off screen the row is paused, so it costs no frames while the visitor is elsewhere on the page.
+  const visibility = new IntersectionObserver( ( [ entry ] ) => {
+    if ( entry.isIntersecting ) tween.play()
+    else tween.pause()
+  } )
+  visibility.observe( track.parentElement )
+
   return () => {
+    visibility.disconnect()
     observer.disconnect()
     tween.kill()
   }

@@ -222,6 +222,39 @@ a {
   .nav-links {
     display: none;
   }
+
+  /* With the links hidden only two items remain, so two columns: the brand takes the room (and
+     ellipsizes if it must), the CTA keeps its own width at the right edge. Three columns put the
+     CTA in the middle one, jammed against a clipped brand name. */
+  .nav-pill {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.75rem;
+  }
+
+  .nav-brand span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* Phones: the fixed film grain and the nav's backdrop blur are re-composited over the WebGL break and
+   every moving section on each scroll frame, so phones get a plain, near-solid pill and no grain. */
+@media (max-width: 767px) {
+  body::after {
+    display: none;
+  }
+
+  .nav-pill {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: rgba(7, 17, 13, 0.92);
+  }
+
+  /* The vignette's multiply blend forces the canvas layer to be blended again every frame; a plain overlay
+     of the same gradient reads almost the same on the dark plate. */
+  .draft-layer-2d::after {
+    mix-blend-mode: normal;
+  }
 }
 
 /* ---------- Break hero: the pool table is the page's first chapter ---------- */
