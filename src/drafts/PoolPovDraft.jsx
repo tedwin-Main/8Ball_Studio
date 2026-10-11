@@ -36,6 +36,10 @@ const DRAFT1_PIXEL_RATIO_CAP = 1.5
 // (MSAA stays on: without it the ball edges stair-step), with lighter spheres and no clearcoat pass.
 const IS_TOUCH = typeof window !== 'undefined' && window.matchMedia( '(hover: none) and (pointer: coarse)' ).matches
 const PIXEL_RATIO_CAP = IS_TOUCH ? 1 : DRAFT1_PIXEL_RATIO_CAP
+// Phones paint the break at most ~30 times a second. A touch scroll asks for a new frame on every event; at
+// 60fps the GPU falls behind, frames queue and the whole page stalls, while a steady 30 keeps scrolling smooth.
+// The scheduler keeps a skipped frame alive, so the latest playhead is always painted on the next slot.
+const MIN_FRAME_MS = IS_TOUCH ? 30 : 0
 
 // Each plate stores its table, light, rail, and projected pocket measurements together.
 const PLATE_CALIBRATIONS = Object.freeze( {
@@ -208,7 +212,7 @@ const buildWorld = ( canvas, simulation, requestRender ) =>
   // The photo carries broad table shading; explicit contact planes add ball grounding without a shadow-map pass.
   renderer.shadowMap.enabled = false
 
-  const maximumAnisotropy = Math.min( 8, renderer.capabilities.getMaxAnisotropy() )
+  const maximumAnisotropy = Math.min( IS_TOUCH ? 2 : 8, renderer.capabilities.getMaxAnisotropy() )
   const disposableTextures = new Set()
   const environmentTarget = createWarmEnvironment( renderer )
   scene.environment = environmentTarget.texture
@@ -601,10 +605,19 @@ export function PoolPovDraft ( { active, onController } )
       },
     }
 
-    renderFrame = () =>
+    let lastPaintAt = -Infinity
+    renderFrame = ( { timestamp } ) =>
     {
       renderContinuation = false
       if ( destroyed || !isActive || !world ) return
+
+      // Too soon after the last paint: hold this frame and try again on the next display frame.
+      if ( timestamp - lastPaintAt < MIN_FRAME_MS )
+      {
+        renderContinuation = true
+        return
+      }
+      lastPaintAt = timestamp
 
       if ( resizePending )
       {
