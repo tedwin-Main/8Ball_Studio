@@ -27,7 +27,7 @@ test( 'sampleCinematicBreakState (Draft 1) rolls 8-ball forward immediately on f
   const simulation = getBreakSimulation()
   const startingBall = sampleCinematicBreakState( 0, simulation ).balls[ 0 ]
   const movingBall = sampleCinematicBreakState( 0.15, simulation ).balls[ 0 ]
-  const scatterState = sampleCinematicBreakState( 0.55, simulation )
+  const scatterState = sampleCinematicBreakState( STAGE.intro.approachEnd + 0.15, simulation )
 
   assert.ok( movingBall.position.z < startingBall.position.z )
 
@@ -87,7 +87,7 @@ test( 'sampleBreakState (Draft 2) rolls 8-ball forward immediately on first swip
   const simulation = getBreakSimulation()
   const startBall = sampleBreakState( 0, simulation ).balls[ 0 ]
   const rollingBall = sampleBreakState( 0.15, simulation ).balls[ 0 ]
-  const scatterState = sampleBreakState( 0.45, simulation )
+  const scatterState = sampleBreakState( STAGE.intro.approachEnd + 0.05, simulation )
 
   // 8-ball rolls forward immediately upon first scroll swipe
   assert.ok( rollingBall.position.z < startBall.position.z )

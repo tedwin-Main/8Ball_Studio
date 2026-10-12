@@ -21,19 +21,20 @@ export function BreakHero() {
   useLayoutEffect( () => {
     const section = sectionRef.current
     // Lenis smooths the wheel but leaves touch scroll native, so on phones the break would step with
-    // every raw scroll event. Touch screens get a short scrub catch-up instead; elsewhere it tracks 1:1.
+    // every raw scroll event. Touch screens get a short scrub catch-up; desktop a slightly longer one, so the
+    // ball trails the wheel and settles like a heavy object.
     const touch = window.matchMedia( '(hover: none) and (pointer: coarse)' ).matches
     const playhead = { progress: 0 }
-    // The trigger runs until the section's bottom reaches the viewport top, so the scatter keeps playing
-    // while the stage scrolls away under the next section (not frozen for a full screen).
+    // Trigger ends when sticky stage unpins (section bottom at viewport bottom), so roll and scatter finish
+    // on a held table; only then does finished table scroll away under next section.
     const tween = gsap.to( playhead, {
       progress: 1,
       ease: 'none',
       scrollTrigger: {
         trigger: section,
         start: 'top top',
-        end: 'bottom top',
-        scrub: touch ? 0.5 : true,
+        end: 'bottom bottom',
+        scrub: touch ? 0.5 : 0.6,
       },
       onUpdate: () => {
         const { progress } = playhead

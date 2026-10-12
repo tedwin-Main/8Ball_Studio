@@ -268,14 +268,14 @@ a {
    Desktop scrolls in wheel notches (Lenis smooths them); phones fling, and one swipe travels much further, so
    phones get longer sections to keep the break, the paragraph and each drum row from flashing past. */
 :root {
-  --scroll-break: 480svh;
+  --scroll-break: 490svh;
   --scroll-manifesto: 260svh;
   --scroll-drum-row: 80vh;
 }
 
 @media (max-width: 767px), (hover: none) and (pointer: coarse) {
   :root {
-    --scroll-break: 600svh;
+    --scroll-break: 590svh;
     --scroll-manifesto: 320svh;
     --scroll-drum-row: 100vh;
   }
@@ -284,9 +284,9 @@ a {
 /* ---------- Break hero: the pool table is the page's first chapter ---------- */
 .break {
   position: relative;
-  /* Scroll progress runs over the full height: the roll takes APPROACH_END / transitionReady of it (0.40 of
-     0.62, about 65%) and the scatter the rest; the stage stays pinned for all but the last 100svh. The height is
-     the scroll distance (--scroll-break, set per device in the scroll-distance block below). */
+  /* Scroll progress runs while the stage is pinned (all but the last 100svh): the roll takes APPROACH_END /
+     transitionReady of it (0.28 of 0.50, about 56%) and the scatter the rest, so the break ends before the page
+     moves on. The height is --scroll-break, set per device in the scroll-distance block above. */
   height: var(--scroll-break);
 }
 
