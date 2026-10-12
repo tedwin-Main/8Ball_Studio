@@ -12,13 +12,14 @@ import { TuneSelect } from './sections/TuneSelect'
 import { ClientLoop } from './sections/ClientLoop'
 import { Marquee } from './sections/Marquee'
 import { Footer } from './sections/Footer'
-import { normalizeServicesStyle } from './servicesStyle'
+import { normalizeNavStyle, normalizeServicesStyle } from './servicesStyle'
 
 gsap.registerPlugin( ScrollTrigger )
 
 // ?tune is the review panel: it adds the Services select. ?services=<id> picks a layout directly.
 const TUNE_REQUESTED = new URLSearchParams( window.location.search ).has( 'tune' )
 const getInitialServicesStyle = () => normalizeServicesStyle( new URLSearchParams( window.location.search ).get( 'services' ) )
+const getInitialNavStyle = () => normalizeNavStyle( new URLSearchParams( window.location.search ).get( 'nav' ) )
 
 // In-page link glide, weighted like a normal Lenis scroll: a short push that builds speed (quadratic ramp over
 // the first RAMP of the time), then a long cubic settle, so the arrival feels like a wheel scroll coming to rest.
@@ -46,6 +47,17 @@ export default function App() {
     setServicesStyle( style )
     // The drum's scroll length changes with the layout, so ScrollTrigger must re-measure the page.
     requestAnimationFrame( () => ScrollTrigger.refresh() )
+  }
+
+  const [ navStyle, setNavStyle ] = useState( getInitialNavStyle )
+
+  // ?tune nav draft: same URL-in-step trick as the Services select.
+  const switchNavStyle = ( next ) => {
+    const style = normalizeNavStyle( next )
+    const url = new URL( window.location.href )
+    url.searchParams.set( 'nav', style )
+    window.history.replaceState( {}, '', `${ url.pathname }${ url.search }${ url.hash }` )
+    setNavStyle( style )
   }
 
   useEffect( () => {
@@ -82,7 +94,7 @@ export default function App() {
 
   return (
     <main id="top">
-      <Nav />
+      <Nav align={ navStyle } />
       <BreakHero />
       <Statement />
       <Manifesto />
@@ -91,7 +103,7 @@ export default function App() {
         // The flat drums: one layout per ?tune choice, keyed so each mounts its own scroll triggers.
         : <ServicesDrum key={ servicesStyle } variant={ servicesStyle } /> }
       <ClientLoop />
-      { TUNE_REQUESTED && <TuneSelect value={ servicesStyle } onChange={ switchServicesStyle } /> }
+      { TUNE_REQUESTED && <TuneSelect value={ servicesStyle } onChange={ switchServicesStyle } navValue={ navStyle } onNavChange={ switchNavStyle } /> }
       <Marquee />
       <Footer />
     </main>

@@ -39,8 +39,7 @@ export function Footer() {
         </div>
       </div>
       <div className="footer-row">
-        <p>8ightBall Studio, Greater Kuala Lumpur, Malaysia</p>
-        <p>{ PRIMARY_CONTACT.number }</p>
+        <p>8ightBall Studio, Kuala Lumpur, Malaysia</p>
         <p>&copy; { new Date().getFullYear() } 8ightBall Studio</p>
       </div>
     </footer>

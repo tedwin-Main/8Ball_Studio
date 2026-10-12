@@ -141,11 +141,10 @@ a {
 
 .nav-pill {
   pointer-events: auto;
-  /* Three equal columns: brand left, links dead-center on the pill, CTA right.
-     A flex row centered the links in the leftover space, which shifted them
-     whenever the brand and CTA widths differed. */
+  /* Brand takes the room on the left; links and CTA sit together at the right. */
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: 1fr auto auto;
+  column-gap: 2.25rem;
   align-items: center;
   width: min(100%, 880px);
   padding: 0.5rem 0.5rem 0.5rem 0.75rem;
@@ -154,6 +153,14 @@ a {
   background: rgba(7, 17, 13, 0.55);
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
+}
+
+/* ?tune nav draft: three equal columns, links dead-centre on the pill. Desktop only; phones hide the links. */
+@media (min-width: 641px) {
+  .nav-pill.is-links-centered {
+    grid-template-columns: 1fr auto 1fr;
+    column-gap: 0;
+  }
 }
 
 .nav-brand {

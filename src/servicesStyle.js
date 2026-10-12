@@ -7,6 +7,19 @@ export const SERVICES_STYLES = Object.freeze( {
   'drum-cards': 'Flat drum · cards',
 } )
 
+// Nav link alignment drafts, ?tune only (?nav=<id> picks one directly). Visitors get 'right'.
+export const NAV_STYLES = Object.freeze( {
+  right: 'Links right',
+  center: 'Links centred',
+} )
+
+export const DEFAULT_NAV_STYLE = 'right'
+
+export function normalizeNavStyle ( queryValue )
+{
+  return Object.hasOwn( NAV_STYLES, queryValue ?? '' ) ? queryValue : DEFAULT_NAV_STYLE
+}
+
 export const DEFAULT_SERVICES_STYLE = 'accordion'
 
 // Resolves a ?services= value to a known layout, falling back to the accordion.

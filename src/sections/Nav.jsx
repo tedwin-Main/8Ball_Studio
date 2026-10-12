@@ -2,10 +2,10 @@ import { PRIMARY_CONTACT } from '../content'
 import brandLogo from '../assets/8BALL-V4.jpg'
 
 // Floating glass pill at the top of every view. Anchors jump to the page's chapters.
-export function Nav() {
+export function Nav( { align = 'right' } ) {
   return (
     <header className="nav-wrap">
-      <nav className="nav-pill" aria-label="Primary">
+      <nav className={ `nav-pill${ align === 'center' ? ' is-links-centered' : '' }` } aria-label="Primary">
         <a className="nav-brand" href="#top" aria-label="8ightBall Studio, back to top">
           <img src={brandLogo} alt="" width="30" height="30" />
           <span>8ightBall Studio</span>
