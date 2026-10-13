@@ -1,3 +1,11 @@
+/**
+ * FILE: src/App.jsx
+ * PURPOSE: root shell, Lenis scroll controller, layout variants, section tree
+ * UI: Site > Root Shell
+ * USED BY: src/main.jsx
+ * KEY EXPORTS: default (App)
+ */
+
 import { useEffect, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -16,14 +24,12 @@ import { normalizeNavStyle, normalizeServicesStyle } from './servicesStyle'
 
 gsap.registerPlugin( ScrollTrigger )
 
-// ?tune is the review panel: it adds the Services select. ?services=<id> picks a layout directly.
+// ?tune is review panel: adds Services select. ?services=<id> picks layout directly
 const TUNE_REQUESTED = new URLSearchParams( window.location.search ).has( 'tune' )
 const getInitialServicesStyle = () => normalizeServicesStyle( new URLSearchParams( window.location.search ).get( 'services' ) )
 const getInitialNavStyle = () => normalizeNavStyle( new URLSearchParams( window.location.search ).get( 'nav' ) )
 
-// In-page link glide, weighted like a normal Lenis scroll: a short push that builds speed (quadratic ramp over
-// the first RAMP of the time), then a long cubic settle, so the arrival feels like a wheel scroll coming to rest.
-// K joins the two pieces with no jump in speed. No overshoot: normal scrolling never passes its target.
+// Lenis scroll glide weighting
 const RAMP = 0.2
 const K = 3 / ( 2 * RAMP + RAMP ** 2 )
 const easeGlide = ( t ) => {
@@ -31,10 +37,10 @@ const easeGlide = ( t ) => {
   const start = K * RAMP * RAMP
   return start + ( 1 - start ) * ( 1 - ( 1 - ( t - RAMP ) / ( 1 - RAMP ) ) ** 3 )
 }
-// Glide length grows with distance (seconds): short hops stay quick, the full page caps out so it never whips past.
+// glide length scales with distance
 const glideSeconds = ( distance ) => Math.min( 4.5, Math.max( 1.2, 0.9 + distance / 2500 ) )
 
-// Page shell. The break (Attention) is the hero; the rest is Interest, Desire and Action.
+// Site > Root Shell > App: root container and Lenis scroll engine
 export default function App() {
   const [ servicesStyle, setServicesStyle ] = useState( getInitialServicesStyle )
 
@@ -78,9 +84,11 @@ export default function App() {
       const target = hash === '#' || hash === '#top' ? 0 : document.querySelector( hash )
       if ( target === null ) return
       event.preventDefault()
-      const targetY = target === 0 ? 0 : target.getBoundingClientRect().top + lenis.scroll
-      lenis.scrollTo( target, { duration: glideSeconds( Math.abs( targetY - lenis.scroll ) ), easing: easeGlide } )
-      // Keep the URL in step, as the native jump would.
+      // negative offset keeps fixed nav pill clear of target heading
+      const offset = target === 0 ? 0 : -88
+      const targetY = target === 0 ? 0 : target.getBoundingClientRect().top + lenis.scroll + offset
+      lenis.scrollTo( target, { offset, duration: glideSeconds( Math.abs( targetY - lenis.scroll ) ), easing: easeGlide } )
+      // keep URL in step
       window.history.pushState( null, '', hash )
     }
     document.addEventListener( 'click', glideToAnchor )

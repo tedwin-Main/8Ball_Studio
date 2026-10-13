@@ -17,6 +17,19 @@ This is **not a video**. Think of a flip-book: every scroll position is one page
 
 So "how fast the ball moves" really means **how much the visitor has to scroll** to get it from A to B.
 
+Picture: what happens every time you scroll.
+
+```mermaid
+flowchart LR
+    A([You scroll]) --> B[The page smooths<br/>your scroll out]
+    B --> C[The ball follows<br/>a moment later]
+    C --> D{Is the ball<br/>still rolling?}
+    D -->|Yes| E[Ball rolls<br/>closer to the rack]
+    D -->|No, it hit| F[Balls fly apart]
+    E --> G([You see the table])
+    F --> G
+```
+
 ---
 
 ## 2. The ruler: how much scroll each part gets
@@ -26,17 +39,26 @@ stays stuck to the screen and the animation plays.
 
 Lengths are in **svh**: 100svh = one full screen height.
 
-```
-DESKTOP  (--scroll-break: 490svh)
+Picture: how long each part lasts. Read it left to right like a timeline. The numbers along the
+bottom are svh, so every 100 is one screen of scrolling.
 
-|<------- roll: ~218svh -------->|<--- scatter: ~172svh --->|<- slide away: 100svh ->|
- 8-ball rolls toward the rack     rack breaks, balls spread   finished table scrolls up,
- (title fades out early on)                                  next section comes in
-|<------------- table stuck to the screen: 390svh ---------->|
-
-PHONES   (--scroll-break: 590svh)
- roll: ~274svh  |  scatter: ~216svh  |  slide away: 100svh
+```mermaid
+gantt
+    title How much scrolling each part takes (100 = one screen)
+    dateFormat X
+    axisFormat %s
+    section Computer
+    Ball rolls (about 2 screens)          :a1, 0, 218s
+    Balls scatter (under 2 screens)       :a2, after a1, 172s
+    Table slides away (1 screen)          :a3, after a2, 100s
+    section Phone
+    Ball rolls (under 3 screens)          :b1, 0, 274s
+    Balls scatter (about 2 screens)       :b2, after b1, 216s
+    Table slides away (1 screen)          :b3, after b2, 100s
 ```
+
+During "ball rolls" and "balls scatter" the table is stuck to the screen. During "table slides away"
+the finished table scrolls up and the next section comes in. The title fades out early in the roll.
 
 - On desktop that's about 2 screens of scroll for the roll, under 2 for the scatter, then 1 to leave.
 - Phones get more, because one thumb flick scrolls much farther than one mouse-wheel click.
@@ -70,6 +92,24 @@ Picture pushing a heavy bowling ball. At first it barely moves; once it gets goi
 - For the remaining 65%, it rolls at a steady full speed **straight into the rack**. It never slows
   down before impact, so the hit has punch.
 
+Picture: the curved green line is our ball. It starts slow (heavy), then goes steady all the way into the
+rack. The straight grey line is a ball with no weight that moves the same amount every time you scroll.
+
+```mermaid
+---
+config:
+  themeVariables:
+    xyChart:
+      plotColorPalette: "#1f7a3a, #b8b8b8"
+---
+xychart-beta
+    title "How far the ball has gone vs how far you've scrolled"
+    x-axis "How far you've scrolled through the roll (%)" [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+    y-axis "How far the ball has gone (%)" 0 --> 100
+    line [0, 2, 7, 16, 27, 39, 52, 64, 76, 88, 100]
+    line [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+```
+
 | Change | What you see |
 |---|---|
 | Raise `ROLL_RAMP` (e.g. 0.5) | Longer, lazier start; feels heavier, slower to get going |
@@ -86,6 +126,13 @@ In `src/sections/BreakHero.jsx`:
 
 It's like the ball is on a short elastic band behind your scroll: you scroll, it follows a moment
 later and eases to a stop. That small lag is what makes it feel heavy rather than glued to the page.
+
+Picture: the elastic band. A longer band (bigger `scrub` number) means the ball trails further behind.
+
+```mermaid
+flowchart LR
+    A([Your scroll]) -- "short elastic band<br/>(about half a second)" --> B([The ball])
+```
 
 | Change | What you see |
 |---|---|
@@ -119,6 +166,17 @@ Speed = how far the ball travels ÷ how much you scroll.
 When the page loads, the site runs a real pool-physics simulation of the break **one time** and records
 it like a film, frame by frame. Scrolling then picks frames from that recording. Same break every time,
 and it plays backward cleanly.
+
+Picture: filming the break once, then letting your scroll flip through the film.
+
+```mermaid
+flowchart TD
+    A([Page opens]) --> B[Computer plays the break once,<br/>like filming it]
+    B --> C{Have enough balls<br/>spread out yet?}
+    C -->|Not yet| B
+    C -->|Yes| D[Stop. That's the<br/>last picture of the scatter]
+    D --> E([Your scroll flips<br/>through the film])
+```
 
 Physics settings (`src/drafts/poolBreakPhysics.js`):
 
@@ -157,6 +215,16 @@ being stuck to the screen. So:
 1. Roll finishes.
 2. Scatter finishes, and the table holds that final picture.
 3. Only then does the finished table scroll up and the next section comes in.
+
+Picture: the order things happen in. Scrolling back up runs the same steps backward.
+
+```mermaid
+flowchart LR
+    subgraph stuck [Table stuck to the screen]
+        A[Ball rolls] --> B[Balls scatter] --> C[Table holds still]
+    end
+    C --> D[Table slides up] --> E([Next section])
+```
 
 (Before this, the end was `'bottom top'`, and the last part of the scatter was still playing while the
 next section was already sliding in.)

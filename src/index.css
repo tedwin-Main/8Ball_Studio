@@ -1,5 +1,10 @@
-/* 8ball Studio 2: the Intro break (Draft 01) is kept from 8Ball_Studio. The rest of the page is written here.
-   Palette: ink and felt for the dark world, lime for the one primary action, cream for text. */
+/**
+ * FILE: src/index.css
+ * PURPOSE: global layout tokens, responsive breakpoints, typography clamp, bento grids
+ * UI: Site > Global Styles
+ * USED BY: src/main.jsx
+ * KEY EXPORTS: none
+ */
 @font-face {
   font-family: "Space Grotesk";
   src: url("/fonts/space-grotesk-latin-var.woff2") format("woff2");
@@ -116,6 +121,7 @@ a {
 
 .section {
   padding: var(--section-y) var(--gutter);
+  scroll-margin-top: 5.5rem;
 }
 
 .section-title {
@@ -140,8 +146,9 @@ a {
 }
 
 .nav-pill {
+  position: relative;
   pointer-events: auto;
-  /* Brand takes the room on the left; links and CTA sit together at the right. */
+  /* Brand takes room on left; links and CTA sit together at right */
   display: grid;
   grid-template-columns: 1fr auto auto;
   column-gap: 2.25rem;
@@ -155,7 +162,7 @@ a {
   backdrop-filter: blur(16px);
 }
 
-/* ?tune nav draft: three equal columns, links dead-centre on the pill. Desktop only; phones hide the links. */
+/* ?tune nav draft: three equal columns, links dead-centre on pill */
 @media (min-width: 641px) {
   .nav-pill.is-links-centered {
     grid-template-columns: 1fr auto 1fr;
@@ -197,7 +204,7 @@ a {
   transition: color 0.3s;
 }
 
-/* Thin underline grows in on hover, so the links read as one deliberate group. */
+/* underline grows on hover */
 .nav-links a::after {
   content: '';
   position: absolute;
@@ -225,17 +232,84 @@ a {
   padding: 0.5rem 1rem;
 }
 
+.nav-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--felt-soft);
+  color: var(--cream);
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.nav-toggle:hover {
+  background: rgba(242, 241, 233, 0.12);
+}
+
+.nav-mobile-tray {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  left: 0;
+  right: 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: rgba(7, 17, 13, 0.96);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
+  animation: nav-tray-in 0.2s ease-out;
+}
+
+@keyframes nav-tray-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.nav-mobile-links {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nav-mobile-links li:not(:last-child) {
+  border-bottom: 1px solid var(--line);
+}
+
+.nav-mobile-links a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 0.5rem;
+  color: var(--cream);
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
 @media (max-width: 640px) {
   .nav-links {
     display: none;
   }
 
-  /* With the links hidden only two items remain, so two columns: the brand takes the room (and
-     ellipsizes if it must), the CTA keeps its own width at the right edge. Three columns put the
-     CTA in the middle one, jammed against a clipped brand name. */
+  .nav-toggle {
+    display: inline-flex;
+    justify-self: end;
+  }
+
+  /* Three columns: brand takes room, CTA keeps width, toggle at end */
   .nav-pill {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 0.75rem;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 0.5rem;
   }
 
   .nav-brand span {
@@ -528,10 +602,10 @@ a {
 .manifesto-text {
   max-width: 62rem;
   margin: 0;
-  font-size: clamp(1.9rem, 4vw, 3.8rem);
+  font-size: clamp(1.2rem, 3.5vw, 3.8rem);
   font-weight: 500;
   letter-spacing: -0.03em;
-  line-height: 1.15;
+  line-height: 1.25;
 }
 
 /* Words start at 0.1 opacity; the scrub brings each one to full. */
@@ -742,6 +816,7 @@ a {
 /* ---------- Action: footer ---------- */
 .footer-cta {
   padding-bottom: calc(var(--section-y) / 2);
+  scroll-margin-top: 5.5rem;
 }
 
 .cta-title {
