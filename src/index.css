@@ -61,6 +61,20 @@ body::after {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
+/* Scroll fade: content rises out of felt at screen bottom, same 10% falloff as drum window. */
+body::before {
+  position: fixed;
+  /* under nav (50) and grain (100) */
+  z-index: 40;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 10svh;
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(0deg, var(--felt), transparent);
+}
+
 /* clip, not hidden: hidden would make main a scroll box and stop the sticky break stage from pinning. */
 main {
   width: 100%;
@@ -843,7 +857,8 @@ a {
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 0.75rem 2rem;
-  padding: 2rem var(--gutter) 3rem;
+  /* bottom pad clears fixed scroll fade at page end */
+  padding: 2rem var(--gutter) max(3rem, 10svh);
   border-top: 1px solid var(--line);
   color: var(--cream-dim);
   font-size: 0.9rem;
