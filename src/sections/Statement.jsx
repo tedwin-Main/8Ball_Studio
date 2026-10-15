@@ -31,10 +31,11 @@ export function Statement() {
     // width locked to real word so wider scramble glyphs never rewrap lines
     split.words.forEach( ( word ) => gsap.set( word, { display: 'inline-block', whiteSpace: 'nowrap', width: word.offsetWidth } ) )
     // replays on every entry, from below or above; restart snaps to blank first, so no reset on leave (would blank while still visible)
+    // end at bottom top: replay from above only once whole title cleared screen top, not on small scroll-backs
     const tl = gsap.timeline( { scrollTrigger: {
       trigger: titleRef.current,
       start: 'top 80%',
-      end: 'bottom 20%',
+      end: 'bottom top',
       toggleActions: 'restart none restart none',
     } } )
     split.words.forEach( ( word, i ) => {
