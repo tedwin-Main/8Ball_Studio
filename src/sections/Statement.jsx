@@ -30,13 +30,13 @@ export function Statement() {
   useSplitTitle( titleRef, { type: 'words', aria: 'none' }, ( split ) => {
     // width locked to real word so wider scramble glyphs never rewrap lines
     split.words.forEach( ( word ) => gsap.set( word, { display: 'inline-block', whiteSpace: 'nowrap', width: word.offsetWidth } ) )
-    // replays on every entry, from below or above; restart snaps to blank first, so no reset on leave (would blank while still visible)
-    // end at bottom top: replay from above only once whole title cleared screen top, not on small scroll-backs
+    // plays once on first entry from below; replays only after last line fully cleared screen top (onLeave at bottom top), then returns
+    // play (not restart) on enter: finished timeline ignores later re-entries from below; restart snaps to blank first, so no reset on leave
     const tl = gsap.timeline( { scrollTrigger: {
       trigger: titleRef.current,
       start: 'top 80%',
       end: 'bottom top',
-      toggleActions: 'restart none restart none',
+      toggleActions: 'play none restart none',
     } } )
     split.words.forEach( ( word, i ) => {
       tl.fromTo( word, { opacity: 0 }, {
