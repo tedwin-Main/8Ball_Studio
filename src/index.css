@@ -415,12 +415,6 @@ a {
   text-shadow: 0 6px 40px rgba(0, 0, 0, 0.45);
 }
 
-/* parent .break-copy ignores pointer, button opts back in */
-.break-cta {
-  margin-top: 1.5rem;
-  pointer-events: auto;
-}
-
 .break-hint {
   margin: 1.5rem 0 0;
   color: var(--cream-dim);
@@ -787,8 +781,45 @@ a {
 }
 
 .clients-loop {
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
-  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  position: relative;
+}
+
+/* Clients > Loop > edge fades: felt overlays, not mask-image; mask re-composites every frame over moving track */
+.clients-loop::before,
+.clients-loop::after {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 12%;
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(90deg, var(--felt), transparent);
+}
+
+.clients-loop::after {
+  right: 0;
+  left: auto;
+  background: linear-gradient(270deg, var(--felt), transparent);
+}
+
+/* Run engine: marquee rows (marqueeLoop.js sets duration, adds is-looping). Transform-only, runs on compositor. */
+@keyframes marquee-loop {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.is-looping {
+  animation: marquee-loop var(--marquee-duration, 30s) linear infinite;
+}
+
+.is-looping.is-reverse {
+  animation-direction: reverse;
 }
 
 /* Two groups side by side; GSAP moves the track by one group's width for a seamless loop. */
@@ -1463,9 +1494,9 @@ a {
   }
 
   /* Clients: no loop, so the logos wrap into a centred row and the duplicate group is hidden. */
-  .clients-loop {
-    -webkit-mask-image: none;
-    mask-image: none;
+  .clients-loop::before,
+  .clients-loop::after {
+    display: none;
   }
 
   .clients-track {
