@@ -1,6 +1,15 @@
-import { useRef } from 'react'
+/**
+ * FILE: src/sections/Statement.jsx
+ * PURPOSE: scrambled statement heading with inline pictures, gapless bento grid
+ * UI: Site > Statement, Bento
+ * USED BY: src/App.jsx
+ * KEY EXPORTS: Statement
+ */
+
+import { useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { ScrambleTextPlugin } from 'gsap/ScrambleTextPlugin'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { CLIENTS, PILL_IMAGES, PRIMARY_CONTACT, SERVICES } from '../content'
 import { useSplitTitle } from '../titleMotion'
 
@@ -39,6 +48,27 @@ export function Statement() {
     return tl
   } )
 
+  const bentoRef = useRef( null )
+
+  useLayoutEffect( () => {
+    if ( window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches ) return undefined
+    const bento = bentoRef.current
+    const ctx = gsap.context( () => {
+      // Bento > Reel: media zooms out to rest as card enters
+      // wrapper, not video, so desktop hover scale on video still works
+      gsap.fromTo( bento.querySelector( '.bento-media' ), { scale: 1.15 }, {
+        scale: 1,
+        ease: 'none',
+        scrollTrigger: { trigger: bento.querySelector( '.bento-reel' ), start: 'top bottom', end: 'center center', scrub: true },
+      } )
+      // Bento > Clients: logos light up in view, touch has no hover
+      if ( window.matchMedia( '(hover: none)' ).matches ) {
+        ScrollTrigger.create( { trigger: bento.querySelector( '.bento-clients' ), start: 'top 70%', end: 'bottom 30%', toggleClass: 'is-lit' } )
+      }
+    }, bento )
+    return () => ctx.revert()
+  }, [] )
+
   return (
     <section className="section" id="services" aria-labelledby="statement-title">
       <h2 id="statement-title" className="statement" ref={ titleRef } aria-label="Brands that look good on social, made in Kuala Lumpur.">
@@ -49,7 +79,7 @@ export function Statement() {
         Kuala Lumpur.
       </h2>
 
-      <div className="bento">
+      <div className="bento" ref={ bentoRef }>
         <article className="bento-card bento-reel">
           <div className="bento-media">
             <video src={ SERVICES[ 0 ].reel.src } poster={ SERVICES[ 0 ].reel.poster } muted autoPlay loop playsInline />

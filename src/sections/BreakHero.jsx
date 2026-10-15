@@ -1,7 +1,16 @@
+/**
+ * FILE: src/sections/BreakHero.jsx
+ * PURPOSE: scroll-driven pool break hero, title, WhatsApp cta, scroll hint
+ * UI: Site > Hero
+ * USED BY: src/App.jsx
+ * KEY EXPORTS: BreakHero
+ */
+
 import { useCallback, useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { PoolPovDraft } from '../drafts/PoolPovDraft'
+import { PRIMARY_CONTACT } from '../content'
 import { STAGE } from '../storyStage'
 
 const clamp = ( value ) => Math.min( 1, Math.max( 0, value ) )
@@ -59,6 +68,10 @@ export function BreakHero() {
           <h1 className="break-title" aria-label="Roll with us.">
             Roll with us.
           </h1>
+          {/* Hero > Copy > WhatsApp: fades out with title via copyRef autoAlpha */}
+          <a className="btn btn-lime break-cta" href={ PRIMARY_CONTACT.href } target="_blank" rel="noreferrer">
+            { PRIMARY_CONTACT.label }
+          </a>
           <p className="break-hint">Scroll to break</p>
         </div>
 
