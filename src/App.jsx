@@ -21,6 +21,8 @@ import { ClientLoop } from './sections/ClientLoop'
 import { Marquee } from './sections/Marquee'
 import { Footer } from './sections/Footer'
 import { Cursor } from './Cursor'
+import { Preloader } from './sections/Preloader'
+import { intro, introDone } from './intro'
 import { normalizeDraft, readDrafts } from './servicesStyle'
 
 gsap.registerPlugin( ScrollTrigger )
@@ -36,6 +38,12 @@ const easeGlide = ( t ) => {
   const start = K * RAMP * RAMP
   return start + ( 1 - start ) * ( 1 - ( 1 - ( t - RAMP ) / ( 1 - RAMP ) ) ** 3 )
 }
+// chapter grounds: felt night, chalk day; GSAP tweens these onto :root vars
+const GROUNDS = {
+  felt: { '--bg': '#07110d', '--fg': '#f2f1e9', '--line': 'rgba(242, 241, 233, 0.14)' },
+  chalk: { '--bg': '#f2f1e9', '--fg': '#070908', '--line': 'rgba(7, 9, 8, 0.16)' },
+}
+
 // glide length scales with distance
 const glideSeconds = ( distance ) => Math.min( 4.5, Math.max( 1.2, 0.9 + distance / 2500 ) )
 
@@ -59,6 +67,11 @@ export default function App() {
     // Reduced-motion visitors keep native scroll.
     if ( window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches ) return undefined
     const lenis = new Lenis( { lerp: 0.1 } )
+    // page holds still under preloader, released as panel lifts
+    if ( !intro.done ) {
+      lenis.stop()
+      introDone.then( () => lenis.start() )
+    }
     lenis.on( 'scroll', ScrollTrigger.update )
     const tick = ( time ) => lenis.raf( time * 1000 )
     gsap.ticker.add( tick )
@@ -88,13 +101,41 @@ export default function App() {
     }
   }, [] )
 
+  // Site > every [data-chapter] section: page ground swaps felt/chalk as chapter takes screen
+  useEffect( () => {
+    const root = document.documentElement
+    const active = new Set()
+    const paint = () => {
+      const ground = active.size ? 'chalk' : 'felt'
+      root.dataset.ground = ground
+      gsap.to( root, { ...GROUNDS[ ground ], duration: 0.8, ease: 'power2.inOut', overwrite: true } )
+    }
+    const triggers = [ ...document.querySelectorAll( '[data-chapter="chalk"]' ) ].map( ( section ) => ScrollTrigger.create( {
+      trigger: section,
+      // swap once chapter owns most of screen, so outgoing cards never sit on wrong ground
+      start: 'top 35%',
+      end: 'bottom 65%',
+      onToggle: ( self ) => {
+        if ( self.isActive ) active.add( section )
+        else active.delete( section )
+        paint()
+      },
+    } ) )
+    return () => {
+      triggers.forEach( ( trigger ) => trigger.kill() )
+      gsap.set( root, GROUNDS.felt )
+      root.dataset.ground = 'felt'
+    }
+  }, [ drafts ] )
+
   return (
     <main id="top">
+      <Preloader />
       <Cursor />
       <Nav align={ drafts.nav } />
       <BreakHero />
       <Statement />
-      <Manifesto />
+      <Manifesto variant={ drafts.manifesto } key={ drafts.manifesto } />
       { drafts.services === 'accordion'
         ? <ServicesAccordion />
         // The flat drums: one layout per ?tune choice, keyed so each mounts its own scroll triggers.

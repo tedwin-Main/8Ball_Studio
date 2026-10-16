@@ -11,6 +11,8 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { PoolPovDraft } from '../drafts/PoolPovDraft'
 import { STAGE } from '../storyStage'
+import { intro, introDone } from '../intro'
+import { useSplitTitle } from '../titleMotion'
 
 const clamp = ( value ) => Math.min( 1, Math.max( 0, value ) )
 
@@ -20,6 +22,17 @@ export function BreakHero() {
   const sectionRef = useRef( null )
   const copyRef = useRef( null )
   const controllerRef = useRef( null )
+
+  const titleRef = useRef( null )
+
+  // Hero > title: chars rise out of their masks once preloader lifts; subline and cue follow
+  useSplitTitle( titleRef, { type: 'chars,words', mask: 'chars' }, ( split ) => {
+    const tl = gsap.timeline( { paused: !intro.done } )
+      .from( split.chars, { yPercent: 115, rotate: 8, duration: 1.2, ease: 'expo.out', stagger: 0.035 } )
+      .from( copyRef.current.querySelectorAll( '.break-sub, .break-hint' ), { autoAlpha: 0, y: 18, duration: 0.9, ease: 'expo.out', stagger: 0.1 }, 0.45 )
+    if ( !intro.done ) introDone.then( () => tl.play() )
+    return tl
+  } )
 
   // PoolPovDraft hands its controller up on mount and null on unmount.
   const registerController = useCallback( ( controller ) => {
@@ -64,10 +77,12 @@ export function BreakHero() {
         <PoolPovDraft active onController={ registerController } />
 
         <div className="break-copy" ref={ copyRef }>
-          <h1 className="break-title" aria-label="Roll with us.">
-            Roll with us.
-          </h1>
-          <p className="break-hint">Scroll to break</p>
+          <h1 className="break-title" ref={ titleRef }>Roll with us.</h1>
+          <p className="break-sub">Video, design, web, social and AI content, made in Kuala Lumpur.</p>
+          <p className="break-hint">
+            <span className="break-cue" aria-hidden="true" />
+            Scroll to break
+          </p>
         </div>
 
       </div>

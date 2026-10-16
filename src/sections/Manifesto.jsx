@@ -1,23 +1,33 @@
+/**
+ * FILE: src/sections/Manifesto.jsx
+ * PURPOSE: sticky scrubbed paragraph, words light up with scroll; chalk draft adds day ground and rolling cue ball
+ * UI: Site > Manifesto
+ * USED BY: src/App.jsx
+ * KEY EXPORTS: Manifesto
+ */
+
 import { Fragment, useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { MANIFESTO } from '../content'
 
-// Desire: the paragraph lights up word by word as you scroll (a scrubbed reveal). The section is tall and
-// its text is sticky, so the reveal has room to run before the next chapter arrives.
-export function Manifesto() {
+// Manifesto > sticky paragraph: words scrub 0.1 to 1 across tall section
+// variant: 'chalk' (day chapter, cue line + ball track progress) or 'felt' (original night ground)
+export function Manifesto( { variant = 'chalk' } ) {
   const sectionRef = useRef( null )
   const wordsRef = useRef( null )
+  const chalk = variant === 'chalk'
 
   useLayoutEffect( () => {
+    const section = sectionRef.current
     const words = wordsRef.current.querySelectorAll( '.word' )
     // Scrub: the timeline's progress is tied to the scroll position through this section.
     const timeline = gsap.timeline( {
       scrollTrigger: {
-        trigger: sectionRef.current,
+        trigger: section,
         start: 'top top',
         end: 'bottom bottom',
         scrub: true,
+        invalidateOnRefresh: true,
       },
     } )
     // Each word takes 0.6 of the timeline; the stagger spreads the starts over the remaining 0.4,
@@ -28,6 +38,15 @@ export function Manifesto() {
       ease: 'none',
       stagger: { each: 0.4 / Math.max( 1, words.length - 1 ) },
     } )
+    // Manifesto > cue line: hairline draws, ball rolls its length (spin from distance / circumference)
+    const rule = section.querySelector( '.manifesto-rule' )
+    const ball = section.querySelector( '.manifesto-ball' )
+    if ( rule && ball ) {
+      const travel = () => rule.offsetWidth - ball.offsetWidth
+      timeline
+        .fromTo( rule, { scaleX: 0 }, { scaleX: 1, duration: 1, ease: 'none' }, 0 )
+        .fromTo( ball, { x: 0, rotation: 0 }, { x: travel, rotation: () => ( travel() / ( Math.PI * ball.offsetWidth ) ) * 360, duration: 1, ease: 'none' }, 0 )
+    }
     return () => {
       timeline.scrollTrigger?.kill()
       timeline.kill()
@@ -37,8 +56,19 @@ export function Manifesto() {
   const words = MANIFESTO.split( ' ' )
 
   return (
-    <section className="manifesto" ref={ sectionRef } aria-label="About the studio">
+    <section
+      className={ `manifesto is-${ variant }` }
+      data-chapter={ chalk ? 'chalk' : 'felt' }
+      ref={ sectionRef }
+      aria-label="About the studio"
+    >
       <div className="manifesto-sticky">
+        { chalk && (
+          <div className="manifesto-track" aria-hidden="true">
+            <span className="manifesto-rule" />
+            <span className="manifesto-ball"><span>8</span></span>
+          </div>
+        ) }
         <p className="manifesto-text" ref={ wordsRef }>
           { words.map( ( word, index ) => (
             // The space sits outside the inline-block word, so it is not swallowed.
