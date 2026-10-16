@@ -1,6 +1,7 @@
-import { useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { SERVICES } from '../content'
 import { useRiseTitle } from '../titleMotion'
+import { scaleFade } from '../mediaMotion'
 
 // Desire: six vertical slices side by side. The open slice widens to show its reel; the rest keep their stills.
 // Hover, focus and tap all open a slice, so keyboard and touch get the same behaviour.
@@ -8,11 +9,18 @@ export function ServicesAccordion() {
   const [ openIndex, setOpenIndex ] = useState( 0 )
   const titleRef = useRef( null )
   useRiseTitle( titleRef )
+  const listRef = useRef( null )
+
+  // Services > Accordion: whole slice row grows in, darkens out
+  useLayoutEffect( () => {
+    if ( window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches ) return undefined
+    return scaleFade( listRef.current )
+  }, [] )
 
   return (
     <section className="section services" aria-labelledby="services-title">
       <h2 id="services-title" className="section-title" ref={ titleRef }>Our Services</h2>
-      <ul className="accordion">
+      <ul className="accordion" ref={ listRef }>
         { SERVICES.map( ( service, index ) => {
           const isOpen = index === openIndex
           return (
@@ -30,6 +38,7 @@ export function ServicesAccordion() {
                 ) }
                 <span className="slice-shade" aria-hidden="true" />
                 <span className="slice-label">
+                  <span className="slice-index">{ String( index + 1 ).padStart( 2, '0' ) }</span>
                   <span className="slice-name">{ service.name }</span>
                   <span className="slice-detail">{ service.detail }</span>
                 </span>

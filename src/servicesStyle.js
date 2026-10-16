@@ -5,6 +5,7 @@ export const SERVICES_STYLES = Object.freeze( {
   accordion: 'Accordion',
   'drum-media': 'Flat drum · names + media',
   'drum-cards': 'Flat drum · cards',
+  index: 'Index · numbered rows + preview',
 } )
 
 // Nav link alignment drafts, ?tune only (?nav=<id> picks one directly). Visitors get 'right'.

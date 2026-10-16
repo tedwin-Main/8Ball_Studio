@@ -2,9 +2,9 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { SERVICES_STYLES, flatDrumActive, flatDrumRow, normalizeDraft, normalizeServicesStyle, readDrafts } from './servicesStyle.js'
 
-test( 'the accordion is the default; ?tune offers it and the two flat drums', () =>
+test( 'the accordion is the default; ?tune offers it, the two flat drums and the index', () =>
 {
-  assert.deepEqual( Object.keys( SERVICES_STYLES ), [ 'accordion', 'drum-media', 'drum-cards' ] )
+  assert.deepEqual( Object.keys( SERVICES_STYLES ), [ 'accordion', 'drum-media', 'drum-cards', 'index' ] )
   assert.equal( normalizeServicesStyle( undefined ), 'accordion' )
   assert.equal( normalizeServicesStyle( 'panels' ), 'accordion' )
   assert.equal( normalizeServicesStyle( 'drum-cards' ), 'drum-cards' )

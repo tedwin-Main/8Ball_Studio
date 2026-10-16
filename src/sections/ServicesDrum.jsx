@@ -4,6 +4,7 @@ import { CaretLeft, CaretRight } from '@phosphor-icons/react'
 import { SERVICES } from '../content'
 import { flatDrumActive, flatDrumRow } from '../servicesStyle'
 import { useRiseTitle } from '../titleMotion'
+import { scaleFade } from '../mediaMotion'
 
 // How many rows from the centre a row has faded out (the window's mask fades its edges on top of this).
 const VISIBLE_ROWS = 2.4
@@ -191,6 +192,8 @@ export function ServicesDrum( { variant } ) {
     }
 
     measure()
+    // Services > Drum: body grows in as stage arrives, darkens out once track ends (stage unpinned)
+    const killFade = scaleFade( root.querySelector( '.drum-body' ), { trigger: track, from: 0.9 } )
     const slideTrigger = ScrollTrigger.create( {
       trigger: track,
       start: 'top top',
@@ -208,6 +211,7 @@ export function ServicesDrum( { variant } ) {
 
     return () => {
       window.clearTimeout( state.timer )
+      killFade()
       slideTrigger.kill()
       viewTrigger.kill()
       document.body.classList.remove( 'drum-in-view' )
@@ -235,7 +239,7 @@ export function ServicesDrum( { variant } ) {
                 return (
                   <li className={ `drum-row${ isActive ? ' is-active' : '' }` } key={ service.name }>
                     <span className="drum-text">
-                      <span className="drum-name">{ service.name }</span>
+                      <span className="drum-name"><span className="drum-index">{ String( index + 1 ).padStart( 2, '0' ) }</span>{ service.name }</span>
                       <span className="drum-detail">{ service.detail }</span>
                     </span>
                     { variant === 'drum-cards' && <MediaStrip service={ service } hasReel={ index === reelIndex } reelRef={ reelRef } /> }

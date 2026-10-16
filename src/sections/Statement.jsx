@@ -12,6 +12,7 @@ import { ScrambleTextPlugin } from 'gsap/ScrambleTextPlugin'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { CLIENTS, PILL_IMAGES, PRIMARY_CONTACT, SERVICES } from '../content'
 import { useSplitTitle } from '../titleMotion'
+import { scaleFade } from '../mediaMotion'
 
 gsap.registerPlugin( ScrambleTextPlugin )
 
@@ -67,7 +68,12 @@ export function Statement() {
         ScrollTrigger.create( { trigger: bento.querySelector( '.bento-clients' ), start: 'top 70%', end: 'bottom 30%', toggleClass: 'is-lit' } )
       }
     }, bento )
-    return () => ctx.revert()
+    // Bento > Reel: card grows in, darkens out
+    const killFade = scaleFade( bento.querySelector( '.bento-reel' ), { from: 0.9 } )
+    return () => {
+      killFade()
+      ctx.revert()
+    }
   }, [] )
 
   return (

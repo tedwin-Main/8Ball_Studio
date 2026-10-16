@@ -1779,8 +1779,8 @@ button:hover .roll-in {
 
   /* Phone cards: a compact strip to the right of each name, tiles sized so about two show at once. */
   .services-drum.is-drum-cards .drum-row .drum-strip {
-    flex: 0 0 52vw;
-    width: 52vw;
+    flex: 0 0 42vw;
+    width: 42vw;
     max-height: none;
   }
 
@@ -1872,5 +1872,302 @@ button:hover .roll-in {
     flex-wrap: wrap;
     justify-content: center;
     row-gap: 2rem;
+  }
+}
+
+/* ---------- Services ordinals (accordion, drums, index): list position, Space Grotesk numerals ---------- */
+.slice-index,
+.drum-index,
+.index-num {
+  font-family: "Space Grotesk", var(--ui-font);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.slice-index {
+  color: var(--lime);
+  font-size: 0.8rem;
+}
+
+.drum-index {
+  display: inline-block;
+  margin-right: 0.6em;
+  color: var(--cream-dim);
+  font-size: max(0.32em, 0.7rem);
+  vertical-align: 0.95em;
+}
+
+/* Phone drum-cards: narrow name column; ordinal on own line, smaller name, words wrap whole (no mid-word split) */
+@media (max-width: 767px) {
+  .services-drum.is-drum-cards .drum-index {
+    display: block;
+    margin: 0 0 0.2rem;
+    vertical-align: baseline;
+  }
+
+  .services-drum.is-drum-cards .drum-name {
+    font-size: clamp(0.9rem, 3.9vw, 1.1rem);
+  }
+
+  .services-drum.is-drum-cards .drum-text {
+    overflow-wrap: break-word;
+  }
+
+}
+
+.drum-row.is-active .drum-index {
+  color: var(--lime);
+}
+
+/* ---------- Services index draft (?services=index) ---------- */
+.index-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem 3rem;
+  margin-bottom: clamp(2rem, 5vw, 4rem);
+}
+
+.index-head .section-title {
+  margin: 0;
+}
+
+.index-lede {
+  max-width: 22rem;
+  margin: 0;
+  color: var(--cream-dim);
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.index-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-bottom: 1px solid var(--line);
+  transform-origin: 50% 0;
+}
+
+.index-row {
+  border-top: 1px solid var(--line);
+}
+
+/* Services > Index: siblings dim while one row is hovered, so the pointer row reads alone */
+@media (hover: hover) and (pointer: fine) {
+  /* dim on button, not row: row opacity belongs to GSAP entrance, CSS transition there races it */
+  .index-list:hover .index-row:not(:hover):not(.is-open) .index-button {
+    opacity: 0.35;
+  }
+}
+
+.index-button {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr) minmax(0, 18rem) auto;
+  align-items: center;
+  gap: 1.5rem;
+  width: 100%;
+  padding: clamp(1.1rem, 2.4vw, 2rem) 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: opacity 0.45s;
+}
+
+.index-num {
+  align-self: start;
+  padding-top: 0.6em;
+  color: var(--cream-dim);
+  font-size: 0.85rem;
+}
+
+.index-name {
+  font-size: clamp(1.9rem, 5.2vw, 5.4rem);
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+  transition: transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.4s;
+}
+
+.index-detail {
+  color: var(--cream-dim);
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.index-arrow {
+  color: var(--cream-dim);
+  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.3s;
+}
+
+.index-button:hover .index-name,
+.index-row.is-open .index-name {
+  transform: translateX(clamp(0.5rem, 1.5vw, 1.5rem));
+}
+
+.index-button:hover .index-arrow {
+  color: var(--lime);
+  transform: rotate(-45deg);
+}
+
+.index-row.is-open .index-num,
+.index-row.is-open .index-arrow {
+  color: var(--lime);
+}
+
+.index-row.is-open .index-arrow {
+  transform: rotate(180deg);
+}
+
+/* Services > Index > drawer: grid rows 0fr to 1fr animates height without measuring */
+.index-drawer {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.index-row.is-open .index-drawer {
+  grid-template-rows: 1fr;
+}
+
+.index-drawer-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.index-media {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding: 0 0 clamp(1.25rem, 3vw, 2.5rem) calc(3.5rem + 1.5rem);
+}
+
+.index-media-tile {
+  margin: 0;
+  overflow: hidden;
+  border-radius: 14px;
+  aspect-ratio: 4 / 5;
+  background: var(--felt-soft);
+  animation: index-tile-in 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.index-media-tile:nth-child(2) { animation-delay: 0.06s; }
+.index-media-tile:nth-child(3) { animation-delay: 0.12s; }
+.index-media-tile:nth-child(4) { animation-delay: 0.18s; }
+
+@keyframes index-tile-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+}
+
+.index-media-tile img,
+.index-media-tile video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.7s ease-out;
+}
+
+.index-media-tile:hover img,
+.index-media-tile:hover video {
+  transform: scale(1.05);
+}
+
+/* Services > Index > preview: fixed card that trails pointer, fine pointer only */
+.index-preview {
+  position: fixed;
+  z-index: 30;
+  top: 0;
+  left: 0;
+  display: none;
+  width: clamp(200px, 20vw, 320px);
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border-radius: 18px;
+  pointer-events: none;
+  clip-path: inset(50% 50% 50% 50% round 18px);
+  transition: clip-path 0.6s cubic-bezier(0.7, 0, 0.2, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .index-preview {
+    display: block;
+  }
+}
+
+.index-preview.is-on {
+  clip-path: inset(0% 0% 0% 0% round 18px);
+}
+
+.index-preview-stack {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  transform: translateY(calc(var(--i) * -100%));
+  transition: transform 0.75s cubic-bezier(0.7, 0, 0.2, 1);
+}
+
+.index-preview-stack img {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.index-preview-reel {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: index-reel-in 0.5s 0.35s both;
+}
+
+@keyframes index-reel-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .index-button {
+    grid-template-columns: 2rem minmax(0, 1fr) auto;
+    gap: 0.75rem;
+  }
+
+  .index-detail {
+    grid-column: 2 / 3;
+    font-size: 0.85rem;
+  }
+
+  .index-arrow {
+    grid-row: 1;
+    grid-column: 3;
+  }
+
+  .index-media {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .index-drawer,
+  .index-name,
+  .index-arrow,
+  .index-preview,
+  .index-preview-stack {
+    transition: none;
+  }
+
+  .index-media-tile,
+  .index-preview-reel {
+    animation: none;
   }
 }

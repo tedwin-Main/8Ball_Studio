@@ -16,6 +16,7 @@ import { Statement } from './sections/Statement'
 import { Manifesto } from './sections/Manifesto'
 import { ServicesAccordion } from './sections/ServicesAccordion'
 import { ServicesDrum } from './sections/ServicesDrum'
+import { ServicesIndex } from './sections/ServicesIndex'
 import { TuneSelect } from './sections/TuneSelect'
 import { ClientLoop } from './sections/ClientLoop'
 import { Marquee } from './sections/Marquee'
@@ -136,10 +137,10 @@ export default function App() {
       <BreakHero />
       <Statement />
       <Manifesto variant={ drafts.manifesto } key={ drafts.manifesto } />
-      { drafts.services === 'accordion'
-        ? <ServicesAccordion />
-        // The flat drums: one layout per ?tune choice, keyed so each mounts its own scroll triggers.
-        : <ServicesDrum key={ drafts.services } variant={ drafts.services } /> }
+      { drafts.services === 'accordion' && <ServicesAccordion /> }
+      { drafts.services === 'index' && <ServicesIndex /> }
+      {/* flat drums: one layout per ?tune choice, keyed so each mounts its own scroll triggers */}
+      { drafts.services.startsWith( 'drum' ) && <ServicesDrum key={ drafts.services } variant={ drafts.services } /> }
       <ClientLoop />
       { TUNE_REQUESTED && <TuneSelect drafts={ drafts } onChange={ switchDraft } /> }
       <Marquee />
