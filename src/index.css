@@ -68,11 +68,12 @@ body::before {
   z-index: 40;
   left: 0;
   right: 0;
-  bottom: 0;
-  height: 10svh;
+  /* negative bottom: Safari paints page under floating toolbar, below fixed bottom:0 */
+  bottom: -6rem;
+  height: calc(10svh + 6rem + env(safe-area-inset-bottom));
   pointer-events: none;
   content: "";
-  background: linear-gradient(0deg, var(--felt), transparent);
+  background: linear-gradient(0deg, var(--felt) calc(6rem + env(safe-area-inset-bottom)), transparent);
 }
 
 /* clip, not hidden: hidden would make main a scroll box and stop the sticky break stage from pinning. */
