@@ -41,3 +41,24 @@ export function flatDrumActive ( progress, count )
   const index = Math.round( progress * ( count - 1 ) )
   return Math.min( count - 1, Math.max( 0, index ) )
 }
+
+// Draft registry: every ?tune section, its options, its visitor default. ?<section>=<id> picks one directly.
+// New section drafts register here, so App state, URL sync and TuneSelect pick them up with no extra wiring.
+export const DRAFTS = Object.freeze( {
+  services: Object.freeze( { label: 'Services', options: SERVICES_STYLES, fallback: DEFAULT_SERVICES_STYLE } ),
+  nav: Object.freeze( { label: 'Nav', options: NAV_STYLES, fallback: DEFAULT_NAV_STYLE } ),
+} )
+
+// Resolves one section's query value to a known draft id, falling back to the visitor default.
+export function normalizeDraft ( section, queryValue )
+{
+  const draft = DRAFTS[ section ]
+  return Object.hasOwn( draft.options, queryValue ?? '' ) ? queryValue : draft.fallback
+}
+
+// Every section's draft from a location.search string.
+export function readDrafts ( search )
+{
+  const params = new URLSearchParams( search )
+  return Object.fromEntries( Object.keys( DRAFTS ).map( ( section ) => [ section, normalizeDraft( section, params.get( section ) ) ] ) )
+}

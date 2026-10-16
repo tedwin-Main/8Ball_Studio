@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { CONTACT_CHANNELS, PRIMARY_CONTACT } from '../content'
+import { RollText } from '../Cursor'
 
 // Action: one massive call to action, then the links and the footer row.
 // The primary button is lime with ink text; the secondary ones are outlined with cream text.
@@ -29,11 +30,11 @@ export function Footer() {
         <h2 className="cta-title" ref={ titleRef }>Send us the brief.</h2>
         <div className="cta-actions">
           <a className="btn btn-lime btn-xl" href={ PRIMARY_CONTACT.href } target="_blank" rel="noreferrer">
-            { PRIMARY_CONTACT.label }
+            <RollText>{ PRIMARY_CONTACT.label }</RollText>
           </a>
           { CONTACT_CHANNELS.map( ( channel ) => (
             <a key={ channel.title } className="btn btn-outline btn-xl" href={ channel.href } target="_blank" rel="noreferrer">
-              { channel.title }
+              <RollText>{ channel.title }</RollText>
             </a>
           ) ) }
         </div>

@@ -23,7 +23,7 @@ export function ServicesAccordion() {
               onFocus={ () => setOpenIndex( index ) }
               onClick={ () => setOpenIndex( index ) }
             >
-              <button type="button" className="slice-button" aria-expanded={ isOpen }>
+              <button type="button" className="slice-button" aria-expanded={ isOpen } data-cursor={ isOpen ? undefined : 'Open' }>
                 <img className="slice-still" src={ service.still } alt="" loading="lazy" />
                 { isOpen && (
                   <video className="slice-reel" src={ service.reel.src } poster={ service.reel.poster } muted autoPlay loop playsInline />

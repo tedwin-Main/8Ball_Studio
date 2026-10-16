@@ -39,7 +39,7 @@ function MediaStrip( { service, hasReel, reelRef } ) {
     <div className="drum-strip" aria-hidden="true" ref={ stripRef } onScroll={ markEdges }>
       {/* Zero-width anchor stuck to the strip's left edge; the arrow hangs off it over the first visible tile. */}
       <span className="drum-strip-prev-anchor">
-        <button type="button" className="drum-strip-prev" aria-label="Previous" tabIndex={ -1 } onClick={ () => step( -1 ) }>
+        <button type="button" className="drum-strip-prev" aria-label="Previous" tabIndex={ -1 } data-magnet="inner" onClick={ () => step( -1 ) }>
           <CaretLeft size={ 18 } weight="bold" aria-hidden="true" />
         </button>
       </span>
@@ -57,7 +57,7 @@ function MediaStrip( { service, hasReel, reelRef } ) {
       {/* Zero-width anchor stuck to the strip's right edge; the arrow hangs off it over the last visible tile. */}
       <span className="drum-strip-next-anchor">
         {/* The strip is decorative (aria-hidden), so the arrow is a mouse/touch aid only, kept out of the tab order. */}
-        <button type="button" className="drum-strip-next" aria-label="Next" tabIndex={ -1 } onClick={ () => step( 1 ) }>
+        <button type="button" className="drum-strip-next" aria-label="Next" tabIndex={ -1 } data-magnet="inner" onClick={ () => step( 1 ) }>
           <CaretRight size={ 18 } weight="bold" aria-hidden="true" />
         </button>
       </span>

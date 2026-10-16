@@ -20,14 +20,13 @@ import { TuneSelect } from './sections/TuneSelect'
 import { ClientLoop } from './sections/ClientLoop'
 import { Marquee } from './sections/Marquee'
 import { Footer } from './sections/Footer'
-import { normalizeNavStyle, normalizeServicesStyle } from './servicesStyle'
+import { Cursor } from './Cursor'
+import { normalizeDraft, readDrafts } from './servicesStyle'
 
 gsap.registerPlugin( ScrollTrigger )
 
-// ?tune is review panel: adds Services select. ?services=<id> picks layout directly
+// ?tune is review panel: one select per draft section. ?<section>=<id> picks a draft directly
 const TUNE_REQUESTED = new URLSearchParams( window.location.search ).has( 'tune' )
-const getInitialServicesStyle = () => normalizeServicesStyle( new URLSearchParams( window.location.search ).get( 'services' ) )
-const getInitialNavStyle = () => normalizeNavStyle( new URLSearchParams( window.location.search ).get( 'nav' ) )
 
 // Lenis scroll glide weighting
 const RAMP = 0.2
@@ -42,28 +41,17 @@ const glideSeconds = ( distance ) => Math.min( 4.5, Math.max( 1.2, 0.9 + distanc
 
 // Site > Root Shell > App: root container and Lenis scroll engine
 export default function App() {
-  const [ servicesStyle, setServicesStyle ] = useState( getInitialServicesStyle )
+  const [ drafts, setDrafts ] = useState( () => readDrafts( window.location.search ) )
 
-  // Swap the Services layout and keep the URL in step, so a reload or shared link shows the same layout.
-  const switchServicesStyle = ( next ) => {
-    const style = normalizeServicesStyle( next )
+  // Site > ?tune > any select: swap one section's draft, URL kept in step so reload or shared link shows same page
+  const switchDraft = ( section, next ) => {
+    const value = normalizeDraft( section, next )
     const url = new URL( window.location.href )
-    url.searchParams.set( 'services', style )
+    url.searchParams.set( section, value )
     window.history.replaceState( {}, '', `${ url.pathname }${ url.search }${ url.hash }` )
-    setServicesStyle( style )
-    // The drum's scroll length changes with the layout, so ScrollTrigger must re-measure the page.
+    setDrafts( ( prev ) => ( { ...prev, [ section ]: value } ) )
+    // drafts differ in scroll length, so ScrollTrigger must re-measure page
     requestAnimationFrame( () => ScrollTrigger.refresh() )
-  }
-
-  const [ navStyle, setNavStyle ] = useState( getInitialNavStyle )
-
-  // ?tune nav draft: same URL-in-step trick as the Services select.
-  const switchNavStyle = ( next ) => {
-    const style = normalizeNavStyle( next )
-    const url = new URL( window.location.href )
-    url.searchParams.set( 'nav', style )
-    window.history.replaceState( {}, '', `${ url.pathname }${ url.search }${ url.hash }` )
-    setNavStyle( style )
   }
 
   useEffect( () => {
@@ -102,16 +90,17 @@ export default function App() {
 
   return (
     <main id="top">
-      <Nav align={ navStyle } />
+      <Cursor />
+      <Nav align={ drafts.nav } />
       <BreakHero />
       <Statement />
       <Manifesto />
-      { servicesStyle === 'accordion'
+      { drafts.services === 'accordion'
         ? <ServicesAccordion />
         // The flat drums: one layout per ?tune choice, keyed so each mounts its own scroll triggers.
-        : <ServicesDrum key={ servicesStyle } variant={ servicesStyle } /> }
+        : <ServicesDrum key={ drafts.services } variant={ drafts.services } /> }
       <ClientLoop />
-      { TUNE_REQUESTED && <TuneSelect value={ servicesStyle } onChange={ switchServicesStyle } navValue={ navStyle } onNavChange={ switchNavStyle } /> }
+      { TUNE_REQUESTED && <TuneSelect drafts={ drafts } onChange={ switchDraft } /> }
       <Marquee />
       <Footer />
     </main>

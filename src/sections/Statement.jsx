@@ -103,7 +103,7 @@ export function Statement() {
           <p className="bento-big">Greater Kuala Lumpur, Malaysia</p>
         </article>
 
-        <a className="bento-card bento-cta" href={ PRIMARY_CONTACT.href } target="_blank" rel="noreferrer">
+        <a className="bento-card bento-cta" href={ PRIMARY_CONTACT.href } target="_blank" rel="noreferrer" data-cursor="Say hi">
           <p className="bento-kicker">Start here</p>
           <p className="bento-big">{ PRIMARY_CONTACT.label }</p>
           <span className="bento-arrow" aria-hidden="true">→</span>

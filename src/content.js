@@ -84,3 +84,11 @@ export const PILL_IMAGES = {
 
 // Copy for the scroll-revealed paragraph (Desire). Every sentence states something the studio does.
 export const MANIFESTO = 'We make video, design, web, social and AI content for local brands and regional teams. Tell us what the brand needs, and we reply on WhatsApp, Instagram or email with the next step.'
+
+// Where the studio works from; the nav and footer clocks show this zone's local time.
+export const STUDIO = {
+  city: 'Kuala Lumpur',
+  cityShort: 'KL',
+  region: 'Greater Kuala Lumpur, Malaysia',
+  timeZone: 'Asia/Kuala_Lumpur',
+}
