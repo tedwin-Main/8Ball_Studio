@@ -18,7 +18,7 @@ import { ServicesAccordion } from './sections/ServicesAccordion'
 import { ServicesDrum } from './sections/ServicesDrum'
 import { ServicesIndex } from './sections/ServicesIndex'
 import { TuneSelect } from './sections/TuneSelect'
-import { ClientLoop } from './sections/ClientLoop'
+import { ClientGrid, ClientLoop } from './sections/ClientLoop'
 import { Marquee } from './sections/Marquee'
 import { Footer } from './sections/Footer'
 import { Cursor } from './Cursor'
@@ -133,7 +133,8 @@ export default function App() {
     <main id="top">
       <Preloader />
       <Cursor />
-      <Nav align={ drafts.nav } />
+      {/* layoutKey: chapter meters re-bind when a draft swap replaces #clients or #contact */}
+      <Nav align={ drafts.nav } layoutKey={ Object.values( drafts ).join( '|' ) } />
       <BreakHero />
       <Statement />
       <Manifesto variant={ drafts.manifesto } key={ drafts.manifesto } />
@@ -141,10 +142,10 @@ export default function App() {
       { drafts.services === 'index' && <ServicesIndex /> }
       {/* flat drums: one layout per ?tune choice, keyed so each mounts its own scroll triggers */}
       { drafts.services.startsWith( 'drum' ) && <ServicesDrum key={ drafts.services } variant={ drafts.services } /> }
-      <ClientLoop />
+      { drafts.clients === 'grid' ? <ClientGrid /> : <ClientLoop /> }
       { TUNE_REQUESTED && <TuneSelect drafts={ drafts } onChange={ switchDraft } /> }
       <Marquee />
-      <Footer />
+      <Footer variant={ drafts.footer } key={ drafts.footer } />
     </main>
   )
 }

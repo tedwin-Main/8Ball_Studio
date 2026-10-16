@@ -2171,3 +2171,194 @@ button:hover .roll-in {
     animation: none;
   }
 }
+
+/* ---------- Footer wordmark draft (?footer=wordmark) ---------- */
+/* page-end: fixed bottom fade lifts so wordmark baseline reads clean (Footer.jsx toggles .is-page-end) */
+body::before {
+  transition: opacity 0.6s;
+}
+
+.is-page-end body::before {
+  opacity: 0;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 2rem var(--gutter);
+  margin: 0 var(--gutter);
+  padding: clamp(2rem, 4vw, 3.5rem) 0;
+  border-top: 1px solid var(--line);
+}
+
+.footer-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.footer-col-end {
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+
+.footer-col-head {
+  margin: 0 0 0.5rem;
+  color: var(--cream-dim);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+}
+
+.footer-link,
+.footer-text {
+  margin: 0;
+  font-size: clamp(1rem, 1.3vw, 1.2rem);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.footer-clock {
+  font-size: 1rem;
+}
+
+.footer-top {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: border-color 0.3s, background-color 0.3s, color 0.3s;
+}
+
+.footer-top:hover {
+  border-color: transparent;
+  background: var(--lime);
+  color: var(--ink);
+}
+
+.wordmark-frame {
+  padding: 0 var(--gutter);
+  overflow: hidden;
+}
+
+.wordmark {
+  display: inline-block;
+  margin: 0;
+  font-size: 22vw;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  /* tall line box: char masks (SplitText) clip at line box, so g descender needs room; negative margin keeps rhythm tight */
+  line-height: 1.12;
+  margin-top: -0.16em;
+  white-space: nowrap;
+}
+
+.wordmark-eight {
+  color: var(--lime);
+}
+
+.footer.is-wordmark .footer-row {
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  border-top: 0;
+}
+
+@media (max-width: 767px) {
+  .footer-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .footer-col-end {
+    align-items: flex-start;
+  }
+
+  /* email needs full row on phones: roll label is single-line clip */
+  .footer-col:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ---------- Clients grid draft (?clients=grid) ---------- */
+/* gapless: 4 cells, 4 cols desktop (4x1), 2 cols phone (2x2); hairlines via cell borders */
+.client-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-flow: dense;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.client-cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  padding: 18%;
+  overflow: hidden;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  transition: background-color 0.6s;
+}
+
+/* lime wash rises from cell bottom on hover / in-view */
+.client-cell::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: radial-gradient(120% 80% at 50% 120%, rgba(183, 217, 91, 0.22), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.6s;
+}
+
+.client-cell img {
+  position: relative;
+  width: 100%;
+  max-height: 72px;
+  object-fit: contain;
+  filter: grayscale(1) brightness(1.7);
+  opacity: 0.75;
+  transition: filter 0.6s, opacity 0.6s, transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.client-name {
+  position: absolute;
+  left: 1rem;
+  bottom: 0.9rem;
+  color: var(--cream-dim);
+  font-size: 0.8rem;
+  opacity: 0;
+  transform: translateY(0.5rem);
+  transition: opacity 0.5s, transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.client-cell:hover::before,
+.client-cell.is-lit::before {
+  opacity: 1;
+}
+
+.client-cell:hover img,
+.client-cell.is-lit img {
+  filter: none;
+  opacity: 1;
+  transform: scale(1.06);
+}
+
+.client-cell:hover .client-name,
+.client-cell.is-lit .client-name {
+  opacity: 1;
+  transform: none;
+}
+
+@media (max-width: 767px) {
+  .client-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

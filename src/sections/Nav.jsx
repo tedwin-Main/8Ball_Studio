@@ -40,7 +40,7 @@ export function StudioClock( { className = '' } ) {
 }
 
 // Shell > Header > Navigation Pill: floating glass pill with chapter anchors and mobile drawer
-export function Nav( { align = 'right' } ) {
+export function Nav( { align = 'right', layoutKey = '' } ) {
   const [ menuOpen, setMenuOpen ] = useState( false )
   const wrapRef = useRef( null )
   const linksRef = useRef( null )
@@ -82,7 +82,7 @@ export function Nav( { align = 'right' } ) {
       } )
     } )
     return () => triggers.forEach( ( trigger ) => trigger?.kill() )
-  }, [] )
+  }, [ layoutKey ] )
 
   return (
     <header className="nav-wrap" ref={ wrapRef }>
