@@ -49,7 +49,6 @@ export const DRAFTS = Object.freeze( {
   services: Object.freeze( { label: 'Services', options: SERVICES_STYLES, fallback: DEFAULT_SERVICES_STYLE } ),
   nav: Object.freeze( { label: 'Nav', options: NAV_STYLES, fallback: DEFAULT_NAV_STYLE } ),
   manifesto: Object.freeze( { label: 'Manifesto', options: Object.freeze( { chalk: 'Chalk chapter', felt: 'Felt (original)' } ), fallback: 'chalk' } ),
-  clients: Object.freeze( { label: 'Clients', options: Object.freeze( { loop: 'Loop (original)', grid: 'Grid' } ), fallback: 'loop' } ),
   footer: Object.freeze( { label: 'Footer', options: Object.freeze( { wordmark: 'Wordmark finale', classic: 'Classic' } ), fallback: 'wordmark' } ),
 } )
 

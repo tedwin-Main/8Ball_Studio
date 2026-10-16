@@ -1875,37 +1875,8 @@ button:hover .roll-in {
   }
 }
 
-/* ---------- Services ordinals (accordion, drums, index): list position, Space Grotesk numerals ---------- */
-.slice-index,
-.drum-index,
-.index-num {
-  font-family: "Space Grotesk", var(--ui-font);
-  font-variant-numeric: tabular-nums;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-}
-
-.slice-index {
-  color: var(--lime);
-  font-size: 0.8rem;
-}
-
-.drum-index {
-  display: inline-block;
-  margin-right: 0.6em;
-  color: var(--cream-dim);
-  font-size: max(0.32em, 0.7rem);
-  vertical-align: 0.95em;
-}
-
-/* Phone drum-cards: narrow name column; ordinal on own line, smaller name, words wrap whole (no mid-word split) */
+/* Phone drum-cards: narrow name column; smaller name, words wrap whole (no mid-word split) */
 @media (max-width: 767px) {
-  .services-drum.is-drum-cards .drum-index {
-    display: block;
-    margin: 0 0 0.2rem;
-    vertical-align: baseline;
-  }
-
   .services-drum.is-drum-cards .drum-name {
     font-size: clamp(0.9rem, 3.9vw, 1.1rem);
   }
@@ -1913,11 +1884,6 @@ button:hover .roll-in {
   .services-drum.is-drum-cards .drum-text {
     overflow-wrap: break-word;
   }
-
-}
-
-.drum-row.is-active .drum-index {
-  color: var(--lime);
 }
 
 /* ---------- Services index draft (?services=index) ---------- */
@@ -1964,7 +1930,7 @@ button:hover .roll-in {
 
 .index-button {
   display: grid;
-  grid-template-columns: 3.5rem minmax(0, 1fr) minmax(0, 18rem) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 18rem) auto;
   align-items: center;
   gap: 1.5rem;
   width: 100%;
@@ -1976,13 +1942,6 @@ button:hover .roll-in {
   text-align: left;
   cursor: pointer;
   transition: opacity 0.45s;
-}
-
-.index-num {
-  align-self: start;
-  padding-top: 0.6em;
-  color: var(--cream-dim);
-  font-size: 0.85rem;
 }
 
 .index-name {
@@ -2014,7 +1973,6 @@ button:hover .roll-in {
   transform: rotate(-45deg);
 }
 
-.index-row.is-open .index-num,
 .index-row.is-open .index-arrow {
   color: var(--lime);
 }
@@ -2043,7 +2001,7 @@ button:hover .roll-in {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.75rem;
-  padding: 0 0 clamp(1.25rem, 3vw, 2.5rem) calc(3.5rem + 1.5rem);
+  padding: 0 0 clamp(1.25rem, 3vw, 2.5rem);
 }
 
 .index-media-tile {
@@ -2137,23 +2095,22 @@ button:hover .roll-in {
 
 @media (max-width: 767px) {
   .index-button {
-    grid-template-columns: 2rem minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 0.75rem;
   }
 
   .index-detail {
-    grid-column: 2 / 3;
+    grid-column: 1 / 2;
     font-size: 0.85rem;
   }
 
   .index-arrow {
     grid-row: 1;
-    grid-column: 3;
+    grid-column: 2;
   }
 
   .index-media {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    padding-left: 0;
   }
 }
 
@@ -2172,16 +2129,7 @@ button:hover .roll-in {
   }
 }
 
-/* ---------- Footer wordmark draft (?footer=wordmark) ---------- */
-/* page-end: fixed bottom fade lifts so wordmark baseline reads clean (Footer.jsx toggles .is-page-end) */
-body::before {
-  transition: opacity 0.6s;
-}
-
-.is-page-end body::before {
-  opacity: 0;
-}
-
+/* ---------- Footer grid draft (?footer=grid): contact columns, live clock, back to top ---------- */
 .footer-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -2263,11 +2211,6 @@ body::before {
   color: var(--lime);
 }
 
-.footer.is-wordmark .footer-row {
-  padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
-  border-top: 0;
-}
-
 @media (max-width: 767px) {
   .footer-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2280,85 +2223,5 @@ body::before {
   /* email needs full row on phones: roll label is single-line clip */
   .footer-col:first-child {
     grid-column: 1 / -1;
-  }
-}
-
-/* ---------- Clients grid draft (?clients=grid) ---------- */
-/* gapless: 4 cells, 4 cols desktop (4x1), 2 cols phone (2x2); hairlines via cell borders */
-.client-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-auto-flow: dense;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  border-top: 1px solid var(--line);
-  border-left: 1px solid var(--line);
-}
-
-.client-cell {
-  position: relative;
-  display: grid;
-  place-items: center;
-  aspect-ratio: 4 / 3;
-  padding: 18%;
-  overflow: hidden;
-  border-right: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-  transition: background-color 0.6s;
-}
-
-/* lime wash rises from cell bottom on hover / in-view */
-.client-cell::before {
-  position: absolute;
-  inset: 0;
-  content: "";
-  background: radial-gradient(120% 80% at 50% 120%, rgba(183, 217, 91, 0.22), transparent 70%);
-  opacity: 0;
-  transition: opacity 0.6s;
-}
-
-.client-cell img {
-  position: relative;
-  width: 100%;
-  max-height: 72px;
-  object-fit: contain;
-  filter: grayscale(1) brightness(1.7);
-  opacity: 0.75;
-  transition: filter 0.6s, opacity 0.6s, transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.client-name {
-  position: absolute;
-  left: 1rem;
-  bottom: 0.9rem;
-  color: var(--cream-dim);
-  font-size: 0.8rem;
-  opacity: 0;
-  transform: translateY(0.5rem);
-  transition: opacity 0.5s, transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.client-cell:hover::before,
-.client-cell.is-lit::before {
-  opacity: 1;
-}
-
-.client-cell:hover img,
-.client-cell.is-lit img {
-  filter: none;
-  opacity: 1;
-  transform: scale(1.06);
-}
-
-.client-cell:hover .client-name,
-.client-cell.is-lit .client-name {
-  opacity: 1;
-  transform: none;
-}
-
-@media (max-width: 767px) {
-  .client-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

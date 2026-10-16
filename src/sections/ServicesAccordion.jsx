@@ -38,7 +38,6 @@ export function ServicesAccordion() {
                 ) }
                 <span className="slice-shade" aria-hidden="true" />
                 <span className="slice-label">
-                  <span className="slice-index">{ String( index + 1 ).padStart( 2, '0' ) }</span>
                   <span className="slice-name">{ service.name }</span>
                   <span className="slice-detail">{ service.detail }</span>
                 </span>

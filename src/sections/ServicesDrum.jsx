@@ -239,7 +239,7 @@ export function ServicesDrum( { variant } ) {
                 return (
                   <li className={ `drum-row${ isActive ? ' is-active' : '' }` } key={ service.name }>
                     <span className="drum-text">
-                      <span className="drum-name"><span className="drum-index">{ String( index + 1 ).padStart( 2, '0' ) }</span>{ service.name }</span>
+                      <span className="drum-name">{ service.name }</span>
                       <span className="drum-detail">{ service.detail }</span>
                     </span>
                     { variant === 'drum-cards' && <MediaStrip service={ service } hasReel={ index === reelIndex } reelRef={ reelRef } /> }

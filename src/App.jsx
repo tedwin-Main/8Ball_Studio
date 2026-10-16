@@ -18,7 +18,7 @@ import { ServicesAccordion } from './sections/ServicesAccordion'
 import { ServicesDrum } from './sections/ServicesDrum'
 import { ServicesIndex } from './sections/ServicesIndex'
 import { TuneSelect } from './sections/TuneSelect'
-import { ClientGrid, ClientLoop } from './sections/ClientLoop'
+import { ClientLoop } from './sections/ClientLoop'
 import { Marquee } from './sections/Marquee'
 import { Footer } from './sections/Footer'
 import { Cursor } from './Cursor'
@@ -142,7 +142,7 @@ export default function App() {
       { drafts.services === 'index' && <ServicesIndex /> }
       {/* flat drums: one layout per ?tune choice, keyed so each mounts its own scroll triggers */}
       { drafts.services.startsWith( 'drum' ) && <ServicesDrum key={ drafts.services } variant={ drafts.services } /> }
-      { drafts.clients === 'grid' ? <ClientGrid /> : <ClientLoop /> }
+      <ClientLoop />
       { TUNE_REQUESTED && <TuneSelect drafts={ drafts } onChange={ switchDraft } /> }
       <Marquee />
       <Footer variant={ drafts.footer } key={ drafts.footer } />

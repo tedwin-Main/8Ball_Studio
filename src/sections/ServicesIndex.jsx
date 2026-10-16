@@ -1,6 +1,6 @@
 /**
  * FILE: src/sections/ServicesIndex.jsx
- * PURPOSE: services index draft: big numbered rows, hover preview follows pointer, click opens row media
+ * PURPOSE: services index draft: big name rows, hover preview follows pointer, click opens row media
  * UI: Site > Services (?services=index)
  * USED BY: src/App.jsx
  * KEY EXPORTS: ServicesIndex
@@ -12,8 +12,6 @@ import { ArrowDownRight } from '@phosphor-icons/react'
 import { SERVICES } from '../content'
 import { useRiseTitle } from '../titleMotion'
 import { scaleFade } from '../mediaMotion'
-
-const pad = ( n ) => String( n + 1 ).padStart( 2, '0' )
 
 // Services > Index > row media: open row shows its strip (first reel plays, rest stills/posters)
 function RowMedia( { service } ) {
@@ -102,7 +100,6 @@ export function ServicesIndex() {
                 data-cursor={ isOpen ? 'Close' : 'Open' }
                 onClick={ () => setOpen( isOpen ? -1 : index ) }
               >
-                <span className="index-num">{ pad( index ) }</span>
                 <span className="index-name">{ service.name }</span>
                 <span className="index-detail">{ service.detail.split( '\n' )[ 0 ] }</span>
                 <ArrowDownRight className="index-arrow" size={ 28 } weight="light" aria-hidden="true" />

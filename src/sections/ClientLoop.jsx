@@ -1,9 +1,9 @@
 /**
  * FILE: src/sections/ClientLoop.jsx
- * PURPOSE: client logo loop (original) and client grid draft, both with popping title
+ * PURPOSE: client logo loop with popping title
  * UI: Site > Clients
  * USED BY: src/App.jsx
- * KEY EXPORTS: ClientLoop, ClientGrid
+ * KEY EXPORTS: ClientLoop
  */
 
 import { useLayoutEffect, useRef } from 'react'
@@ -12,7 +12,6 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { startMarqueeLoop } from '../marqueeLoop'
 import { CLIENTS } from '../content'
 import { useSplitTitle } from '../titleMotion'
-import { scaleFade } from '../mediaMotion'
 
 // How many times the client logos repeat inside one group, so one group is always wider than a wide screen.
 const REPEATS = 3
@@ -31,47 +30,6 @@ function usePopTitle( titleRef ) {
       stagger: 0.08,
       scrollTrigger: { trigger: titleRef.current, start: 'top bottom', end: 'top 55%', scrub: 0.8 },
     } ) )
-}
-
-// Clients > Grid draft (?clients=grid): gapless hairline grid, 4x1 desktop, 2x2 phone; cells light in turn
-export function ClientGrid() {
-  const titleRef = useRef( null )
-  const gridRef = useRef( null )
-  usePopTitle( titleRef )
-
-  useLayoutEffect( () => {
-    const grid = gridRef.current
-    if ( window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches ) return undefined
-    const killFade = scaleFade( grid, { from: 0.94 } )
-    // Clients > Grid: touch has no hover, so cells light one after another while grid is in view
-    const lit = window.matchMedia( '(hover: none)' ).matches && ScrollTrigger.create( {
-      trigger: grid,
-      start: 'top 70%',
-      end: 'bottom 30%',
-      onToggle: ( self ) => grid.querySelectorAll( '.client-cell' ).forEach( ( cell, i ) => {
-        cell.style.transitionDelay = self.isActive ? `${ i * 0.12 }s` : '0s'
-        cell.classList.toggle( 'is-lit', self.isActive )
-      } ),
-    } )
-    return () => {
-      killFade()
-      if ( lit ) lit.kill()
-    }
-  }, [] )
-
-  return (
-    <section className="section clients clients-grid-section" id="clients" aria-labelledby="clients-title">
-      <h2 id="clients-title" className="section-title" ref={ titleRef }>Our clients</h2>
-      <ul className="client-grid" ref={ gridRef }>
-        { CLIENTS.map( ( client ) => (
-          <li className="client-cell" key={ client.name }>
-            <img src={ client.src } alt={ client.name } loading="lazy" decoding="async" />
-            <span className="client-name" aria-hidden="true">{ client.name }</span>
-          </li>
-        ) ) }
-      </ul>
-    </section>
-  )
 }
 
 export function ClientLoop() {

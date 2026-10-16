@@ -111,7 +111,7 @@ export function Footer( { variant = 'wordmark' } ) {
 
   const cta = (
     <div className="section footer-cta" id="contact">
-      <h2 className="cta-title" ref={ titleRef }>Send us the brief.</h2>
+      <h2 className="cta-title" ref={ titleRef }>Contact us.</h2>
       <div className="cta-actions">
         <a className="btn btn-lime btn-xl" href={ PRIMARY_CONTACT.href } target="_blank" rel="noreferrer">
           <RollText>{ PRIMARY_CONTACT.label }</RollText>
