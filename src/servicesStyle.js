@@ -12,6 +12,7 @@ export const SERVICES_STYLES = Object.freeze( {
 export const NAV_STYLES = Object.freeze( {
   right: 'Links right',
   center: 'Links centred',
+  rail: 'Rail · page-grid progress line',
 } )
 
 export const DEFAULT_NAV_STYLE = 'right'

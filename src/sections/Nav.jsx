@@ -3,7 +3,7 @@
  * PURPOSE: header nav pill, chapter links with scroll meters, live studio clock, WhatsApp cta, mobile drawer menu
  * UI: Shell > Header > Navigation
  * USED BY: src/App.jsx
- * KEY EXPORTS: Nav, StudioClock
+ * KEY EXPORTS: Nav, StudioClock, RAIL_CHAPTERS
  */
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
@@ -39,12 +39,21 @@ export function StudioClock( { className = '' } ) {
   )
 }
 
-// Shell > Header > Navigation Pill: floating glass pill with chapter anchors and mobile drawer
-export function Nav( { align = 'right', layoutKey = '' } ) {
-  const [ menuOpen, setMenuOpen ] = useState( false )
-  const wrapRef = useRef( null )
-  const linksRef = useRef( null )
+// rail draft: one cell per chapter on 8-col page grid; spans sum to 8. Brand owns hero
+export const RAIL_CHAPTERS = [
+  { href: '#top', label: '8ightBall Studio', span: 2 },
+  { href: '#studio', label: 'Studio', span: 2 },
+  { href: '#services', label: 'Services', span: 1 },
+  { href: '#clients', label: 'Clients', span: 1 },
+  { href: '#contact', label: 'Contact', span: 2, clock: true },
+]
 
+// share of screen height: chapter starts once its section top passes this line (matches pill meters)
+const CHAPTER_LINE = 0.55
+
+// Shell > Header > menu: drawer open state; closes on outside click and Escape
+function useMenu( wrapRef ) {
+  const [ menuOpen, setMenuOpen ] = useState( false )
   useEffect( () => {
     // composedPath keeps original click chain if icon unmounts
     const onDocClick = ( event ) => {
@@ -61,6 +70,124 @@ export function Nav( { align = 'right', layoutKey = '' } ) {
       document.removeEventListener( 'keydown', onKey )
     }
   }, [] )
+  return [ menuOpen, setMenuOpen ]
+}
+
+// Shell > Header > phone drawer: chapter links list
+function MobileTray( { chapters, onPick } ) {
+  return (
+    <div className="nav-mobile-tray" role="dialog" aria-label="Mobile Navigation">
+      <ul className="nav-mobile-links">
+        { chapters.map( ( chapter ) => (
+          <li key={ chapter.href }>
+            <a href={ chapter.href } onClick={ onPick }>
+              <span>{ chapter.label }</span>
+            </a>
+          </li>
+        ) ) }
+      </ul>
+    </div>
+  )
+}
+
+// Shell > Header > menu toggle: list icon, X while open
+function MenuToggle( { open, onToggle, className = 'nav-toggle' } ) {
+  return (
+    <button type="button" className={ className } aria-expanded={ open } aria-label={ open ? 'Close menu' : 'Open menu' } onClick={ onToggle }>
+      { open ? <X size={ 20 } weight="bold" /> : <List size={ 20 } weight="bold" /> }
+    </button>
+  )
+}
+
+// Shell > Header: pill drafts (right, center) or Santa Larch style rail (?nav=rail)
+export function Nav( { align = 'right', layoutKey = '' } ) {
+  return align === 'rail' ? <RailNav layoutKey={ layoutKey } /> : <PillNav align={ align } layoutKey={ layoutKey } />
+}
+
+// Shell > Header > Rail: full-width blended bar on page grid; hairline under links fills chapter by chapter, so one
+// line grows left to right across whole page scroll
+function RailNav( { layoutKey } ) {
+  const menuRef = useRef( null )
+  const barRef = useRef( null )
+  const [ menuOpen, setMenuOpen ] = useMenu( menuRef )
+
+  useLayoutEffect( () => {
+    const cells = [ ...barRef.current.querySelectorAll( '.rail-cell' ) ]
+    const fills = [ ...barRef.current.querySelectorAll( '.rail-fill' ) ].map( ( fill ) => gsap.quickSetter( fill, 'scaleX' ) )
+    let bounds = []
+    let current = -1
+    // Rail > fill: chapter i runs from its boundary to next one; missing section (draft off) collapses to zero length
+    const measure = ( self ) => {
+      const max = self.end
+      const line = window.innerHeight * CHAPTER_LINE
+      const starts = RAIL_CHAPTERS.map( ( chapter, index ) => {
+        if ( index === 0 ) return 0
+        const el = document.querySelector( chapter.href )
+        return el ? el.getBoundingClientRect().top + window.scrollY - line : null
+      } )
+      // absent chapter starts where next present one does
+      for ( let i = starts.length - 1; i > 0; i -= 1 ) if ( starts[ i ] === null ) starts[ i ] = starts[ i + 1 ] ?? max
+      // last chapter keeps at least half a screen of travel, so contact never fills in one frame at page end
+      starts[ starts.length - 1 ] = Math.min( starts[ starts.length - 1 ], max - window.innerHeight * 0.5 )
+      bounds = starts.map( ( start, i ) => [ Math.max( 0, Math.min( start, max ) ), Math.min( starts[ i + 1 ] ?? max, max ) ] )
+    }
+    const paint = ( self ) => {
+      const y = self.scroll()
+      let next = 0
+      bounds.forEach( ( [ from, to ], i ) => {
+        fills[ i ]( to > from ? Math.min( 1, Math.max( 0, ( y - from ) / ( to - from ) ) ) : Number( y >= to ) )
+        if ( y >= from && to > from ) next = i
+      } )
+      if ( next !== current ) {
+        current = next
+        cells.forEach( ( cell, i ) => cell.classList.toggle( 'is-current', i === next ) )
+      }
+    }
+    const trigger = ScrollTrigger.create( {
+      start: 0,
+      end: 'max',
+      onRefresh: ( self ) => {
+        measure( self )
+        paint( self )
+      },
+      onUpdate: paint,
+    } )
+    return () => trigger.kill()
+  }, [ layoutKey ] )
+
+  return (
+    <>
+      <header className="rail-wrap">
+        <nav className="rail-bar" aria-label="Primary" ref={ barRef }>
+          { RAIL_CHAPTERS.map( ( chapter, index ) => (
+            <div className={ `rail-cell${ index === 0 ? ' is-brand' : '' }` } style={ { '--span': chapter.span } } key={ chapter.href }>
+              <a className="rail-link" href={ chapter.href }><RollText>{ chapter.label }</RollText></a>
+              { chapter.clock && <StudioClock className="rail-clock" /> }
+            </div>
+          ) ) }
+          <div className="rail-track" aria-hidden="true">
+            { RAIL_CHAPTERS.map( ( chapter ) => (
+              <span className="rail-seg" style={ { '--span': chapter.span } } key={ chapter.href }>
+                <span className="rail-fill" />
+              </span>
+            ) ) }
+          </div>
+        </nav>
+      </header>
+      {/* outside blended header: difference blend would turn drawer and toggle unreadable */}
+      <div className="rail-menu" ref={ menuRef }>
+        <MenuToggle open={ menuOpen } onToggle={ () => setMenuOpen( ( prev ) => !prev ) } />
+        { menuOpen && <MobileTray chapters={ RAIL_CHAPTERS.slice( 1 ) } onPick={ () => setMenuOpen( false ) } /> }
+      </div>
+    </>
+  )
+}
+
+// Shell > Header > Navigation Pill: floating glass pill with chapter anchors and mobile drawer
+function PillNav( { align, layoutKey } ) {
+  const wrapRef = useRef( null )
+  const linksRef = useRef( null )
+  const [ menuOpen, setMenuOpen ] = useMenu( wrapRef )
 
   // Shell > Header > chapter links: lime meter under each link fills while its chapter scrolls by
   useLayoutEffect( () => {
@@ -105,28 +232,8 @@ export function Nav( { align = 'right', layoutKey = '' } ) {
             <RollText>WhatsApp</RollText>
           </a>
         </div>
-        <button
-          type="button"
-          className="nav-toggle"
-          aria-expanded={ menuOpen }
-          aria-label={ menuOpen ? 'Close menu' : 'Open menu' }
-          onClick={ () => setMenuOpen( ( prev ) => !prev ) }
-        >
-          { menuOpen ? <X size={ 20 } weight="bold" /> : <List size={ 20 } weight="bold" /> }
-        </button>
-        { menuOpen && (
-          <div className="nav-mobile-tray" role="dialog" aria-label="Mobile Navigation">
-            <ul className="nav-mobile-links">
-              { CHAPTERS.map( ( chapter ) => (
-                <li key={ chapter.href }>
-                  <a href={ chapter.href } onClick={ () => setMenuOpen( false ) }>
-                    <span>{ chapter.label }</span>
-                  </a>
-                </li>
-              ) ) }
-            </ul>
-          </div>
-        ) }
+        <MenuToggle open={ menuOpen } onToggle={ () => setMenuOpen( ( prev ) => !prev ) } />
+        { menuOpen && <MobileTray chapters={ CHAPTERS } onPick={ () => setMenuOpen( false ) } /> }
       </nav>
     </header>
   )
