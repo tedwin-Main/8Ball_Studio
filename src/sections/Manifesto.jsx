@@ -18,6 +18,8 @@ export function Manifesto( { variant = 'chalk' } ) {
   const chalk = variant === 'chalk'
 
   useLayoutEffect( () => {
+    // reduced motion: words full strength, rule drawn, ball parked (CSS)
+    if ( window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches ) return undefined
     const section = sectionRef.current
     const words = wordsRef.current.querySelectorAll( '.word' )
     // Scrub: the timeline's progress is tied to the scroll position through this section.

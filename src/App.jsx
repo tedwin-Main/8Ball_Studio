@@ -107,10 +107,12 @@ export default function App() {
   useEffect( () => {
     const root = document.documentElement
     const active = new Set()
+    // reduced motion: ground cuts, no fade through mid grey
+    const fade = window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches ? 0 : 0.8
     const paint = () => {
       const ground = active.size ? 'chalk' : 'felt'
       root.dataset.ground = ground
-      gsap.to( root, { ...GROUNDS[ ground ], duration: 0.8, ease: 'power2.inOut', overwrite: true } )
+      gsap.to( root, { ...GROUNDS[ ground ], duration: fade, ease: 'power2.inOut', overwrite: true } )
     }
     const triggers = [ ...document.querySelectorAll( '[data-chapter="chalk"]' ) ].map( ( section ) => ScrollTrigger.create( {
       trigger: section,
