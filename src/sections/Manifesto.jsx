@@ -1,6 +1,6 @@
 /**
  * FILE: src/sections/Manifesto.jsx
- * PURPOSE: sticky scrubbed paragraph, words light up with scroll; chalk draft adds day ground and rolling cue ball
+ * PURPOSE: sticky scrubbed paragraph, words light up with scroll; chalk draft swaps to day ground
  * UI: Site > Manifesto
  * USED BY: src/App.jsx
  * KEY EXPORTS: Manifesto
@@ -11,14 +11,14 @@ import gsap from 'gsap'
 import { MANIFESTO } from '../content'
 
 // Manifesto > sticky paragraph: words scrub 0.1 to 1 across tall section
-// variant: 'chalk' (day chapter, cue line + ball track progress) or 'felt' (original night ground)
+// variant: 'chalk' (day chapter) or 'felt' (original night ground)
 export function Manifesto( { variant = 'chalk' } ) {
   const sectionRef = useRef( null )
   const wordsRef = useRef( null )
   const chalk = variant === 'chalk'
 
   useLayoutEffect( () => {
-    // reduced motion: words full strength, rule drawn, ball parked (CSS)
+    // reduced motion: words full strength (CSS)
     if ( window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches ) return undefined
     const section = sectionRef.current
     const words = wordsRef.current.querySelectorAll( '.word' )
@@ -40,15 +40,6 @@ export function Manifesto( { variant = 'chalk' } ) {
       ease: 'none',
       stagger: { each: 0.4 / Math.max( 1, words.length - 1 ) },
     } )
-    // Manifesto > cue line: hairline draws, ball rolls its length (spin from distance / circumference)
-    const rule = section.querySelector( '.manifesto-rule' )
-    const ball = section.querySelector( '.manifesto-ball' )
-    if ( rule && ball ) {
-      const travel = () => rule.offsetWidth - ball.offsetWidth
-      timeline
-        .fromTo( rule, { scaleX: 0 }, { scaleX: 1, duration: 1, ease: 'none' }, 0 )
-        .fromTo( ball, { x: 0, rotation: 0 }, { x: travel, rotation: () => ( travel() / ( Math.PI * ball.offsetWidth ) ) * 360, duration: 1, ease: 'none' }, 0 )
-    }
     return () => {
       timeline.scrollTrigger?.kill()
       timeline.kill()
@@ -65,12 +56,6 @@ export function Manifesto( { variant = 'chalk' } ) {
       aria-label="About the studio"
     >
       <div className="manifesto-sticky">
-        { chalk && (
-          <div className="manifesto-track" aria-hidden="true">
-            <span className="manifesto-rule" />
-            <span className="manifesto-ball"><span>8</span></span>
-          </div>
-        ) }
         <p className="manifesto-text" ref={ wordsRef }>
           { words.map( ( word, index ) => (
             // The space sits outside the inline-block word, so it is not swallowed.

@@ -88,7 +88,7 @@ export const MANIFESTO = 'We make video, design, web, social and AI content for 
 // Where the studio works from; the nav and footer clocks show this zone's local time.
 export const STUDIO = {
   city: 'Kuala Lumpur',
-  cityShort: 'KL',
+  cityShort: 'KUL',
   region: 'Greater Kuala Lumpur, Malaysia',
   timeZone: 'Asia/Kuala_Lumpur',
 }
