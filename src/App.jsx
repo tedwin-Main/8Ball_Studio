@@ -12,6 +12,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Lenis from 'lenis'
 import { Nav } from './sections/Nav'
 import { BreakHero } from './sections/BreakHero'
+import { WordmarkPage } from './sections/WordmarkPage'
 import { Statement } from './sections/Statement'
 import { Manifesto } from './sections/Manifesto'
 import { ServicesAccordion } from './sections/ServicesAccordion'
@@ -136,6 +137,7 @@ export default function App() {
       {/* layoutKey: chapter meters re-bind when a draft swap replaces #clients or #contact */}
       <Nav align={ drafts.nav } layoutKey={ Object.values( drafts ).join( '|' ) } />
       <BreakHero />
+      { drafts.wordmark === 'page' && <WordmarkPage /> }
       <Statement />
       <Manifesto variant={ drafts.manifesto } key={ drafts.manifesto } />
       { drafts.services === 'accordion' && <ServicesAccordion /> }

@@ -18,7 +18,7 @@ export function ServicesAccordion() {
   }, [] )
 
   return (
-    <section className="section services" aria-labelledby="services-title">
+    <section className="section services" id="services" aria-labelledby="services-title">
       <h2 id="services-title" className="section-title" ref={ titleRef }>Our Services</h2>
       <ul className="accordion" ref={ listRef }>
         { SERVICES.map( ( service, index ) => {

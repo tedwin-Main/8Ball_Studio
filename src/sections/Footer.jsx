@@ -1,6 +1,6 @@
 /**
  * FILE: src/sections/Footer.jsx
- * PURPOSE: closing call to action; wordmark draft adds contact grid, live clock, back-to-top and full-bleed rising wordmark
+ * PURPOSE: closing call to action; grid draft adds contact columns, live clock and back-to-top
  * UI: Site > Footer (Contact)
  * USED BY: src/App.jsx
  * KEY EXPORTS: Footer
@@ -8,90 +8,18 @@
 
 import { useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { SplitText } from 'gsap/SplitText'
 import { ArrowUp } from '@phosphor-icons/react'
 import { CONTACT_CHANNELS, PRIMARY_CONTACT, STUDIO } from '../content'
 import { RollText } from '../Cursor'
 import { StudioClock } from './Nav'
 
-gsap.registerPlugin( SplitText )
-
 const EMAIL = CONTACT_CHANNELS.find( ( channel ) => channel.title === 'Email' )
 const INSTAGRAM = CONTACT_CHANNELS.find( ( channel ) => channel.title === 'Instagram' )
 
-// Footer > Wordmark: "8ightBall" fitted edge to edge, chars rise from masks as page bottom arrives
-function Wordmark() {
-  const markRef = useRef( null )
-
-  // Footer > Wordmark > fit: font size scaled so word spans gutter to gutter at any width
-  useLayoutEffect( () => {
-    const mark = markRef.current
-    const fit = () => {
-      const frame = mark.parentElement
-      const pad = window.getComputedStyle( frame )
-      const room = frame.clientWidth - parseFloat( pad.paddingLeft ) - parseFloat( pad.paddingRight )
-      mark.style.fontSize = '100px'
-      const ratio = room / mark.getBoundingClientRect().width
-      mark.style.fontSize = `${ Math.floor( 100 * ratio * 100 ) / 100 }px`
-    }
-    fit()
-    const observer = new ResizeObserver( fit )
-    observer.observe( mark.parentElement )
-    // web font swap changes glyph widths after first fit
-    document.fonts?.ready.then( fit )
-    return () => observer.disconnect()
-  }, [] )
-
-  useLayoutEffect( () => {
-    const root = document.documentElement
-    // Footer > Wordmark: page-wide bottom fade lifts while wordmark is on screen, so its baseline is never fogged
-    const endTrigger = ScrollTrigger.create( {
-      trigger: markRef.current,
-      start: 'top bottom',
-      // past page end, so trigger stays active at max scroll
-      end: 'bottom top',
-      onToggle: ( self ) => root.classList.toggle( 'is-page-end', self.isActive ),
-    } )
-    if ( window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches ) {
-      return () => {
-        endTrigger.kill()
-        root.classList.remove( 'is-page-end' )
-      }
-    }
-    const ctx = gsap.context( () => {
-      SplitText.create( markRef.current, {
-        type: 'chars',
-        mask: 'chars',
-        aria: 'none',
-        onSplit: ( split ) => gsap.from( split.chars, {
-          yPercent: 105,
-          ease: 'none',
-          stagger: 0.06,
-          scrollTrigger: { trigger: markRef.current, start: 'top bottom', end: 'bottom bottom', scrub: 0.8 },
-        } ),
-      } )
-    } )
-    return () => {
-      ctx.revert()
-      endTrigger.kill()
-      root.classList.remove( 'is-page-end' )
-    }
-  }, [] )
-
-  return (
-    <div className="wordmark-frame">
-      <p className="wordmark" ref={ markRef } aria-label="8ightBall">
-        <span className="wordmark-eight">8</span>ightBall
-      </p>
-    </div>
-  )
-}
-
 // Action: one massive call to action, then the links and the footer row.
 // The primary button is lime with ink text; the secondary ones are outlined with cream text.
-// variant: 'wordmark' (contact grid + rising wordmark finale) or 'classic' (original single row)
-export function Footer( { variant = 'wordmark' } ) {
+// variant: 'grid' (contact columns + clock) or 'classic' (original single row)
+export function Footer( { variant = 'grid' } ) {
   const titleRef = useRef( null )
 
   // One lime sweep across the heading as it arrives, pointing at the button below. The gradient's resting
@@ -138,7 +66,7 @@ export function Footer( { variant = 'wordmark' } ) {
   }
 
   return (
-    <footer className="footer is-wordmark" id="footer">
+    <footer className="footer is-grid" id="footer">
       { cta }
       {/* Footer > Contact grid: talk, follow, studio (with live clock), back to top */}
       <div className="footer-grid">
@@ -163,7 +91,6 @@ export function Footer( { variant = 'wordmark' } ) {
           </a>
         </div>
       </div>
-      <Wordmark />
       <div className="footer-row">
         <p>&copy; { new Date().getFullYear() } 8ightBall Studio</p>
         <p>Made in { STUDIO.city }</p>

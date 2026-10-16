@@ -35,3 +35,24 @@ export function useRiseTitle( ref ) {
       scrollTrigger: replayTrigger( ref.current ),
     } ) )
 }
+
+// Wordmark > fit: font size scaled so word spans parent's content box (gutter to gutter) at any width
+export function useFitWidth( ref ) {
+  useLayoutEffect( () => {
+    const el = ref.current
+    const frame = el.parentElement
+    const fit = () => {
+      const pad = window.getComputedStyle( frame )
+      const room = frame.clientWidth - parseFloat( pad.paddingLeft ) - parseFloat( pad.paddingRight )
+      el.style.fontSize = '100px'
+      const ratio = room / el.getBoundingClientRect().width
+      el.style.fontSize = `${ Math.floor( 100 * ratio * 100 ) / 100 }px`
+    }
+    fit()
+    const observer = new ResizeObserver( fit )
+    observer.observe( frame )
+    // web font swap changes glyph widths after first fit
+    document.fonts?.ready.then( fit )
+    return () => observer.disconnect()
+  }, [] )
+}

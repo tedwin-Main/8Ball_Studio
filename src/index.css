@@ -2190,9 +2190,41 @@ button:hover .roll-in {
   color: var(--ink);
 }
 
+@media (max-width: 767px) {
+  .footer-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .footer-col-end {
+    align-items: flex-start;
+  }
+
+  /* email needs full row on phones: roll label is single-line clip */
+  .footer-col:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ---------- Studio wordmark page (?wordmark=page): full-screen 8ightBall after hero ---------- */
+/* tall section, sticky stage: hold length is section height minus one screen */
+.wordmark-page {
+  position: relative;
+  height: 180svh;
+}
+
+.wordmark-stage {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(1.5rem, 4vh, 3rem);
+  height: 100svh;
+  overflow: hidden;
+}
+
 .wordmark-frame {
   padding: 0 var(--gutter);
-  overflow: hidden;
 }
 
 .wordmark {
@@ -2207,21 +2239,71 @@ button:hover .roll-in {
   white-space: nowrap;
 }
 
+.wordmark-break {
+  display: none;
+}
+
+/* own box so it can roll about its centre */
 .wordmark-eight {
+  display: inline-block;
   color: var(--lime);
+  transform-origin: 50% 55%;
+}
+
+.wordmark-base {
+  position: relative;
+  margin: 0 var(--gutter);
+  padding-top: 1.1rem;
+}
+
+.wordmark-cue {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: var(--line);
+  transform-origin: 0 50%;
+}
+
+.wordmark-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem var(--gutter);
+  color: var(--cream-dim);
+  font-family: "Space Grotesk", var(--ui-font);
+  font-size: clamp(0.8rem, 1vw, 0.95rem);
+  letter-spacing: 0.02em;
+}
+
+.wordmark-facts p {
+  margin: 0;
+}
+
+.wordmark-clock {
+  justify-self: end;
 }
 
 @media (max-width: 767px) {
-  .footer-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .wordmark-page {
+    height: 150svh;
   }
 
-  .footer-col-end {
-    align-items: flex-start;
+  .wordmark {
+    line-height: 1;
+    margin-top: 0;
   }
 
-  /* email needs full row on phones: roll label is single-line clip */
-  .footer-col:first-child {
+  .wordmark-break {
+    display: inline;
+  }
+
+  .wordmark-facts {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .wordmark-facts p:nth-child(2) {
     grid-column: 1 / -1;
+    grid-row: 2;
   }
 }

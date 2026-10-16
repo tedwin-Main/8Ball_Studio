@@ -83,7 +83,7 @@ export function ServicesIndex() {
   const active = hovered >= 0 ? SERVICES[ hovered ] : null
 
   return (
-    <section className="section services-index" aria-labelledby="services-title" ref={ rootRef }>
+    <section className="section services-index" id="services" aria-labelledby="services-title" ref={ rootRef }>
       <div className="index-head">
         <h2 id="services-title" className="section-title" ref={ titleRef }>Our Services</h2>
         <p className="index-lede">Six services, one studio in Kuala Lumpur.</p>

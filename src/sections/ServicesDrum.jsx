@@ -224,6 +224,7 @@ export function ServicesDrum( { variant } ) {
   return (
     <section
       className={ `services-drum is-${ variant }` }
+      id="services"
       style={ { '--drum-rows': SERVICES.length } }
       aria-labelledby="services-title"
       ref={ rootRef }

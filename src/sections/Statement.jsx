@@ -77,7 +77,7 @@ export function Statement() {
   }, [] )
 
   return (
-    <section className="section" id="services" aria-labelledby="statement-title">
+    <section className="section" aria-labelledby="statement-title">
       <h2 id="statement-title" className="statement" ref={ titleRef } aria-label="Brands that look good on social, made in Kuala Lumpur.">
         Brands that look good on
         <span className="pill-img" style={ { backgroundImage: `url(${PILL_IMAGES.social})` } } aria-hidden="true" />
