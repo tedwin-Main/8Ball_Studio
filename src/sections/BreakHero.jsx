@@ -16,6 +16,21 @@ import { useSplitTitle } from '../titleMotion'
 
 const clamp = ( value ) => Math.min( 1, Math.max( 0, value ) )
 
+// Phones: the same query as the phone scroll-distance block in index.css (narrow screens and touch screens).
+const PHONE_QUERY = '(max-width: 767px), (hover: none) and (pointer: coarse)'
+const IS_PHONE = window.matchMedia( PHONE_QUERY ).matches
+// Share of the phone swipe spent on the roll (the rest is the scatter). Desktop keeps the stage's own split
+// (APPROACH_END / transitionReady, about 56%); phones reach the rack sooner, so the first swipe lands the hit.
+const PHONE_ROLL_SHARE = 0.4
+
+// Maps scroll progress (0-1) onto the break's playhead (0 → transitionReady).
+const toBreakPlayhead = ( progress ) => {
+  const { approachEnd, transitionReady } = STAGE.intro.draft1
+  if ( !IS_PHONE ) return progress * transitionReady
+  if ( progress <= PHONE_ROLL_SHARE ) return ( progress / PHONE_ROLL_SHARE ) * approachEnd
+  return approachEnd + ( ( progress - PHONE_ROLL_SHARE ) / ( 1 - PHONE_ROLL_SHARE ) ) * ( transitionReady - approachEnd )
+}
+
 // Attention: the pool break is the hero. Scrolling through this tall section plays the 8-ball hitting
 // the rack; the sticky stage keeps the table on screen while it plays.
 export function BreakHero() {
@@ -42,9 +57,8 @@ export function BreakHero() {
   useLayoutEffect( () => {
     const section = sectionRef.current
     // Lenis smooths the wheel but leaves touch scroll native, so on phones the break would step with
-    // every raw scroll event. Touch screens get a short scrub catch-up; desktop a slightly longer one, so the
-    // ball trails the wheel and settles like a heavy object.
-    const touch = window.matchMedia( '(hover: none) and (pointer: coarse)' ).matches
+    // every raw scroll event. Phones get a short scrub catch-up (the ball tracks the finger and stops when it
+    // stops); desktop a longer one, so the ball trails the wheel and settles like a heavy object.
     const playhead = { progress: 0 }
     // Trigger ends when sticky stage unpins (section bottom at viewport bottom), so roll and scatter finish
     // on a held table; only then does finished table scroll away under next section.
@@ -55,12 +69,12 @@ export function BreakHero() {
         trigger: section,
         start: 'top top',
         end: 'bottom bottom',
-        scrub: touch ? 0.5 : 0.6,
+        scrub: IS_PHONE ? 0.25 : 0.6,
       },
       onUpdate: () => {
         const { progress } = playhead
         // Physics ends at transitionReady; past it the break only runs the old exit fade, so map onto that range.
-        controllerRef.current?.setProgress( progress * STAGE.intro.draft1.transitionReady )
+        controllerRef.current?.setProgress( toBreakPlayhead( progress ) )
         // The title clears as the 8-ball leaves the cue, so the table reads alone.
         gsap.set( copyRef.current, { autoAlpha: 1 - clamp( progress / 0.14 ), y: -36 * clamp( progress / 0.14 ) } )
       },
@@ -81,7 +95,7 @@ export function BreakHero() {
           <p className="break-sub">Video, design, web, social and AI content, made in Kuala Lumpur.</p>
           <p className="break-hint">
             <span className="break-cue" aria-hidden="true" />
-            Scroll to break
+            { IS_PHONE ? 'Swipe to break' : 'Scroll to break' }
           </p>
         </div>
 

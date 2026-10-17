@@ -686,7 +686,8 @@ button:hover .roll-in {
 
 /* ---------- Scroll distance: how far each scroll-driven section runs ----------
    Desktop scrolls in wheel notches (Lenis smooths them); phones fling, and one swipe travels much further, so
-   phones get longer sections to keep the break, the paragraph and each drum row from flashing past. */
+   phones get longer paragraph and drum sections. The break is the exception: on phones it is short, about two
+   swipes (one rolls the ball into the rack, the next scatters it), so the hero never feels like a chore. */
 :root {
   --scroll-break: 490svh;
   --scroll-manifesto: 260svh;
@@ -695,7 +696,8 @@ button:hover .roll-in {
 
 @media (max-width: 767px), (hover: none) and (pointer: coarse) {
   :root {
-    --scroll-break: 590svh;
+    /* Keep the phone query in step with PHONE_QUERY in BreakHero.jsx. */
+    --scroll-break: 250svh;
     --scroll-manifesto: 320svh;
     --scroll-drum-row: 100vh;
   }
@@ -705,7 +707,7 @@ button:hover .roll-in {
 .break {
   position: relative;
   /* Scroll progress runs while the stage is pinned (all but the last 100svh): the roll takes APPROACH_END /
-     transitionReady of it (0.28 of 0.50, about 56%) and the scatter the rest, so the break ends before the page
+     transitionReady of it (0.28 of 0.50, about 56%; phones 40%, see PHONE_ROLL_SHARE in BreakHero.jsx) and the scatter the rest, so the break ends before the page
      moves on. The height is --scroll-break, set per device in the scroll-distance block above. */
   height: var(--scroll-break);
 }
