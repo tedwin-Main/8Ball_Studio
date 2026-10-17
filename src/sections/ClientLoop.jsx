@@ -8,7 +8,6 @@
 
 import { useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { startMarqueeLoop } from '../marqueeLoop'
 import { CLIENTS } from '../content'
 import { useSplitTitle } from '../titleMotion'
@@ -42,17 +41,6 @@ export function ClientLoop() {
     if ( window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches ) return undefined
     // Runs to the right, the opposite way to the services marquee.
     return startMarqueeLoop( trackRef.current, { reverse: true } )
-  }, [] )
-
-  // Clients > Loop: logos light up in view, touch has no hover
-  useLayoutEffect( () => {
-    if ( !window.matchMedia( '(hover: none)' ).matches ) return undefined
-    const loop = trackRef.current.parentElement
-    const trigger = ScrollTrigger.create( { trigger: loop, start: 'top 75%', end: 'bottom 25%', toggleClass: 'is-lit' } )
-    return () => {
-      trigger.kill()
-      loop.classList.remove( 'is-lit' )
-    }
   }, [] )
 
   // Only the first group is read by screen readers; the second is a visual copy that makes the loop seamless.

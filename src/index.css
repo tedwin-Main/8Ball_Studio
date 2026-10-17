@@ -1032,9 +1032,8 @@ button:hover .roll-in {
   opacity: 1;
 }
 
-/* Touch: is-lit set by ScrollTrigger in view, stands in for hover */
-.bento-clients.is-lit .logo-row img,
-.clients-loop.is-lit .clients-group img {
+/* Touch: is-lit set by ScrollTrigger in view, stands in for hover (bento logos only; the loop stays black and white) */
+.bento-clients.is-lit .logo-row img {
   filter: none;
   opacity: 1;
 }
@@ -1249,33 +1248,16 @@ button:hover .roll-in {
 }
 
 /* ---------- Desire: client logo loop ---------- */
-/* The row is cut at the section edges and fades out at both ends, so logos melt in and out of the loop. */
+/* The row runs edge to edge of the screen, past the section's side padding, so logos slide off the screen
+   edges. Inside the padding the row ended (and its felt edge fades sat) a gutter in from the screen edge, which
+   drew a visible dark box that the logos passed through. */
 .clients {
   overflow: hidden;
 }
 
 .clients-loop {
   position: relative;
-}
-
-/* Clients > Loop > edge fades: felt overlays, not mask-image; mask re-composites every frame over moving track */
-.clients-loop::before,
-.clients-loop::after {
-  position: absolute;
-  z-index: 1;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 12%;
-  pointer-events: none;
-  content: "";
-  background: linear-gradient(90deg, var(--felt), transparent);
-}
-
-.clients-loop::after {
-  right: 0;
-  left: auto;
-  background: linear-gradient(270deg, var(--felt), transparent);
+  margin-inline: calc(var(--gutter) * -1);
 }
 
 /* Run engine: marquee rows (marqueeLoop.js sets duration, adds is-looping). Transform-only, runs on compositor. */
@@ -1317,7 +1299,8 @@ button:hover .roll-in {
   padding-right: clamp(3rem, 8vw, 7rem);
 }
 
-/* Logos start greyed out and dim, then light up in full colour on hover. */
+/* Logos stay black and white. A mouse hover lights one up in colour; touch screens have no hover, so they
+   never colour (a tap or scroll position must not leave a logo in colour). */
 .clients-group img {
   display: block;
   width: auto;
@@ -1329,10 +1312,12 @@ button:hover .roll-in {
   transition: filter 0.7s ease-out, opacity 0.7s ease-out, transform 0.7s ease-out;
 }
 
-.clients-group li:hover img {
-  filter: none;
-  opacity: 1;
-  transform: scale(1.05);
+@media (hover: hover) and (pointer: fine) {
+  .clients-group li:hover img {
+    filter: none;
+    opacity: 1;
+    transform: scale(1.05);
+  }
 }
 
 /* ---------- Marquee ---------- */
@@ -1978,9 +1963,8 @@ button:hover .roll-in {
   }
 
   /* Clients: no loop, so the logos wrap into a centred row and the duplicate group is hidden. */
-  .clients-loop::before,
-  .clients-loop::after {
-    display: none;
+  .clients-loop {
+    margin-inline: 0;
   }
 
   .clients-track {
