@@ -37,3 +37,4 @@ COPY --from=builder /app/frontend/dist ./frontend/dist
 
 EXPOSE 3001
 CMD ["npm", "run", "start", "--workspace=@8ball/backend"]
+

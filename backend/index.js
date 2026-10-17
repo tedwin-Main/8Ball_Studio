@@ -46,3 +46,4 @@ if (process.env.NODE_ENV !== 'test') {
     console.log(`[8Ball Backend] running on http://localhost:${PORT}`)
   })
 }
+

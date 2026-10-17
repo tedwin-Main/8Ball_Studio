@@ -52,3 +52,4 @@ test('inquiryService stores records and defaults lifecycle status to new', async
   const list = await listInquiries()
   assert.ok(list.some(item => item.id === record.id))
 })
+

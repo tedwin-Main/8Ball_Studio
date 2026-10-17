@@ -30,3 +30,4 @@ export async function createInquiry(payload) {
 export async function listInquiries() {
   return [...inquiriesStore]
 }
+

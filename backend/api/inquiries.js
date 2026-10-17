@@ -66,3 +66,4 @@ export async function handleInquiriesRoute(req, res) {
   res.writeHead(405, { 'Content-Type': 'application/json' })
   res.end(JSON.stringify(formatApiResponse(false, null, 'Method not allowed')))
 }
+
