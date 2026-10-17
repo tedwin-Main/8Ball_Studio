@@ -21,7 +21,8 @@ export function Marquee() {
     return (
       <li key={ service.name }>
         <span>{ service.name }</span>
-        <Icon size={ 56 } weight="light" aria-hidden="true" />
+        {/* Sized in em so the icon scales with the marquee text. */}
+        <Icon size="0.8em" weight="light" aria-hidden="true" />
       </li>
     )
   } )

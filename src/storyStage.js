@@ -7,7 +7,7 @@ const clamp = ( value ) => Math.min( 1, Math.max( 0, value ) )
 const VIEWPORTS_PER_UNIT = 3
 // Where the 8-ball hits the rack. 0 → APPROACH_END is the roll, so raising it lengthens the roll's scroll.
 // .break's height in index.css (--scroll-break) is the whole run, so the roll and scatter scale with it.
-const APPROACH_END = 0.40
+const APPROACH_END = 0.28
 const SCATTER = 0.22
 const EXIT = 0.16
 const POCKET_CUT_LEAD = 0.04
@@ -66,11 +66,14 @@ export const toTimelineUnits = ( progress ) => clamp( progress ) * totalTimeline
 
 const smoothstep = ( t ) => t * t * ( 3 - 2 * t )
 
-// The 8-ball's approach: mostly smooth-step (it resists, then builds up), blended 72% with linear.
-export function easeWeightedProgress ( progress, weight = 0.72 )
+// The 8-ball's approach, weighted like a Lenis scroll push: quadratic ramp over the first ROLL_RAMP, then
+// constant speed into the rack so it hits with momentum. Pieces meet at equal speed, so no kink.
+const ROLL_RAMP = 0.35
+export function easeRollMomentum ( progress )
 {
   const t = clamp( progress )
-  return t + ( smoothstep( t ) - t ) * clamp( weight )
+  if ( t < ROLL_RAMP ) return t * t / ( ROLL_RAMP * ( 2 - ROLL_RAMP ) )
+  return ( 2 * t - ROLL_RAMP ) / ( 2 - ROLL_RAMP )
 }
 
 // Page glides: smooth-step in and out.

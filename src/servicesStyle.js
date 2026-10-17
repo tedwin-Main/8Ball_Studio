@@ -5,7 +5,22 @@ export const SERVICES_STYLES = Object.freeze( {
   accordion: 'Accordion',
   'drum-media': 'Flat drum · names + media',
   'drum-cards': 'Flat drum · cards',
+  index: 'Index · rows',
 } )
+
+// Nav link alignment drafts, ?tune only (?nav=<id> picks one directly). Visitors get 'right'.
+export const NAV_STYLES = Object.freeze( {
+  right: 'Links right',
+  center: 'Links centred',
+  rail: 'Rail · page-grid progress line',
+} )
+
+export const DEFAULT_NAV_STYLE = 'right'
+
+export function normalizeNavStyle ( queryValue )
+{
+  return Object.hasOwn( NAV_STYLES, queryValue ?? '' ) ? queryValue : DEFAULT_NAV_STYLE
+}
 
 export const DEFAULT_SERVICES_STYLE = 'accordion'
 
@@ -27,4 +42,28 @@ export function flatDrumActive ( progress, count )
 {
   const index = Math.round( progress * ( count - 1 ) )
   return Math.min( count - 1, Math.max( 0, index ) )
+}
+
+// Draft registry: every ?tune section, its options, its visitor default. ?<section>=<id> picks one directly.
+// New section drafts register here, so App state, URL sync and TuneSelect pick them up with no extra wiring.
+export const DRAFTS = Object.freeze( {
+  services: Object.freeze( { label: 'Services', options: SERVICES_STYLES, fallback: DEFAULT_SERVICES_STYLE } ),
+  nav: Object.freeze( { label: 'Nav', options: NAV_STYLES, fallback: DEFAULT_NAV_STYLE } ),
+  wordmark: Object.freeze( { label: 'Wordmark', options: Object.freeze( { page: 'Page after hero', off: 'Off' } ), fallback: 'page' } ),
+  manifesto: Object.freeze( { label: 'Manifesto', options: Object.freeze( { chalk: 'Chalk chapter', felt: 'Felt (original)' } ), fallback: 'chalk' } ),
+  footer: Object.freeze( { label: 'Footer', options: Object.freeze( { grid: 'Contact grid', classic: 'Classic' } ), fallback: 'grid' } ),
+} )
+
+// Resolves one section's query value to a known draft id, falling back to the visitor default.
+export function normalizeDraft ( section, queryValue )
+{
+  const draft = DRAFTS[ section ]
+  return Object.hasOwn( draft.options, queryValue ?? '' ) ? queryValue : draft.fallback
+}
+
+// Every section's draft from a location.search string.
+export function readDrafts ( search )
+{
+  const params = new URLSearchParams( search )
+  return Object.fromEntries( Object.keys( DRAFTS ).map( ( section ) => [ section, normalizeDraft( section, params.get( section ) ) ] ) )
 }

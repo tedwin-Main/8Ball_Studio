@@ -1,8 +1,18 @@
+/**
+ * FILE: src/sections/BreakHero.jsx
+ * PURPOSE: scroll-driven pool break hero, title, scroll hint
+ * UI: Site > Hero
+ * USED BY: src/App.jsx
+ * KEY EXPORTS: BreakHero
+ */
+
 import { useCallback, useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { PoolPovDraft } from '../drafts/PoolPovDraft'
 import { STAGE } from '../storyStage'
+import { intro, introDone } from '../intro'
+import { useSplitTitle } from '../titleMotion'
 
 const clamp = ( value ) => Math.min( 1, Math.max( 0, value ) )
 
@@ -13,6 +23,17 @@ export function BreakHero() {
   const copyRef = useRef( null )
   const controllerRef = useRef( null )
 
+  const titleRef = useRef( null )
+
+  // Hero > title: chars rise out of their masks once preloader lifts; subline and cue follow
+  useSplitTitle( titleRef, { type: 'chars,words', mask: 'chars' }, ( split ) => {
+    const tl = gsap.timeline( { paused: !intro.done } )
+      .from( split.chars, { yPercent: 115, rotate: 8, duration: 1.2, ease: 'expo.out', stagger: 0.035 } )
+      .from( copyRef.current.querySelectorAll( '.break-sub, .break-hint' ), { autoAlpha: 0, y: 18, duration: 0.9, ease: 'expo.out', stagger: 0.1 }, 0.45 )
+    if ( !intro.done ) introDone.then( () => tl.play() )
+    return tl
+  } )
+
   // PoolPovDraft hands its controller up on mount and null on unmount.
   const registerController = useCallback( ( controller ) => {
     controllerRef.current = controller
@@ -21,19 +42,20 @@ export function BreakHero() {
   useLayoutEffect( () => {
     const section = sectionRef.current
     // Lenis smooths the wheel but leaves touch scroll native, so on phones the break would step with
-    // every raw scroll event. Touch screens get a short scrub catch-up instead; elsewhere it tracks 1:1.
+    // every raw scroll event. Touch screens get a short scrub catch-up; desktop a slightly longer one, so the
+    // ball trails the wheel and settles like a heavy object.
     const touch = window.matchMedia( '(hover: none) and (pointer: coarse)' ).matches
     const playhead = { progress: 0 }
-    // The trigger runs until the section's bottom reaches the viewport top, so the scatter keeps playing
-    // while the stage scrolls away under the next section (not frozen for a full screen).
+    // Trigger ends when sticky stage unpins (section bottom at viewport bottom), so roll and scatter finish
+    // on a held table; only then does finished table scroll away under next section.
     const tween = gsap.to( playhead, {
       progress: 1,
       ease: 'none',
       scrollTrigger: {
         trigger: section,
         start: 'top top',
-        end: 'bottom top',
-        scrub: touch ? 0.5 : true,
+        end: 'bottom bottom',
+        scrub: touch ? 0.5 : 0.6,
       },
       onUpdate: () => {
         const { progress } = playhead
@@ -55,10 +77,12 @@ export function BreakHero() {
         <PoolPovDraft active onController={ registerController } />
 
         <div className="break-copy" ref={ copyRef }>
-          <h1 className="break-title" aria-label="Roll with us.">
-            Roll with us.
-          </h1>
-          <p className="break-hint">Scroll to break</p>
+          <h1 className="break-title" ref={ titleRef }>Roll with us.</h1>
+          <p className="break-sub">Video, design, web, social and AI content, made in Kuala Lumpur.</p>
+          <p className="break-hint">
+            <span className="break-cue" aria-hidden="true" />
+            Scroll to break
+          </p>
         </div>
 
       </div>

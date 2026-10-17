@@ -49,7 +49,7 @@ export const SERVICES = [
   },
   {
     name: 'AI generated content',
-    detail: 'AI UGC, synthetic media, virtual production',
+    detail: 'AI UGC, synthetic media, virtual production.\n*ps: all of this is AI generated',
     reel: { src: media( 'ai-reel.mp4' ), poster: media( 'ai-reel-poster.webp' ) },
     still: media( 'ai-still.webp' ),
     media: serviceMedia( 'ai', [ 'reel', 'still', 'reel-3', 'still-2', 'reel-2' ] ),
@@ -84,3 +84,11 @@ export const PILL_IMAGES = {
 
 // Copy for the scroll-revealed paragraph (Desire). Every sentence states something the studio does.
 export const MANIFESTO = 'We make video, design, web, social and AI content for local brands and regional teams. Tell us what the brand needs, and we reply on WhatsApp, Instagram or email with the next step.'
+
+// Where the studio works from; the nav and footer clocks show this zone's local time.
+export const STUDIO = {
+  city: 'Kuala Lumpur',
+  cityShort: 'KUL',
+  region: 'Greater Kuala Lumpur, Malaysia',
+  timeZone: 'Asia/Kuala_Lumpur',
+}

@@ -1,15 +1,26 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { SERVICES } from '../content'
+import { useRiseTitle } from '../titleMotion'
+import { scaleFade } from '../mediaMotion'
 
 // Desire: six vertical slices side by side. The open slice widens to show its reel; the rest keep their stills.
 // Hover, focus and tap all open a slice, so keyboard and touch get the same behaviour.
 export function ServicesAccordion() {
   const [ openIndex, setOpenIndex ] = useState( 0 )
+  const titleRef = useRef( null )
+  useRiseTitle( titleRef )
+  const listRef = useRef( null )
+
+  // Services > Accordion: whole slice row grows in, darkens out
+  useLayoutEffect( () => {
+    if ( window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches ) return undefined
+    return scaleFade( listRef.current )
+  }, [] )
 
   return (
-    <section className="section services" aria-labelledby="services-title">
-      <h2 id="services-title" className="section-title">Our Services</h2>
-      <ul className="accordion">
+    <section className="section services" id="services" aria-labelledby="services-title">
+      <h2 id="services-title" className="section-title" ref={ titleRef }>Our Services</h2>
+      <ul className="accordion" ref={ listRef }>
         { SERVICES.map( ( service, index ) => {
           const isOpen = index === openIndex
           return (
@@ -20,7 +31,7 @@ export function ServicesAccordion() {
               onFocus={ () => setOpenIndex( index ) }
               onClick={ () => setOpenIndex( index ) }
             >
-              <button type="button" className="slice-button" aria-expanded={ isOpen }>
+              <button type="button" className="slice-button" aria-expanded={ isOpen } data-cursor={ isOpen ? undefined : 'Open' }>
                 <img className="slice-still" src={ service.still } alt="" loading="lazy" />
                 { isOpen && (
                   <video className="slice-reel" src={ service.reel.src } poster={ service.reel.poster } muted autoPlay loop playsInline />
