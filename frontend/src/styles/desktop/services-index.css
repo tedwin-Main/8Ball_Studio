@@ -1,0 +1,11 @@
+/* desktop/services-index.css: Wider screens and mouse pointers only (min-width / hover: hover media queries). Loaded by styles/index.css (order matters). */
+
+/* ---------- Services index draft (?services=index) ---------- */
+
+/* Services > Index: siblings dim while one row is hovered, so the pointer row reads alone */
+@media (hover: hover) and (pointer: fine) {
+  /* dim on button, not row: row opacity belongs to GSAP entrance, CSS transition there races it */
+  .index-list:hover .index-row:not(:hover):not(.is-open) .index-button {
+    opacity: 0.35;
+  }
+}

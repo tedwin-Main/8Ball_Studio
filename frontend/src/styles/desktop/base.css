@@ -1,0 +1,8 @@
+/* desktop/base.css: Wider screens and mouse pointers only (min-width / hover: hover media queries). Loaded by styles/index.css (order matters). */
+
+@media (min-width: 768px) {
+  :root {
+    --section-y: 9rem;
+    --gutter: 2rem;
+  }
+}

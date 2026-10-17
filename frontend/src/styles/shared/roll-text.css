@@ -1,0 +1,23 @@
+/* shared/roll-text.css: Rules for every screen size. Loaded by styles/index.css (order matters). */
+
+/* ---------- Roll text: label slides up, its shadow copy rolls in from below ---------- */
+
+.roll {
+  display: inline-block;
+  overflow: hidden;
+  height: 1.2em;
+  line-height: 1.2;
+  vertical-align: top;
+}
+
+.roll-in {
+  display: block;
+  text-shadow: 0 1.2em currentColor;
+  transition: transform 0.55s cubic-bezier(0.7, 0, 0.2, 1);
+}
+
+a:hover .roll-in,
+a:focus-visible .roll-in,
+button:hover .roll-in {
+  transform: translateY(-1.2em);
+}

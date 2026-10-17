@@ -1,0 +1,12 @@
+/* shared/scroll-distance.css: Rules for every screen size. Loaded by styles/index.css (order matters). */
+
+/* ---------- Scroll distance: how far each scroll-driven section runs ----------
+   Desktop scrolls in wheel notches (Lenis smooths them); phones fling, and one swipe travels much further, so
+   phones get longer paragraph and drum sections. The break is the exception: on phones it is short, about two
+   swipes (one rolls the ball into the rack, the next scatters it), so the hero never feels like a chore. */
+
+:root {
+  --scroll-break: 490svh;
+  --scroll-manifesto: 260svh;
+  --scroll-drum-row: 80vh;
+}

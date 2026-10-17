@@ -1,0 +1,51 @@
+/* mobile/nav-rail.css: Phones and narrow or touch screens only (max-width media queries). Loaded by styles/index.css (order matters). */
+
+/* ---------- Nav rail draft (?nav=rail): full-width bar on 8-col page grid, progress hairline grows across ---------- */
+
+/* Phones: brand only on bar, track keeps all five segments; toggle + drawer sit unblended at right */
+@media (max-width: 767px) {
+  .rail-bar {
+    padding-top: 0.9rem;
+  }
+
+  .rail-cell {
+    display: none;
+  }
+
+  .rail-cell.is-brand {
+    display: flex;
+    grid-column: 1 / span 6;
+    align-items: center;
+    padding-bottom: 0.3rem;
+  }
+
+  .rail-cell.is-brand .rail-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    opacity: 1;
+  }
+
+  .rail-menu {
+    position: fixed;
+    z-index: 51;
+    top: 0.75rem;
+    right: var(--gutter);
+    left: var(--gutter);
+    display: flex;
+    justify-content: flex-end;
+    pointer-events: none;
+  }
+
+  .rail-menu > * {
+    pointer-events: auto;
+  }
+
+  .rail-menu .nav-toggle {
+    display: inline-flex;
+  }
+
+  .rail-menu .nav-mobile-tray {
+    top: calc(100% + 0.9rem);
+  }
+}

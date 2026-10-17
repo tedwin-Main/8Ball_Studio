@@ -1,0 +1,11 @@
+/* desktop/clients.css: Wider screens and mouse pointers only (min-width / hover: hover media queries). Loaded by styles/index.css (order matters). */
+
+/* ---------- Desire: client logo loop ---------- */
+
+@media (hover: hover) and (pointer: fine) {
+  .clients-group li:hover img {
+    filter: none;
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}

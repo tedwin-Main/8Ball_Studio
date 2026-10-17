@@ -1,0 +1,5 @@
+# The site lives in frontend/ (Vite + React). Netlify builds from there and publishes frontend/dist.
+[build]
+  base = "frontend"
+  command = "npm run build"
+  publish = "dist"

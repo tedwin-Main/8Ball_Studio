@@ -1,0 +1,33 @@
+/* desktop/services-drum.css: Wider screens and mouse pointers only (min-width / hover: hover media queries). Loaded by styles/index.css (order matters). */
+
+/* ---------- Desire, ?tune only: flat Services drums ---------- */
+
+/* Desktop only: names and media fill the screen. Phones keep their own rules in the phone block below. */
+@media (min-width: 768px) {
+  /* Names+media: the names column is as wide as its text needs; the strip takes the rest of the row. */
+  .services-drum.is-drum-media .drum-window {
+    flex: 0 0 clamp(22rem, 36vw, 42rem);
+  }
+
+  /* Cards: vertical space between rows. ServicesDrum reads this row-gap into the row pitch (measure()). */
+  .services-drum.is-drum-cards .drum-window {
+    row-gap: clamp(2.5rem, 7svh, 5rem);
+  }
+
+  /* Cards: a fixed text column, so every strip starts at the same x whatever the name's length. */
+  .services-drum.is-drum-cards .drum-row .drum-text {
+    flex: 0 0 clamp(16rem, 28vw, 32rem);
+  }
+
+  /* The strip fades out over its last 3rem, so a cut tile reads as "scroll for more". Phones skip this:
+     a mask repaints on every scroll frame there. */
+  .drum-strip {
+    mask-image: linear-gradient(90deg, #000 calc(100% - 3rem), transparent);
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 3rem), transparent);
+  }
+
+  /* The next arrow sits just inside the fade, so the mask never dims it. */
+  .drum-strip-next {
+    right: 3.25rem;
+  }
+}

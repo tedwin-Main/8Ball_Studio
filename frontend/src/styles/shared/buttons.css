@@ -1,0 +1,48 @@
+/* shared/buttons.css: Rules for every screen size. Loaded by styles/index.css (order matters). */
+
+/* ---------- Buttons: dark ground = cream text, lime ground = ink text, never invisible ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.75rem 1.25rem;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  /* no transform transition: magnet (Cursor.jsx) owns transform on fine pointers */
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.btn-lime {
+  background: var(--lime);
+  color: var(--ink);
+}
+
+.btn-outline {
+  border: 1px solid var(--cream);
+  color: var(--cream);
+  background: transparent;
+}
+
+.btn-xl {
+  min-height: 64px;
+  padding: 1rem 1.75rem;
+  font-size: clamp(1rem, 1.6vw, 1.25rem);
+}
+
+.section {
+  padding: var(--section-y) var(--gutter);
+  scroll-margin-top: 5.5rem;
+}
+
+.section-title {
+  margin: 0 0 3rem;
+  font-size: clamp(2.25rem, 4.5vw, 4rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}

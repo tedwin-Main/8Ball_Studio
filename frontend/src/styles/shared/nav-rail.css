@@ -1,0 +1,93 @@
+/* shared/nav-rail.css: Rules for every screen size. Loaded by styles/index.css (order matters). */
+
+/* ---------- Nav rail draft (?nav=rail): full-width bar on 8-col page grid, progress hairline grows across ---------- */
+
+/* blend on fixed header itself: child blend inside its stacking context would only see header's own empty box */
+.rail-wrap {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  right: 0;
+  color: #fff;
+  mix-blend-mode: difference;
+  pointer-events: none;
+}
+
+.rail-bar {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  padding: 1.1rem var(--gutter) 0;
+}
+
+.rail-cell {
+  display: flex;
+  grid-column: span var(--span);
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  min-width: 0;
+  padding: 0 0.75rem 0.85rem 0.6rem;
+}
+
+.rail-link {
+  min-width: 0;
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  white-space: nowrap;
+  opacity: 0.55;
+  pointer-events: auto;
+  transition: opacity 0.4s;
+}
+
+.rail-cell.is-brand .rail-link {
+  font-weight: 600;
+}
+
+.rail-link:hover,
+.rail-cell.is-current .rail-link {
+  opacity: 1;
+}
+
+.rail-clock .studio-clock-city {
+  color: inherit;
+  opacity: 0.55;
+}
+
+.rail-track {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+}
+
+.rail-seg {
+  position: relative;
+  grid-column: span var(--span);
+  height: 1px;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* tick: 1px post at each chapter's left edge, rises above line like a ruler mark */
+.rail-seg::before {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 1px;
+  height: 7px;
+  content: "";
+  background: #fff;
+}
+
+.rail-fill {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+}
+
+.rail-menu {
+  display: none;
+}

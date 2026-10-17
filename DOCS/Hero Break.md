@@ -67,10 +67,10 @@ the finished table scrolls up and the next section comes in. The title fades out
 
 | Setting | File | Value now | What it controls |
 |---|---|---|---|
-| `--scroll-break` (desktop) | `src/index.css` | `490svh` | Total height of the hero, i.e. how much scroll the whole thing takes |
-| `--scroll-break` (phones) | `src/index.css` | `590svh` | Same, for phones and touch screens |
-| `APPROACH_END` | `src/storyStage.js` | `0.28` | Size of the **roll** slice |
-| `SCATTER` | `src/storyStage.js` | `0.22` | Size of the **scatter** slice |
+| `--scroll-break` (desktop) | `frontend/src/styles/shared/scroll-distance.css` | `490svh` | Total height of the hero, i.e. how much scroll the whole thing takes |
+| `--scroll-break` (phones) | `frontend/src/styles/mobile/scroll-distance.css` | `250svh` | Same, for phones and touch screens |
+| `APPROACH_END` | `frontend/src/motion/storyStage.js` | `0.28` | Size of the **roll** slice |
+| `SCATTER` | `frontend/src/motion/storyStage.js` | `0.22` | Size of the **scatter** slice |
 
 `APPROACH_END` and `SCATTER` are **shares**, not distances. Only their ratio matters:
 0.28 : 0.22 means the roll gets 56% of the animated scroll and the scatter gets 44%.
@@ -86,7 +86,7 @@ Three things stack together to make the ball feel like it has mass.
 
 Picture pushing a heavy bowling ball. At first it barely moves; once it gets going, it keeps going.
 
-- `ROLL_RAMP = 0.35` in `src/storyStage.js`.
+- `ROLL_RAMP = 0.35` in `frontend/src/motion/storyStage.js`.
 - For the first 35% of the roll's scroll, the ball speeds up gradually. It covers only about 21% of
   the distance.
 - For the remaining 65%, it rolls at a steady full speed **straight into the rack**. It never slows
@@ -117,12 +117,12 @@ xychart-beta
 
 ### b) The catch-up delay (`scrub`)
 
-In `src/sections/BreakHero.jsx`:
+In `frontend/src/sections/BreakHero.jsx`:
 
 | Device | Value | Meaning |
 |---|---|---|
 | Desktop | `scrub: 0.6` | Ball takes about 0.6s to catch up to where the scroll is |
-| Phones | `scrub: 0.5` | About 0.5s |
+| Phones | `scrub: 0.25` | About 0.25s (phones also spend only 40% of the swipe on the roll: `PHONE_ROLL_SHARE`) |
 
 It's like the ball is on a short elastic band behind your scroll: you scroll, it follows a moment
 later and eases to a stop. That small lag is what makes it feel heavy rather than glued to the page.
@@ -142,7 +142,7 @@ flowchart LR
 
 ### c) The page's smooth scroll (Lenis)
 
-The whole site uses smooth scrolling (`new Lenis( { lerp: 0.1 } )` in `src/App.jsx`). On desktop
+The whole site uses smooth scrolling (`new Lenis( { lerp: 0.1 } )` in `frontend/src/App.jsx`). On desktop
 it turns choppy mouse-wheel clicks into one gliding motion. The break rides on top of that glide.
 Changing this changes the feel of **the whole site**, not just the hero, so leave it alone unless
 that's what you want.
@@ -154,7 +154,7 @@ that's what you want.
 Speed = how far the ball travels ÷ how much you scroll.
 
 - **Distance is fixed.** The 8-ball starts at `startZ: 0.5` and the front of the rack is at
-  `apexZ: -0.9` (`src/drafts/poolBreakPhysics.js`), roughly 1.3 m of table.
+  `apexZ: -0.9` (`frontend/src/hero/poolBreakPhysics.js`), roughly 1.3 m of table.
 - **Why the ball can't start farther back:** the camera is locked to the table photo. Any farther
   back and the ball is behind the camera, so the first screen would show an empty table with no "8".
 - **So to change speed, change scroll.** More roll scroll = slower ball, less roll scroll = faster ball.
@@ -178,7 +178,7 @@ flowchart TD
     D --> E([Your scroll flips<br/>through the film])
 ```
 
-Physics settings (`src/drafts/poolBreakPhysics.js`):
+Physics settings (`frontend/src/hero/poolBreakPhysics.js`):
 
 | Setting | Value | Plain meaning |
 |---|---|---|
@@ -247,7 +247,7 @@ its length. Example, desktop roll from ~218svh to ~300svh while keeping scatter 
 **Scatter flashes by too fast** → give it more share: raise `SCATTER` (0.22 → 0.30) and raise
 `--scroll-break` so the roll doesn't shrink.
 
-**Phones feel rushed** → raise only the phone `--scroll-break` (in the `@media` block in `src/index.css`).
+**Phones feel rushed** → raise only the phone `--scroll-break` (in `frontend/src/styles/mobile/scroll-distance.css`).
 
 ### One rule not to break
 

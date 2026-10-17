@@ -1,0 +1,17 @@
+/* mobile/wordmark.css: Phones and narrow or touch screens only (max-width media queries). Loaded by styles/index.css (order matters). */
+
+/* ---------- Studio wordmark page (?wordmark=page): full-screen 8ightBall after hero ---------- */
+
+@media (max-width: 767px) {
+  .wordmark-page {
+    height: 150svh;
+  }
+
+  .wordmark {
+    font-size: clamp(72px, 22vw, 140px);
+  }
+
+  .wordmark-line + .wordmark-line {
+    padding-left: 7vw;
+  }
+}

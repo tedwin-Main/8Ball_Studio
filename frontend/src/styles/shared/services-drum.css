@@ -1,0 +1,268 @@
+/* shared/services-drum.css: Rules for every screen size. Loaded by styles/index.css (order matters). */
+
+/* ---------- Desire, ?tune only: flat Services drums ---------- */
+
+/* The heading sits above the drum and scrolls by normally; it is not part of the pinned stage. */
+.services-drum {
+  padding: var(--section-y) var(--gutter) 0;
+}
+
+/* The track is as tall as one screen plus one step per row, so the sticky stage holds while the scroll turns the column. */
+.drum-track {
+  height: calc(100svh + var(--drum-rows, 6) * var(--scroll-drum-row));
+}
+
+/* The stage sticks to the top of the screen for the whole drum run. */
+.drum-stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2rem;
+  overflow: hidden;
+}
+
+.drum-title {
+  margin: 0 0 2rem;
+}
+
+.drum-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 2rem;
+}
+
+/* The column: rows are laid out in a stack, then each one is moved by JS (ServicesDrum.jsx). The mask fades the top and bottom edges. */
+.drum-window {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  /* Thin fade (10%) so the neighbouring rows show and the stage edges do not read as empty bands. */
+  mask-image: linear-gradient(180deg, transparent, #000 10%, #000 90%, transparent);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 10%, #000 90%, transparent);
+}
+
+/* Each row sits at the centre of the window; JS offsets it by its distance from the front. */
+.drum-row {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.6rem 0;
+  color: var(--cream-dim);
+  transition: color 0.6s;
+  /* Rows move on every scroll frame. Promoting them keeps those moves on the compositor, so the text is not re-rastered each frame. */
+  will-change: transform, opacity;
+}
+
+.drum-row.is-active {
+  color: var(--cream);
+}
+
+/* Fixed text column, so every card lines up at the same x whatever the name's length. */
+.drum-text {
+  display: flex;
+  /* Takes the row's width the names need, not a fixed share, so the strip sits right beside the text. */
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.drum-name {
+  font-size: clamp(1.6rem, 3.1vw, 3.6rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+.drum-detail {
+  white-space: pre-line;
+  font-size: 1.05rem;
+  color: var(--cream-dim);
+  opacity: 0;
+  transition: opacity 0.6s 0.2s;
+}
+
+.drum-row.is-active .drum-detail {
+  opacity: 1;
+}
+
+/* Names drum: the active service's five pieces run to the right of the names. The strip scrolls sideways
+   so a visitor can reach all five, and fades out at its right edge. */
+.drum-strip {
+  /* Takes the rest of the row, so the strip runs to the right gutter. */
+  flex: 1 1 0;
+  display: flex;
+  gap: 1rem;
+  align-self: center;
+  min-width: 0;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  padding-block: 0.25rem;
+}
+
+.drum-strip::-webkit-scrollbar {
+  display: none;
+}
+
+/* Next arrow: a zero-width anchor stuck to the strip's right edge (takes no space in the row), with the
+   button hung off it over the last visible tile. Fades out once the strip reaches its last tile (.is-end). */
+.drum-strip-next-anchor {
+  position: sticky;
+  z-index: 2;
+  right: 0;
+  flex: 0 0 0;
+  align-self: center;
+}
+
+/* Prev arrow: same as next, mirrored to the strip's left edge. The negative margin cancels the strip gap, so
+   the first tile stays flush. Fades out while the strip sits on its first tile (.is-start). */
+.drum-strip-prev-anchor {
+  position: sticky;
+  z-index: 2;
+  left: 0;
+  flex: 0 0 0;
+  align-self: center;
+  margin-right: -1rem;
+}
+
+.drum-strip-next,
+.drum-strip-prev {
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  /* Light pill, dark icon: reads over both dark and bright footage. */
+  background: rgba(242, 241, 233, 0.92);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+  color: var(--ink);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: opacity 0.3s, background-color 0.2s;
+}
+
+.drum-strip-next:hover,
+.drum-strip-prev:hover {
+  background: var(--lime);
+}
+
+.drum-strip-prev {
+  right: auto;
+  left: 0.75rem;
+}
+
+.drum-strip.is-end .drum-strip-next,
+.drum-strip.is-start .drum-strip-prev {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.drum-strip-tile {
+  position: relative;
+  /* Tiles scale with the stage height (4:5), so the strip fills most of the screen height. */
+  flex: 0 0 min(34vw, calc((100svh - 13rem) * 0.8));
+  aspect-ratio: 4 / 5;
+  margin: 0;
+  scroll-snap-align: start;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--felt-soft);
+  border: 1px solid var(--line);
+}
+
+.drum-strip-tile img,
+.drum-strip-tile video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Tiles rise and fade in one after another each time the strip changes. */
+@media (prefers-reduced-motion: no-preference) {
+  .drum-strip-tile {
+    animation: drum-strip-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(var(--n, 0) * 70ms);
+  }
+}
+
+@keyframes drum-strip-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Cards: each row is a card, padded so its strip sits inside the row. */
+.services-drum.is-drum-cards .drum-row {
+  padding: 0.5rem 0.75rem;
+}
+
+/* Cards: each row carries its own five-piece strip. It takes the rest of the row, so the card fills the width. */
+.services-drum.is-drum-cards .drum-row .drum-strip {
+  flex: 1 1 0;
+  padding-block: 0.5rem;
+}
+
+/* Cards: tiles scale with the stage height (4:5), so the active row fills most of the stage; about three across. */
+.services-drum.is-drum-cards .drum-row .drum-strip-tile {
+  flex: 0 0 min(21vw, calc((100svh - 13rem) * 0.6));
+}
+
+/* The select on ?tune: fixed bottom-right, like the review panel. */
+.tune-select {
+  position: fixed;
+  z-index: 100;
+  right: 1rem;
+  bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(7, 9, 8, 0.9);
+  color: var(--cream);
+  font-size: 0.85rem;
+  /* one select per draft section: wraps instead of running off phone edge */
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: calc(100vw - 2rem);
+}
+
+.tune-select label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.tune-select select {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--felt-soft);
+  color: var(--cream);
+  font: inherit;
+}

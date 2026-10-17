@@ -1,0 +1,86 @@
+/* shared/reduced-motion.css: Reduced-motion overrides for every screen size; loaded last so they win over device rules. Loaded by styles/index.css (order matters). */
+
+/* manifesto */
+@media (prefers-reduced-motion: reduce) {
+  .manifesto-text .word {
+    opacity: 1;
+  }
+}
+
+/* motion-preference */
+@media (prefers-reduced-motion: reduce) {
+  .bento-media video,
+  .slice,
+  .slice-detail,
+  .btn {
+    transition: none;
+  }
+}
+
+/* services-drum */
+/* Reduced motion: a plain static list, the first row shown, no sticky stage. */
+@media (prefers-reduced-motion: reduce) {
+  .drum-track {
+    height: auto;
+  }
+
+  .drum-stage {
+    position: static;
+    height: auto;
+  }
+
+  .drum-window {
+    position: static;
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+
+  .drum-row {
+    position: static;
+    transform: none !important;
+    opacity: 1 !important;
+    transition: none;
+    will-change: auto;
+  }
+
+  .drum-detail {
+    opacity: 1;
+  }
+
+  /* Clients: no loop, so the logos wrap into a centred row and the duplicate group is hidden. */
+  .clients-loop {
+    margin-inline: 0;
+  }
+
+  .clients-track {
+    flex-wrap: wrap;
+    justify-content: center;
+    width: auto;
+    row-gap: 2rem;
+  }
+
+  /* Only one set of logos shows as a still row; the repeats and the duplicate group are loop-only. */
+  .clients-group[aria-hidden="true"],
+  .clients-repeat {
+    display: none;
+  }
+
+  .clients-group {
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 2rem;
+  }
+}
+
+/* services-index */
+@media (prefers-reduced-motion: reduce) {
+  .index-drawer,
+  .index-name,
+  .index-arrow {
+    transition: none;
+  }
+
+  .index-media-tile {
+    animation: none;
+  }
+}

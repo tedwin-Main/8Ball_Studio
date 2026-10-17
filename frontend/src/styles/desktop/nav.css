@@ -1,0 +1,11 @@
+/* desktop/nav.css: Wider screens and mouse pointers only (min-width / hover: hover media queries). Loaded by styles/index.css (order matters). */
+
+/* ---------- Nav: a floating glass pill ---------- */
+
+/* ?tune nav draft: three equal columns, links dead-centre on pill */
+@media (min-width: 641px) {
+  .nav-pill.is-links-centered {
+    grid-template-columns: 1fr auto 1fr;
+    column-gap: 0;
+  }
+}

@@ -1,0 +1,24 @@
+/* mobile/services-index.css: Phones and narrow or touch screens only (max-width media queries). Loaded by styles/index.css (order matters). */
+
+/* ---------- Services index draft (?services=index) ---------- */
+
+@media (max-width: 767px) {
+  .index-button {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.75rem;
+  }
+
+  .index-detail {
+    grid-column: 1 / 2;
+    font-size: 0.85rem;
+  }
+
+  .index-arrow {
+    grid-row: 1;
+    grid-column: 2;
+  }
+
+  .index-media {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

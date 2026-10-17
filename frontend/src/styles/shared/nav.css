@@ -1,0 +1,131 @@
+/* shared/nav.css: Rules for every screen size. Loaded by styles/index.css (order matters). */
+
+/* ---------- Nav: a floating glass pill ---------- */
+
+.nav-wrap {
+  position: fixed;
+  z-index: 50;
+  top: 1rem;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--gutter);
+  pointer-events: none;
+}
+
+.nav-pill {
+  position: relative;
+  pointer-events: auto;
+  /* Brand takes room on left; links and CTA sit together at right */
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  column-gap: 2.25rem;
+  align-items: center;
+  width: min(100%, 980px);
+  padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(7, 17, 13, 0.55);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+/* Shell > Header > pill on chalk chapter: chalk glass, ink text */
+.nav-pill,
+.nav-links a {
+  transition: background-color 0.6s, border-color 0.6s, color 0.6s;
+}
+
+[data-ground="chalk"] .nav-pill {
+  border-color: rgba(7, 9, 8, 0.12);
+  background: rgba(242, 241, 233, 0.72);
+  color: var(--ink);
+}
+
+[data-ground="chalk"] .nav-links a,
+[data-ground="chalk"] .studio-clock-city {
+  color: rgba(7, 9, 8, 0.6);
+}
+
+[data-ground="chalk"] .nav-links a:hover,
+[data-ground="chalk"] .nav-links li.is-current a {
+  color: var(--ink);
+}
+
+[data-ground="chalk"] .nav-meter {
+  background: var(--ink);
+}
+
+[data-ground="chalk"] .nav-toggle {
+  border-color: rgba(7, 9, 8, 0.12);
+  background: rgba(7, 9, 8, 0.06);
+  color: var(--ink);
+}
+
+.nav-brand {
+  display: inline-flex;
+  justify-self: start;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.nav-brand img {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+}
+
+.nav-links {
+  display: flex;
+  justify-content: center;
+  gap: 2.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nav-links a {
+  position: relative;
+  color: var(--cream-dim);
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.nav-links li {
+  position: relative;
+}
+
+.nav-links a:hover,
+.nav-links li.is-current a {
+  color: var(--cream);
+}
+
+/* Shell > Header > chapter meter: lime hairline, scaleX scrubbed by Nav.jsx */
+.nav-meter {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.45rem;
+  height: 1px;
+  background: var(--lime);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.nav-end {
+  display: flex;
+  justify-self: end;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.nav-cta {
+  min-height: 40px;
+  padding: 0.5rem 1rem;
+}

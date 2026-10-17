@@ -1,0 +1,108 @@
+/* shared/base.css: Rules for every screen size. Loaded by styles/index.css (order matters). */
+
+/**
+ * FILE: src/index.css
+ * PURPOSE: global layout tokens, responsive breakpoints, typography clamp, bento grids
+ * UI: Site > Global Styles
+ * USED BY: src/main.jsx
+ * KEY EXPORTS: none
+ */
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("/fonts/space-grotesk-latin-var.woff2") format("woff2");
+  font-weight: 300 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Archivo";
+  src: url("/fonts/archivo-latin-var.woff2") format("woff2");
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-display: swap;
+}
+
+:root {
+  --ink: #070908;
+  --felt: #07110d;
+  /* Client logos, in the statement bento and the clients loop: one black-and-white treatment for both. */
+  --logo-filter: grayscale(1) brightness(1.7);
+  --logo-opacity: 0.7;
+  --felt-soft: #0b1a14;
+  --lime: #b7d95b;
+  --cream: #f2f1e9;
+  --cream-dim: rgba(242, 241, 233, 0.66);
+  --line: rgba(242, 241, 233, 0.14);
+  /* page ground: App.jsx tweens these when a chalk chapter takes the screen */
+  --bg: #07110d;
+  --fg: #f2f1e9;
+  --ui-font: "Geist Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --section-y: 6rem;
+  --gutter: 1.25rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--ui-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Film grain over the whole page: a fixed noise tile that never blocks clicks. */
+body::after {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Scroll fade: content rises out of felt at screen bottom, same 10% falloff as drum window. */
+body::before {
+  position: fixed;
+  /* under nav (50) and grain (100) */
+  z-index: 40;
+  left: 0;
+  right: 0;
+  /* negative bottom: Safari paints page under floating toolbar, below fixed bottom:0 */
+  bottom: -6rem;
+  height: calc(10svh + 6rem + env(safe-area-inset-bottom));
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(0deg, var(--bg) calc(6rem + env(safe-area-inset-bottom)), transparent);
+}
+
+/* clip, not hidden: hidden would make main a scroll box and stop the sticky break stage from pinning. */
+main {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+img,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 3px;
+}

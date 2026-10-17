@@ -1,0 +1,67 @@
+/* shared/clients.css: Rules for every screen size. Loaded by styles/index.css (order matters). */
+
+/* ---------- Desire: client logo loop ---------- */
+
+/* The row runs edge to edge of the screen, past the section's side padding, so logos slide off the screen
+   edges. Inside the padding the row ended (and its felt edge fades sat) a gutter in from the screen edge, which
+   drew a visible dark box that the logos passed through. */
+.clients {
+  overflow: hidden;
+}
+
+.clients-loop {
+  position: relative;
+  margin-inline: calc(var(--gutter) * -1);
+}
+
+/* Run engine: marquee rows (marqueeLoop.js sets duration, adds is-looping). Transform-only, runs on compositor. */
+@keyframes marquee-loop {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.is-looping {
+  animation: marquee-loop var(--marquee-duration, 30s) linear infinite;
+}
+
+.is-looping.is-reverse {
+  animation-direction: reverse;
+}
+
+/* Two groups side by side; GSAP moves the track by one group's width for a seamless loop. */
+.clients-track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+}
+
+.clients-group {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.clients-group li {
+  display: flex;
+  align-items: center;
+  padding-right: clamp(3rem, 8vw, 7rem);
+}
+
+/* Logos stay black and white. A mouse hover lights one up in colour; touch screens have no hover, so they
+   never colour (a tap or scroll position must not leave a logo in colour). */
+.clients-group img {
+  display: block;
+  width: auto;
+  height: clamp(40px, 6vw, 72px);
+  max-width: none;
+  object-fit: contain;
+  filter: var(--logo-filter);
+  opacity: var(--logo-opacity);
+  transition: filter 0.7s ease-out, opacity 0.7s ease-out, transform 0.7s ease-out;
+}

@@ -1,0 +1,22 @@
+/* mobile/statement.css: Phones and narrow or touch screens only (max-width media queries). Loaded by styles/index.css (order matters). */
+
+/* ---------- Interest: statement and bento ---------- */
+
+/* Phones: statement holds 3 lines, inline pictures narrower */
+@media (max-width: 767px) {
+  .statement {
+    font-size: clamp(1.75rem, 8.4vw, 2.2rem);
+  }
+
+  .pill-img {
+    width: 1.5em;
+  }
+
+  .pill-img-wide {
+    width: 2em;
+  }
+
+  .bento-big {
+    font-size: clamp(1.05rem, 5vw, 1.25rem);
+  }
+}

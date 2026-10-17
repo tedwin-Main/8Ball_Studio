@@ -1,0 +1,105 @@
+/**
+ * FILE: src/sections/BreakHero.jsx
+ * PURPOSE: scroll-driven pool break hero, title, scroll hint
+ * UI: Site > Hero
+ * USED BY: src/App.jsx
+ * KEY EXPORTS: BreakHero
+ */
+
+import { useCallback, useLayoutEffect, useRef } from 'react'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { PoolScene } from '../hero/PoolScene'
+import { STAGE } from '../motion/storyStage'
+import { intro, introDone } from '../motion/intro'
+import { useSplitTitle } from '../motion/titleMotion'
+
+const clamp = ( value ) => Math.min( 1, Math.max( 0, value ) )
+
+// Phones: the same query as the phone block in styles/mobile/scroll-distance.css (narrow screens and touch screens).
+const PHONE_QUERY = '(max-width: 767px), (hover: none) and (pointer: coarse)'
+const IS_PHONE = window.matchMedia( PHONE_QUERY ).matches
+// Share of the phone swipe spent on the roll (the rest is the scatter). Desktop keeps the stage's own split
+// (APPROACH_END / transitionReady, about 56%); phones reach the rack sooner, so the first swipe lands the hit.
+const PHONE_ROLL_SHARE = 0.4
+
+// Maps scroll progress (0-1) onto the break's playhead (0 → transitionReady).
+const toBreakPlayhead = ( progress ) => {
+  const { approachEnd, transitionReady } = STAGE.intro.draft1
+  if ( !IS_PHONE ) return progress * transitionReady
+  if ( progress <= PHONE_ROLL_SHARE ) return ( progress / PHONE_ROLL_SHARE ) * approachEnd
+  return approachEnd + ( ( progress - PHONE_ROLL_SHARE ) / ( 1 - PHONE_ROLL_SHARE ) ) * ( transitionReady - approachEnd )
+}
+
+// Attention: the pool break is the hero. Scrolling through this tall section plays the 8-ball hitting
+// the rack; the sticky stage keeps the table on screen while it plays.
+export function BreakHero() {
+  const sectionRef = useRef( null )
+  const copyRef = useRef( null )
+  const controllerRef = useRef( null )
+
+  const titleRef = useRef( null )
+
+  // Hero > title: chars rise out of their masks once preloader lifts; subline and cue follow
+  useSplitTitle( titleRef, { type: 'chars,words', mask: 'chars' }, ( split ) => {
+    const tl = gsap.timeline( { paused: !intro.done } )
+      .from( split.chars, { yPercent: 115, rotate: 8, duration: 1.2, ease: 'expo.out', stagger: 0.035 } )
+      .from( copyRef.current.querySelectorAll( '.break-sub, .break-hint' ), { autoAlpha: 0, y: 18, duration: 0.9, ease: 'expo.out', stagger: 0.1 }, 0.45 )
+    if ( !intro.done ) introDone.then( () => tl.play() )
+    return tl
+  } )
+
+  // PoolScene hands its controller up on mount and null on unmount.
+  const registerController = useCallback( ( controller ) => {
+    controllerRef.current = controller
+  }, [] )
+
+  useLayoutEffect( () => {
+    const section = sectionRef.current
+    // Lenis smooths the wheel but leaves touch scroll native, so on phones the break would step with
+    // every raw scroll event. Phones get a short scrub catch-up (the ball tracks the finger and stops when it
+    // stops); desktop a longer one, so the ball trails the wheel and settles like a heavy object.
+    const playhead = { progress: 0 }
+    // Trigger ends when sticky stage unpins (section bottom at viewport bottom), so roll and scatter finish
+    // on a held table; only then does finished table scroll away under next section.
+    const tween = gsap.to( playhead, {
+      progress: 1,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: section,
+        start: 'top top',
+        end: 'bottom bottom',
+        scrub: IS_PHONE ? 0.25 : 0.6,
+      },
+      onUpdate: () => {
+        const { progress } = playhead
+        // Physics ends at transitionReady; past it the break only runs the old exit fade, so map onto that range.
+        controllerRef.current?.setProgress( toBreakPlayhead( progress ) )
+        // The title clears as the 8-ball leaves the cue, so the table reads alone.
+        gsap.set( copyRef.current, { autoAlpha: 1 - clamp( progress / 0.14 ), y: -36 * clamp( progress / 0.14 ) } )
+      },
+    } )
+    return () => {
+      tween.scrollTrigger?.kill()
+      tween.kill()
+    }
+  }, [] )
+
+  return (
+    <section className="break" ref={ sectionRef } aria-label="Intro: the 8-ball breaks the rack">
+      <div className="break-stage">
+        <PoolScene active onController={ registerController } />
+
+        <div className="break-copy" ref={ copyRef }>
+          <h1 className="break-title" ref={ titleRef }>Roll with us.</h1>
+          <p className="break-sub">Video, design, web, social and AI content, made in Kuala Lumpur.</p>
+          <p className="break-hint">
+            <span className="break-cue" aria-hidden="true" />
+            { IS_PHONE ? 'Swipe to break' : 'Scroll to break' }
+          </p>
+        </div>
+
+      </div>
+    </section>
+  )
+}

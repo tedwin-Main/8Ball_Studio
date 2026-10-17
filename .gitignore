@@ -1,7 +1,7 @@
 node_modules/
 dist/
-.playwright-cli/
-output/playwright/
+**/.playwright-cli/
+**/output/playwright/
 .DS_Store
 
 .commandcode/

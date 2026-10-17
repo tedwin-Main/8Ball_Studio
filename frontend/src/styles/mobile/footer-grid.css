@@ -1,0 +1,29 @@
+/* mobile/footer-grid.css: Phones and narrow or touch screens only (max-width media queries). Loaded by styles/index.css (order matters). */
+
+/* ---------- Footer grid draft (?footer=grid): contact columns, live clock, back to top ---------- */
+
+@media (max-width: 767px) {
+  .footer-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .footer-col-end {
+    align-items: flex-start;
+  }
+
+  /* email needs full row on phones: roll label is single-line clip */
+  .footer-col:first-child {
+    grid-column: 1 / -1;
+  }
+
+  /* 44px touch targets; column gap folded into link height */
+  .footer-col {
+    gap: 0;
+  }
+
+  .footer-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}

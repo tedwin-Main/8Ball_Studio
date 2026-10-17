@@ -1,0 +1,43 @@
+/* shared/footer.css: Rules for every screen size. Loaded by styles/index.css (order matters). */
+
+/* ---------- Action: footer ---------- */
+
+.footer-cta {
+  padding-bottom: calc(var(--section-y) / 2);
+  scroll-margin-top: 5.5rem;
+}
+
+.cta-title {
+  margin: 0 0 3.5rem;
+  font-size: clamp(3rem, 9vw, 9rem);
+  font-weight: 600;
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+  /* Lime band in a cream fill. At rest (0%) only cream shows; the entrance (Footer.jsx) sweeps the band across once. */
+  background: linear-gradient(90deg, var(--cream) 35%, var(--lime) 50%, var(--cream) 65%) 0% 0% / 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.footer-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem 2rem;
+  /* bottom pad clears fixed scroll fade at page end */
+  padding: 2rem var(--gutter) max(3rem, 10svh);
+  border-top: 1px solid var(--line);
+  color: var(--cream-dim);
+  font-size: 0.9rem;
+}
+
+.footer-row p {
+  margin: 0;
+}

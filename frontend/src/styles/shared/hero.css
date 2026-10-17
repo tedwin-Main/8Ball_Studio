@@ -1,0 +1,98 @@
+/* shared/hero.css: Rules for every screen size. Loaded by styles/index.css (order matters). */
+
+/* ---------- Break hero: the pool table is the page's first chapter ---------- */
+
+.break {
+  position: relative;
+  /* Scroll progress runs while the stage is pinned (all but the last 100svh): the roll takes APPROACH_END /
+     transitionReady of it (0.28 of 0.50, about 56%; phones 40%, see PHONE_ROLL_SHARE in BreakHero.jsx) and the scatter the rest, so the break ends before the page
+     moves on. The height is --scroll-break, set per device in shared/ and mobile/scroll-distance.css. */
+  height: var(--scroll-break);
+}
+
+.break-stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
+  background: #0a100d;
+}
+
+.draft-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.break-copy {
+  position: absolute;
+  z-index: 6;
+  left: var(--gutter);
+  right: var(--gutter);
+  /* High on the screen, just under the nav pill. */
+  top: 13svh;
+  max-width: 62rem;
+  pointer-events: none;
+  /* The scrubbed fade runs on the compositor, so the shadowed title is not repainted every frame. */
+  will-change: transform, opacity;
+}
+
+/* One line on desktop: the width is wide, the font size is capped so the title never wraps past two lines. */
+.break-title {
+  margin: 0;
+  font-size: clamp(3rem, 8.5vw, 8.5rem);
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  line-height: 0.92;
+  text-shadow: 0 6px 40px rgba(0, 0, 0, 0.45);
+}
+
+.break-sub {
+  max-width: 30rem;
+  margin: 1.25rem 0 0;
+  color: var(--cream-dim);
+  font-size: clamp(1rem, 1.3vw, 1.2rem);
+  line-height: 1.4;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.5);
+}
+
+.break-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 2rem 0 0;
+  color: var(--cream-dim);
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+}
+
+/* Hero > scroll cue: short rail, lime dot rolls down it on loop */
+.break-cue {
+  position: relative;
+  width: 1px;
+  height: 2.25rem;
+  overflow: hidden;
+  background: rgba(242, 241, 233, 0.25);
+}
+
+.break-cue::after {
+  position: absolute;
+  top: 0;
+  left: -2px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  content: "";
+  background: var(--lime);
+  animation: cue-roll 1.8s cubic-bezier(0.7, 0, 0.3, 1) infinite;
+}
+
+@keyframes cue-roll {
+  0% {
+    transform: translateY(-6px);
+  }
+  70%,
+  100% {
+    transform: translateY(2.4rem);
+  }
+}

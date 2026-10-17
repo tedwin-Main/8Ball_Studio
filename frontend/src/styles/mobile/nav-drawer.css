@@ -1,0 +1,70 @@
+/* mobile/nav-drawer.css: Phones and narrow or touch screens only (max-width media queries). Loaded by styles/index.css (order matters). */
+
+/* ---------- Nav drawer: menu toggle and the phone menu tray ---------- */
+
+@media (max-width: 900px) {
+  .nav-clock {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .nav-links {
+    display: none;
+  }
+
+  .nav-toggle {
+    display: inline-flex;
+    justify-self: end;
+  }
+
+  /* Three columns: brand takes room, CTA keeps width, toggle at end */
+  .nav-pill {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 0.4rem;
+  }
+
+  .nav-cta {
+    padding-inline: 0.9rem;
+  }
+
+  .nav-brand span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* 44px touch targets: brand, CTA and toggle */
+  .nav-brand,
+  .nav-cta {
+    min-height: 44px;
+  }
+
+  .nav-toggle {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* Phones: the fixed film grain and the nav's backdrop blur are re-composited over the WebGL break and
+   every moving section on each scroll frame, so phones get a plain, near-solid pill and no grain. */
+@media (max-width: 767px) {
+  body::after {
+    display: none;
+  }
+
+  .nav-pill {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: rgba(7, 17, 13, 0.92);
+  }
+
+  [data-ground="chalk"] .nav-pill {
+    background: rgba(242, 241, 233, 0.95);
+  }
+
+  /* The vignette's multiply blend forces the canvas layer to be blended again every frame; a plain overlay
+     of the same gradient reads almost the same on the dark plate. */
+  .draft-layer-2d::after {
+    mix-blend-mode: normal;
+  }
+}

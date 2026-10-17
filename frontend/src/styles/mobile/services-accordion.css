@@ -1,0 +1,28 @@
+/* mobile/services-accordion.css: Phones and narrow or touch screens only (max-width media queries). Loaded by styles/index.css (order matters). */
+
+/* ---------- Desire: horizontal accordion ---------- */
+
+/* Phones: slices stack and open downward on tap. */
+@media (max-width: 767px) {
+  .accordion {
+    flex-direction: column;
+    height: auto;
+    min-height: 0;
+  }
+
+  .slice {
+    flex: none;
+    height: 96px;
+    transition: height 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  /* flex reset here too: .slice.is-open flex:6 outranks .slice above, basis 0% kills height */
+  .slice.is-open {
+    flex: none;
+    height: 380px;
+  }
+
+  .slice-detail {
+    opacity: 1;
+  }
+}

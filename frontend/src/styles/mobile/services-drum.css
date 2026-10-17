@@ -1,0 +1,132 @@
+/* mobile/services-drum.css: Phones and narrow or touch screens only (max-width media queries). Loaded by styles/index.css (order matters). */
+
+/* ---------- Desire, ?tune only: flat Services drums ---------- */
+
+/* Phones: the same sticky drum as desktop. The reel (names + media) sits above the column; cards sit to the
+   right of their names; the centre row is still the active one. */
+@media (max-width: 767px) {
+  /* The drum takes the screen: the title is small, the stage has only the nav's clearance. */
+  .drum-stage {
+    gap: 0.75rem;
+    padding: 4.5rem var(--gutter) 1rem;
+  }
+
+  .drum-title {
+    font-size: 2rem;
+  }
+
+  .drum-body {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .drum-row {
+    gap: 0.85rem;
+    padding: 0.7rem 0;
+  }
+
+  /* The text column shrinks and wraps inside its share, so a long name can never run under the reel tile. */
+  .drum-text {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .drum-name {
+    font-size: clamp(1.1rem, 5vw, 1.5rem);
+  }
+
+  .drum-detail {
+    font-size: 0.85rem;
+  }
+
+  /* Strip above the column on phones: full width, tiles sized so about two show at once. */
+  .drum-strip {
+    flex: none;
+    width: 100%;
+    max-height: 36svh;
+    gap: 0.6rem;
+  }
+
+  .drum-strip-tile {
+    flex: 0 0 44vw;
+  }
+
+  .drum-strip-next,
+  .drum-strip-prev {
+    right: 0.5rem;
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .drum-strip-prev {
+    right: auto;
+    left: 0.5rem;
+  }
+
+  .drum-strip-prev-anchor {
+    margin-right: -0.6rem;
+  }
+
+
+  /* The compact select sits at the bottom edge so it covers less of the drum. */
+  .tune-select {
+    right: 0.75rem;
+    bottom: 0.75rem;
+    padding: 0.35rem 0.55rem;
+    font-size: 0.75rem;
+  }
+
+  /* Phone cards: a compact strip to the right of each name, tiles sized so about two show at once. */
+  .services-drum.is-drum-cards .drum-row .drum-strip {
+    flex: 0 0 42vw;
+    width: 42vw;
+    max-height: none;
+  }
+
+  .services-drum.is-drum-cards .drum-row .drum-strip-tile {
+    flex: 0 0 26vw;
+  }
+
+
+  /* No colour/detail transitions on phones: they restart style work while the scroll is running. */
+  .drum-row,
+  .drum-detail {
+    transition: none;
+  }
+
+  /* Stepped drum (ServicesDrum adds .is-stepped on phones): JS sets each row's slot only when the centre row
+     changes; this transition glides it there on the compositor, so no JS runs per scroll frame. */
+  .services-drum.is-stepped .drum-row {
+    transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.45s;
+  }
+
+  /* The drum's mask and the page's fixed film grain are re-composited on every scroll frame; drop both here. */
+  .drum-window {
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+
+  body:has(.services-drum)::after {
+    display: none;
+  }
+
+  /* The nav's blur is re-rendered over the moving rows on every scroll frame, so while the drum is on screen
+     (ServicesDrum sets body.drum-in-view) the phone nav is a solid pill instead. */
+  body.drum-in-view .nav-pill {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: rgba(7, 17, 13, 0.92);
+  }
+}
+
+/* Phone drum-cards: narrow name column; smaller name, words wrap whole (no mid-word split) */
+@media (max-width: 767px) {
+  .services-drum.is-drum-cards .drum-name {
+    font-size: clamp(0.9rem, 3.9vw, 1.1rem);
+  }
+
+  .services-drum.is-drum-cards .drum-text {
+    overflow-wrap: break-word;
+  }
+}

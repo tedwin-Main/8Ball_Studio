@@ -1,0 +1,24 @@
+/* desktop/statement.css: Wider screens and mouse pointers only (min-width / hover: hover media queries). Loaded by styles/index.css (order matters). */
+
+/* ---------- Interest: statement and bento ---------- */
+
+@media (min-width: 768px) {
+  .bento {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-rows: minmax(30svh, auto);
+  }
+}
+
+@media (min-width: 768px) {
+  .logo-row {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Colour only under a mouse; touch screens keep the logos black and white, like the clients loop. */
+@media (hover: hover) and (pointer: fine) {
+  .logo-row img:hover {
+    filter: none;
+    opacity: 1;
+  }
+}

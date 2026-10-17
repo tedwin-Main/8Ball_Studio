@@ -1,0 +1,116 @@
+/* shared/hero-scene.css: Rules for every screen size. Loaded by styles/index.css (order matters). */
+
+/* ---------- The Intro break: Draft 01's scene, copied from 8Ball_Studio's styles.css ---------- */
+
+.pool-pov-visual,
+.pool-pov-balls-canvas,
+.webgl-pool-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.pool-pov-balls-canvas {
+  z-index: 3;
+  display: block;
+  outline: none;
+  pointer-events: none;
+}
+
+.draft-layer-2d {
+  --draft-exit-opacity: 1;
+  background: #0a100d;
+  /* Scroll owns this opacity exactly, so a CSS transition cannot lag behind reverse sampling. */
+  transition: visibility 0s linear 260ms;
+}
+
+.draft-layer-2d.is-active {
+  /* The layer stays fully opaque: the Studio light flood wipes over it instead. Fading a group
+     that contains the WebGL canvas toward 0 stalled the main thread for ~750ms mid-transition. */
+  opacity: 1;
+  transition-delay: 0s;
+}
+
+.draft-layer-2d::after {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  content: '';
+  background:
+    radial-gradient(circle at 50% 58%, transparent 0 23%, rgba(4, 11, 8, 0.12) 62%, rgba(2, 5, 4, 0.58) 100%),
+    linear-gradient(180deg, rgba(4, 7, 5, 0.08), rgba(4, 7, 5, 0.3));
+  mix-blend-mode: multiply;
+}
+
+.draft-layer-2d .pool-pov-visual {
+  z-index: 0;
+  display: block;
+  overflow: hidden;
+}
+
+.pool-pov-photo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transform: translate(-50%, -50%);
+}
+
+/* The upright plate's camera looks down more steeply than the wide one, so with a plain cover fit its
+   far cushion sat well above the rack, with open cloth between. The plate is placed so that its cloth
+   edge (27.9% down the photo) lands at 35.7% of the screen height, right on the rack's back row as on
+   the wide plate. Phones zoom the photo from its top edge (128% of the screen height, top edge kept
+   covered); wider portrait screens, whose cover fit is already taller than that, shift it up instead.
+   The 3D balls do not move. PLATE_CALIBRATIONS.portrait in PoolPovDraft.jsx holds the plate's
+   measurements after this placement. */
+@media (orientation: portrait) {
+  .draft-layer-2d .pool-pov-visual {
+    container-type: size;
+  }
+
+  .pool-pov-photo {
+    /* 1536 × 2752: the plate's own shape, so the sizing below is the drawn image. */
+    top: min(0px, calc(35.7cqh - 50cqw));
+    width: auto;
+    height: max(128cqh, calc(100cqw * 2752 / 1536));
+    aspect-ratio: 1536 / 2752;
+    transform: translateX(-50%);
+  }
+}
+
+.pool-pov-vignette,
+.webgl-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.46), transparent 24%, transparent 76%, rgba(0, 0, 0, 0.44)),
+    linear-gradient(0deg, rgba(0, 0, 0, 0.5), transparent 31%, transparent 72%, rgba(0, 0, 0, 0.28));
+}
+
+.pool-pov-vignette {
+  /* Keep optical falloff above both the plate and the physically lit balls. */
+  z-index: 4;
+}
+
+.webgl-vignette {
+  z-index: 2;
+}
+
+.webgl-pool-canvas {
+  display: block;
+  outline: none;
+}
+
+/* Optical falloff stays restrained because the scene now supplies its own depth and shadows. */
+.draft-layer-webgl .webgl-vignette {
+  background:
+    radial-gradient(circle at 50% 54%, transparent 12%, rgba(0, 0, 0, 0.05) 48%, rgba(0, 0, 0, 0.52) 112%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.1), transparent 22%, transparent 74%, rgba(0, 0, 0, 0.26));
+}
