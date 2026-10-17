@@ -647,18 +647,14 @@ a {
 }
 
 /* ---------- Desire: client logo loop ---------- */
-/* The row runs edge to edge of the screen, past the section's side padding, and fades out only at the very
-   screen edges. Inside the padding it was cut at the gutter, which left a hard vertical edge that the logos
-   visibly slid under. */
+/* The row is cut at the section edges and fades out at both ends, so logos melt in and out of the loop. */
 .clients {
   overflow: hidden;
 }
 
 .clients-loop {
-  margin-inline: calc(var(--gutter) * -1);
-  --clients-fade: clamp(1.5rem, 8vw, 7rem);
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--clients-fade), #000 calc(100% - var(--clients-fade)), transparent);
-  mask-image: linear-gradient(90deg, transparent, #000 var(--clients-fade), #000 calc(100% - var(--clients-fade)), transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
 }
 
 /* Two groups side by side; GSAP moves the track by one group's width for a seamless loop. */
@@ -682,25 +678,22 @@ a {
   padding-right: clamp(3rem, 8vw, 7rem);
 }
 
-/* Logos are black and white (the same treatment as the bento's logo row); a mouse hover lights one up in
-   colour. Touch screens have no hover, and a tap would leave a logo stuck in colour, so they stay black and white. */
+/* Logos start greyed out and dim, then light up in full colour on hover. */
 .clients-group img {
   display: block;
   width: auto;
   height: clamp(40px, 6vw, 72px);
   max-width: none;
   object-fit: contain;
-  filter: grayscale(1) brightness(1.7);
-  opacity: 0.9;
+  filter: brightness(1.7) grayscale(1);
+  opacity: 0.7;
   transition: filter 0.7s ease-out, opacity 0.7s ease-out, transform 0.7s ease-out;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .clients-group li:hover img {
-    filter: none;
-    opacity: 1;
-    transform: scale(1.05);
-  }
+.clients-group li:hover img {
+  filter: none;
+  opacity: 1;
+  transform: scale(1.05);
 }
 
 /* ---------- Marquee ---------- */
@@ -1246,7 +1239,6 @@ a {
 
   /* Clients: no loop, so the logos wrap into a centred row and the duplicate group is hidden. */
   .clients-loop {
-    margin-inline: 0;
     -webkit-mask-image: none;
     mask-image: none;
   }
