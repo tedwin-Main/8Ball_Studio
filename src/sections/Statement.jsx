@@ -9,7 +9,6 @@
 import { useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { ScrambleTextPlugin } from 'gsap/ScrambleTextPlugin'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { CLIENTS, PILL_IMAGES, PRIMARY_CONTACT, SERVICES } from '../content'
 import { useSplitTitle } from '../titleMotion'
 import { scaleFade } from '../mediaMotion'
@@ -63,10 +62,6 @@ export function Statement() {
         ease: 'none',
         scrollTrigger: { trigger: bento.querySelector( '.bento-reel' ), start: 'top bottom', end: 'center center', scrub: true },
       } )
-      // Bento > Clients: logos light up in view, touch has no hover
-      if ( window.matchMedia( '(hover: none)' ).matches ) {
-        ScrollTrigger.create( { trigger: bento.querySelector( '.bento-clients' ), start: 'top 70%', end: 'bottom 30%', toggleClass: 'is-lit' } )
-      }
     }, bento )
     // Bento > Reel: card grows in, darkens out
     const killFade = scaleFade( bento.querySelector( '.bento-reel' ), { from: 0.9 } )
