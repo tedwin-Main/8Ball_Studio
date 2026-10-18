@@ -76,12 +76,6 @@ export const CONTACT_CHANNELS = [
   { title: 'Email', value: '8ightball.studio@gmail.com', href: 'mailto:8ightball.studio@gmail.com' },
 ]
 
-// The statement's inline pictures: small stills set inside the big heading.
-export const PILL_IMAGES = {
-  social: media( 'social-reel-poster.webp' ),
-  kl: media( 'video-still.webp' ),
-}
-
 // Copy for the scroll-revealed paragraph (Desire). Every sentence states something the studio does.
 export const MANIFESTO = 'We make video, design, web, social and AI content for local brands and regional teams. Tell us what the brand needs, and we reply on WhatsApp, Instagram or email with the next step.'
 

@@ -16,9 +16,9 @@ import brandLogo from '../assets/8BALL-V4.jpg'
 
 // each chapter link: its section, and section that ends it (null runs to page end)
 const CHAPTERS = [
-  { href: '#services', label: 'Services', until: '#clients' },
-  { href: '#clients', label: 'Clients', until: '#contact' },
-  { href: '#contact', label: 'Contact', until: null },
+  { href: '#services', label: 'Our Services', until: '#clients' },
+  { href: '#clients', label: 'Our Clients', until: '#contact' },
+  { href: '#contact', label: 'Contact Us', until: null },
 ]
 
 const CLOCK = new Intl.DateTimeFormat( 'en-GB', { timeZone: STUDIO.timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' } )
@@ -42,10 +42,10 @@ export function StudioClock( { className = '' } ) {
 // rail draft: one cell per chapter on 8-col page grid; spans sum to 8. Brand owns hero
 export const RAIL_CHAPTERS = [
   { href: '#top', label: '8ightBall Studio', span: 2 },
-  { href: '#studio', label: 'Studio', span: 2 },
-  { href: '#services', label: 'Services', span: 1 },
-  { href: '#clients', label: 'Clients', span: 1 },
-  { href: '#contact', label: 'Contact', span: 2, clock: true },
+  { href: '#studio', label: 'Our Studio', span: 2 },
+  { href: '#services', label: 'Our Services', span: 1 },
+  { href: '#clients', label: 'Our Clients', span: 1 },
+  { href: '#contact', label: 'Contact Us', span: 2, clock: true },
 ]
 
 // share of screen height: chapter starts once its section top passes this line (matches pill meters)

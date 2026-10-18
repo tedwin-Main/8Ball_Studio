@@ -890,25 +890,6 @@ button:hover .roll-in {
   line-height: 1.04;
 }
 
-/* Pictures set inside the heading: the same pill shape at the cap height of the type. */
-.pill-img {
-  display: inline-block;
-  width: 1.9em;
-  height: 0.9em;
-  margin: 0 0.12em;
-  border-radius: 999px;
-  vertical-align: middle;
-  background-size: cover;
-  background-position: center;
-  filter: grayscale(0.6) contrast(1.2);
-  /* Resting shape for the open-from-a-sliver entrance (Statement.jsx); same format as the start value so GSAP can tween it. */
-  clip-path: inset(0% 0% 0% 0% round 999px);
-}
-
-.pill-img-wide {
-  width: 2.6em;
-}
-
 .bento {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1044,14 +1025,6 @@ button:hover .roll-in {
 @media (max-width: 767px) {
   .statement {
     font-size: clamp(1.75rem, 8.4vw, 2.2rem);
-  }
-
-  .pill-img {
-    width: 1.5em;
-  }
-
-  .pill-img-wide {
-    width: 2em;
   }
 
   .bento-big {
