@@ -2014,14 +2014,6 @@ button:hover .roll-in {
   margin: 0;
 }
 
-.index-lede {
-  max-width: 22rem;
-  margin: 0;
-  color: var(--cream-dim);
-  font-size: 1rem;
-  line-height: 1.45;
-}
-
 .index-list {
   margin: 0;
   padding: 0;
@@ -2032,6 +2024,11 @@ button:hover .roll-in {
 
 .index-row {
   border-top: 1px solid var(--line);
+}
+
+/* first row sits under the heading; no hairline there */
+.index-row:first-child {
+  border-top: 0;
 }
 
 /* Services > Index: siblings dim while one row is hovered, so the pointer row reads alone */

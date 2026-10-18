@@ -61,7 +61,6 @@ export function ServicesIndex() {
     <section className="section services-index" id="services" aria-labelledby="services-title" ref={ rootRef }>
       <div className="index-head">
         <h2 id="services-title" className="section-title" ref={ titleRef }>Our Services</h2>
-        <p className="index-lede">Six services, one studio in Kuala Lumpur.</p>
       </div>
       <ol className="index-list">
         { SERVICES.map( ( service, index ) => {
