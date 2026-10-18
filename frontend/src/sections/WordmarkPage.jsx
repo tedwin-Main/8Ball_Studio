@@ -1,7 +1,7 @@
 /**
  * FILE: src/sections/WordmarkPage.jsx
  * PURPOSE: full-screen studio title page after hero; 8ightBall / Studio letters rise from line masks, scrubbed
- * UI: Site > Studio (?wordmark=page)
+ * UI: Site > Studio
  * USED BY: src/App.jsx
  * KEY EXPORTS: WordmarkPage
  */

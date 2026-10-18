@@ -28,7 +28,7 @@ test( 'the active row follows the scroll and stays in range', () =>
 
 test( 'the draft registry reads every section from the URL and falls back per section', () =>
 {
-  assert.deepEqual( readDrafts( '?services=drum-media&nav=bogus' ), { services: 'drum-media', nav: 'right', wordmark: 'page', manifesto: 'chalk', footer: 'grid' } )
-  assert.deepEqual( readDrafts( '' ), { services: 'accordion', nav: 'right', wordmark: 'page', manifesto: 'chalk', footer: 'grid' } )
+  assert.deepEqual( readDrafts( '?services=drum-media&nav=bogus' ), { services: 'drum-media', nav: 'right', manifesto: 'chalk', footer: 'grid' } )
+  assert.deepEqual( readDrafts( '' ), { services: 'accordion', nav: 'right', manifesto: 'chalk', footer: 'grid' } )
   assert.equal( normalizeDraft( 'nav', 'center' ), 'center' )
 } )

@@ -7,6 +7,7 @@ import {
   sampleBreakState,
   sampleDraft2BreakState,
   sampleCinematicBreakState,
+  sampleBreakTail,
 } from './poolBreakPhysics.js'
 
 const interquartileRange = ( values ) =>
@@ -51,6 +52,24 @@ test( 'the intro 8-ball approach carries weight before impact', () =>
   // A weighted curve holds the ball back at the start of a light swipe.
   assert.ok( actualFraction < linearFraction )
   assert.ok( Math.abs( impact.z - simulation.initial.strikerImpact.z ) < 1e-12 )
+} )
+
+test( 'the break tail picks up exactly where the break lands and ends on the last sim frame', () =>
+{
+  const simulation = getBreakSimulation()
+  const landed = sampleCinematicBreakState( STAGE.intro.draft1.transitionReady, simulation )
+  const start = sampleBreakTail( 0, simulation )
+  const end = sampleBreakTail( 1, simulation )
+  const last = simulation.frames[ simulation.frames.length - 1 ].balls
+
+  assert.equal( start.opacity, 1 )
+  assert.equal( start.phase, 'tail' )
+  landed.balls.forEach( ( ball, index ) => {
+    assert.deepEqual( start.balls[ index ].position, ball.position )
+  } )
+  end.balls.forEach( ( ball, index ) => {
+    assert.deepEqual( ball.position, last[ index ].position )
+  } )
 } )
 
 test( 'the cinematic timeline keeps the existing exit fade timing', () =>
