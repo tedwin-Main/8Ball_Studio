@@ -544,6 +544,34 @@ button:hover .roll-in {
   transition-delay: 0.12s;
 }
 
+/* Hero > cursor hint: tag trailing right of ring; hidden until pointer sits over [data-cursor-hint] */
+.cursor-hint {
+  position: fixed;
+  z-index: 200;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: 32px;
+  color: var(--cream-dim);
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.cursor-hint.is-shown {
+  opacity: 1;
+}
+
+/* custom cursor carries hint, so static one under subline goes */
+.has-cursor .break-hint {
+  display: none;
+}
+
 .has-cursor,
 .has-cursor * {
   cursor: none !important;

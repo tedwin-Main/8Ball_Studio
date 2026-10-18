@@ -1,6 +1,6 @@
 /**
  * FILE: src/Cursor.jsx
- * PURPOSE: custom cursor (dot + lagging ring + label), magnetic pull on buttons, roll-text link label
+ * PURPOSE: custom cursor (dot + lagging ring + label + side hint), magnetic pull on buttons, roll-text link label
  * UI: Site > every screen (fine pointer only)
  * USED BY: src/App.jsx, src/sections/Nav.jsx, src/sections/Footer.jsx
  * KEY EXPORTS: Cursor, RollText
@@ -26,11 +26,14 @@ export function RollText( { children } ) {
   )
 }
 
-// Site > pointer: dot tracks pointer tight, ring trails with weight, grows over links, shows label over [data-cursor]
+// Site > pointer: dot tracks pointer tight, ring trails with weight, grows over links, shows label over [data-cursor],
+// side tag over [data-cursor-hint]
 export function Cursor() {
   const dotRef = useRef( null )
   const ringRef = useRef( null )
   const labelRef = useRef( null )
+  const hintRef = useRef( null )
+  const hintTextRef = useRef( null )
 
   useLayoutEffect( () => {
     // touch and reduced motion keep native cursor, no magnets
@@ -40,6 +43,7 @@ export function Cursor() {
     const dot = dotRef.current
     const ring = ringRef.current
     const label = labelRef.current
+    const hint = hintRef.current
     const root = document.documentElement
     root.classList.add( 'has-cursor' )
     gsap.set( [ dot, ring ], { xPercent: -50, yPercent: -50, autoAlpha: 0 } )
@@ -48,11 +52,16 @@ export function Cursor() {
     const dotY = gsap.quickTo( dot, 'y', { duration: 0.1, ease: 'power3' } )
     const ringX = gsap.quickTo( ring, 'x', { duration: 0.55, ease: 'power3' } )
     const ringY = gsap.quickTo( ring, 'y', { duration: 0.55, ease: 'power3' } )
+    // own tweens (not ring's): ring is centred on pointer, hint sits beside it
+    gsap.set( hint, { yPercent: -50 } )
+    const hintX = gsap.quickTo( hint, 'x', { duration: 0.55, ease: 'power3' } )
+    const hintY = gsap.quickTo( hint, 'y', { duration: 0.55, ease: 'power3' } )
 
     let pointer = null
     let magnet = null
     let magnetTo = null
     let shownLabel = ''
+    let shownHint = ''
     let frame = 0
 
     // Run engine: magnet springs home with small overshoot, like ball settling
@@ -90,6 +99,12 @@ export function Cursor() {
         if ( text ) label.textContent = text
       }
       ring.classList.toggle( 'is-label', Boolean( text ) )
+      const hintText = hit?.closest( '[data-cursor-hint]' )?.dataset.cursorHint ?? ''
+      if ( hintText !== shownHint ) {
+        shownHint = hintText
+        if ( hintText ) hintTextRef.current.textContent = hintText
+        hint.classList.toggle( 'is-shown', Boolean( hintText ) )
+      }
       ring.classList.toggle( 'is-hover', !text && Boolean( hit?.closest( INTERACTIVE ) ) )
     }
     const queueSync = () => {
@@ -99,7 +114,7 @@ export function Cursor() {
     const onMove = ( event ) => {
       if ( event.pointerType !== 'mouse' ) return
       if ( !pointer ) {
-        gsap.set( [ dot, ring ], { x: event.clientX, y: event.clientY } )
+        gsap.set( [ dot, ring, hint ], { x: event.clientX, y: event.clientY } )
         gsap.to( [ dot, ring ], { autoAlpha: 1, duration: 0.3 } )
       }
       pointer = { x: event.clientX, y: event.clientY }
@@ -107,12 +122,16 @@ export function Cursor() {
       dotY( pointer.y )
       ringX( pointer.x )
       ringY( pointer.y )
+      hintX( pointer.x )
+      hintY( pointer.y )
       queueSync()
     }
     const onLeave = () => {
       pointer = null
       release( magnet )
       magnet = null
+      shownHint = ''
+      hint.classList.remove( 'is-shown' )
       gsap.to( [ dot, ring ], { autoAlpha: 0, duration: 0.3 } )
     }
     const onDown = () => ring.classList.add( 'is-down' )
@@ -141,6 +160,10 @@ export function Cursor() {
       <span className="cursor-dot" ref={ dotRef } />
       <span className="cursor-ring" ref={ ringRef }>
         <span className="cursor-label" ref={ labelRef } />
+      </span>
+      <span className="cursor-hint" ref={ hintRef }>
+        <span className="break-cue" />
+        <span ref={ hintTextRef } />
       </span>
     </div>
   )

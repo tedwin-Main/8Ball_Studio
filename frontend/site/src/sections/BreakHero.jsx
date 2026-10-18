@@ -84,6 +84,9 @@ export function BreakHero() {
         controllerRef.current?.setTail( clamp( ( px - held ) / stageHeight ) )
         // The title clears as the 8-ball leaves the cue, so the table reads alone.
         gsap.set( copyRef.current, { autoAlpha: 1 - clamp( breakProgress / 0.14 ), y: -36 * clamp( breakProgress / 0.14 ) } )
+        // Hero > cursor hint: desktop tag beside cursor (Cursor.jsx) clears with title copy
+        if ( breakProgress < 0.14 ) section.dataset.cursorHint = 'Scroll to break'
+        else delete section.dataset.cursorHint
       },
     } )
     return () => {
@@ -93,7 +96,7 @@ export function BreakHero() {
   }, [] )
 
   return (
-    <section className="break" ref={ sectionRef } aria-label="Intro: the 8-ball breaks the rack">
+    <section className="break" ref={ sectionRef } aria-label="Intro: the 8-ball breaks the rack" data-cursor-hint="Scroll to break">
       <div className="break-stage">
         <PoolPovDraft active onController={ registerController } />
 

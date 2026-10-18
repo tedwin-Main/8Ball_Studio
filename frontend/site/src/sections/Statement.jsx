@@ -73,8 +73,8 @@ export function Statement() {
 
   return (
     <section className="section" aria-labelledby="statement-title">
-      <h2 id="statement-title" className="statement" ref={ titleRef } aria-label="We make brands that stand out, locally and internationally.">
-        We make brands that stand out, locally and internationally.
+      <h2 id="statement-title" className="statement" ref={ titleRef } aria-label="We make brands stand out. Locally and internationally.">
+        We make brands stand out. Locally and internationally.
       </h2>
 
       <div className="bento" ref={ bentoRef }>

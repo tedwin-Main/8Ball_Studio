@@ -16,8 +16,8 @@ import brandLogo from '../assets/8BALL-V4.jpg'
 
 // each chapter link: its section, and section that ends it (null runs to page end)
 const CHAPTERS = [
-  { href: '#services', label: 'Our Services', until: '#clients' },
-  { href: '#clients', label: 'Our Clients', until: '#contact' },
+  { href: '#services', label: 'Services', until: '#clients' },
+  { href: '#clients', label: 'Clients', until: '#contact' },
   { href: '#contact', label: 'Contact Us', until: null },
 ]
 
@@ -43,8 +43,8 @@ export function StudioClock( { className = '' } ) {
 export const RAIL_CHAPTERS = [
   { href: '#top', label: '8ightBall Studio', span: 2 },
   { href: '#studio', label: 'Title', span: 2 },
-  { href: '#services', label: 'Our Services', span: 1 },
-  { href: '#clients', label: 'Our Clients', span: 1 },
+  { href: '#services', label: 'Services', span: 1 },
+  { href: '#clients', label: 'Clients', span: 1 },
   { href: '#contact', label: 'Contact Us', span: 2, clock: true },
 ]
 
@@ -161,7 +161,7 @@ function RailNav( { layoutKey } ) {
         <nav className="rail-bar" aria-label="Primary" ref={ barRef }>
           { RAIL_CHAPTERS.map( ( chapter, index ) => (
             <div className={ `rail-cell${ index === 0 ? ' is-brand' : '' }` } style={ { '--span': chapter.span } } key={ chapter.href }>
-              <a className="rail-link" href={ chapter.href }><RollText>{ chapter.label }</RollText></a>
+              <a className="rail-link" href={ chapter.href }>{ chapter.label }</a>
               { chapter.clock && <StudioClock className="rail-clock" /> }
             </div>
           ) ) }
@@ -221,7 +221,7 @@ function PillNav( { align, layoutKey } ) {
         <ul className="nav-links" ref={ linksRef }>
           { CHAPTERS.map( ( chapter ) => (
             <li key={ chapter.href }>
-              <a href={ chapter.href }><RollText>{ chapter.label }</RollText></a>
+              <a href={ chapter.href }>{ chapter.label }</a>
               <span className="nav-meter" aria-hidden="true" />
             </li>
           ) ) }
