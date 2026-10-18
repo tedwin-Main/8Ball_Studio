@@ -1,4 +1,4 @@
-// Services layouts. Visitors get the accordion; ?tune adds a select for the three flat drums
+// Services layouts. Visitors get the index rows; ?tune adds a select for the accordion and the two flat drums
 // (?services=<id> picks one directly). Each drum lists the six services in one vertical column
 // that the scroll slides past a fixed centre line: flat, no cylinder, the active row at the centre.
 export const SERVICES_STYLES = Object.freeze( {
@@ -8,23 +8,23 @@ export const SERVICES_STYLES = Object.freeze( {
   index: 'Index · rows',
 } )
 
-// Nav link alignment drafts, ?tune only (?nav=<id> picks one directly). Visitors get 'right'.
+// Nav link alignment drafts, ?tune only (?nav=<id> picks one directly). Visitors get 'rail'.
 export const NAV_STYLES = Object.freeze( {
   right: 'Links right',
   center: 'Links centred',
   rail: 'Rail · page-grid progress line',
 } )
 
-export const DEFAULT_NAV_STYLE = 'right'
+export const DEFAULT_NAV_STYLE = 'rail'
 
 export function normalizeNavStyle ( queryValue )
 {
   return Object.hasOwn( NAV_STYLES, queryValue ?? '' ) ? queryValue : DEFAULT_NAV_STYLE
 }
 
-export const DEFAULT_SERVICES_STYLE = 'accordion'
+export const DEFAULT_SERVICES_STYLE = 'index'
 
-// Resolves a ?services= value to a known layout, falling back to the accordion.
+// Resolves a ?services= value to a known layout, falling back to the index rows.
 export function normalizeServicesStyle ( queryValue )
 {
   return Object.hasOwn( SERVICES_STYLES, queryValue ?? '' ) ? queryValue : DEFAULT_SERVICES_STYLE

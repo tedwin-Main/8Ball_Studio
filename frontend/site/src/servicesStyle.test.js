@@ -2,11 +2,11 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { SERVICES_STYLES, flatDrumActive, flatDrumRow, normalizeDraft, normalizeServicesStyle, readDrafts } from './servicesStyle.js'
 
-test( 'the accordion is the default; ?tune offers it, the two flat drums and the index', () =>
+test( 'the index is the default; ?tune offers it, the accordion and the two flat drums', () =>
 {
   assert.deepEqual( Object.keys( SERVICES_STYLES ), [ 'accordion', 'drum-media', 'drum-cards', 'index' ] )
-  assert.equal( normalizeServicesStyle( undefined ), 'accordion' )
-  assert.equal( normalizeServicesStyle( 'panels' ), 'accordion' )
+  assert.equal( normalizeServicesStyle( undefined ), 'index' )
+  assert.equal( normalizeServicesStyle( 'panels' ), 'index' )
   assert.equal( normalizeServicesStyle( 'drum-cards' ), 'drum-cards' )
 } )
 
@@ -28,7 +28,7 @@ test( 'the active row follows the scroll and stays in range', () =>
 
 test( 'the draft registry reads every section from the URL and falls back per section', () =>
 {
-  assert.deepEqual( readDrafts( '?services=drum-media&nav=bogus' ), { services: 'drum-media', nav: 'right', manifesto: 'chalk', footer: 'grid' } )
-  assert.deepEqual( readDrafts( '' ), { services: 'accordion', nav: 'right', manifesto: 'chalk', footer: 'grid' } )
+  assert.deepEqual( readDrafts( '?services=drum-media&nav=bogus' ), { services: 'drum-media', nav: 'rail', manifesto: 'chalk', footer: 'grid' } )
+  assert.deepEqual( readDrafts( '' ), { services: 'index', nav: 'rail', manifesto: 'chalk', footer: 'grid' } )
   assert.equal( normalizeDraft( 'nav', 'center' ), 'center' )
 } )
