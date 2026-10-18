@@ -60,23 +60,30 @@ export function BreakHero() {
     // every raw scroll event. Phones get a short scrub catch-up (the ball tracks the finger and stops when it
     // stops); desktop a longer one, so the ball trails the wheel and settles like a heavy object.
     const playhead = { progress: 0 }
-    // Trigger ends when sticky stage unpins (section bottom at viewport bottom), so roll and scatter finish
-    // on a held table; only then does finished table scroll away under next section.
+    // One scrub drives both the break and the tail, so they share one playhead and cannot drift apart on a fast
+    // scroll back up (two scrubs left the tail lagging, then it snapped to the break state).
+    // Held table: the first travel minus the stage height. Tail: the last stage height, while the table scrolls off.
     const tween = gsap.to( playhead, {
       progress: 1,
       ease: 'none',
       scrollTrigger: {
         trigger: section,
         start: 'top top',
-        end: 'bottom bottom',
+        end: 'bottom top',
         scrub: IS_PHONE ? 0.25 : 0.6,
       },
       onUpdate: () => {
         const { progress } = playhead
-        // Physics ends at transitionReady; past it the break only runs the old exit fade, so map onto that range.
-        controllerRef.current?.setProgress( toBreakPlayhead( progress ) )
+        const stageHeight = section.querySelector( '.break-stage' ).offsetHeight
+        const travel = section.offsetHeight
+        const held = travel - stageHeight
+        const px = progress * travel
+        const breakProgress = clamp( px / held )
+        // Physics ends at transitionReady; the tail picks up after it, while the table scrolls off.
+        controllerRef.current?.setProgress( toBreakPlayhead( breakProgress ) )
+        controllerRef.current?.setTail( clamp( ( px - held ) / stageHeight ) )
         // The title clears as the 8-ball leaves the cue, so the table reads alone.
-        gsap.set( copyRef.current, { autoAlpha: 1 - clamp( progress / 0.14 ), y: -36 * clamp( progress / 0.14 ) } )
+        gsap.set( copyRef.current, { autoAlpha: 1 - clamp( breakProgress / 0.14 ), y: -36 * clamp( breakProgress / 0.14 ) } )
       },
     } )
     return () => {

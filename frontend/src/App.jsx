@@ -139,7 +139,7 @@ export default function App() {
       {/* layoutKey: chapter meters re-bind when a draft swap replaces #clients or #contact */}
       <Nav align={ drafts.nav } layoutKey={ Object.values( drafts ).join( '|' ) } />
       <BreakHero />
-      { drafts.wordmark === 'page' && <WordmarkPage /> }
+      <WordmarkPage />
       <Statement />
       <Manifesto variant={ drafts.manifesto } key={ drafts.manifesto } />
       { drafts.services === 'accordion' && <ServicesAccordion /> }

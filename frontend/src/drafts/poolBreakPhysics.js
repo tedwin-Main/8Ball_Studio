@@ -1042,8 +1042,53 @@ const slerpQuaternion = ( first, second, progress ) =>
   return result
 }
 
+// Frame at a fractional index, lerped between its neighbours. lastIndex caps the second neighbour.
+const blendFrames = ( frames, exactFrame, lastIndex ) =>
+{
+  const firstFrameIndex = Math.floor( exactFrame )
+  const secondFrameIndex = Math.min( lastIndex, firstFrameIndex + 1 )
+  const interpolation = exactFrame - firstFrameIndex
+  const firstFrame = frames[ firstFrameIndex ]
+  const secondFrame = frames[ secondFrameIndex ]
+  return firstFrame.balls.map( ( firstBall, index ) =>
+  {
+    const secondBall = secondFrame.balls[ index ]
+    return {
+      position: {
+        x: lerp( firstBall.position.x, secondBall.position.x, interpolation ),
+        y: lerp( firstBall.position.y, secondBall.position.y, interpolation ),
+        z: lerp( firstBall.position.z, secondBall.position.z, interpolation ),
+      },
+      quaternion: slerpQuaternion(
+        firstBall.quaternion,
+        secondBall.quaternion,
+        interpolation,
+      ),
+      pocketDepth: lerp( firstBall.pocketDepth, secondBall.pocketDepth, interpolation ),
+      pocketed: firstBall.pocketed || secondBall.pocketed,
+      visibility: firstBall.visibility || secondBall.visibility,
+    }
+  } )
+}
+
+// Tail after the break: the frozen sim keeps running past the milestone while the table scrolls away.
+// tail 0 = milestone frame (same as the break's end), tail 1 = last sim frame. smoothstep, not ease-out: speed is
+// zero at the seam too, so the balls do not lurch when the break hands over to the tail.
+export function sampleBreakTail ( suppliedTail, simulation = getBreakSimulation() )
+{
+  const { frames, milestones } = simulation
+  const milestoneFrame = milestones.transitionReadyFrame
+  const lastFrame = frames.length - 1
+  const eased = smoothstep( clamp( suppliedTail ) )
+  return freezeDeep( {
+    balls: blendFrames( frames, milestoneFrame + eased * ( lastFrame - milestoneFrame ), lastFrame ),
+    opacity: 1,
+    phase: 'tail',
+  } )
+}
+
 // Sample the same frozen frames in either scroll direction under one timing contract.
-const sampleBreakStateWithTiming = ( suppliedProgress, simulation, timing ) =>
+const sampleBreakStateWithTiming =( suppliedProgress, simulation, timing ) =>
 {
   const progress = clamp( suppliedProgress )
   const { config, frames, initial, milestones } = simulation
@@ -1088,31 +1133,7 @@ const sampleBreakStateWithTiming = ( suppliedProgress, simulation, timing ) =>
     ( timing.transitionReady - timing.impact )
   // Ease through the first impulse so the rack compresses before the full scatter develops.
   const breakProgress = smoothstep( rawBreakProgress )
-  const exactFrame = breakProgress * milestoneFrame
-  const firstFrameIndex = Math.floor( exactFrame )
-  const secondFrameIndex = Math.min( milestoneFrame, firstFrameIndex + 1 )
-  const interpolation = exactFrame - firstFrameIndex
-  const firstFrame = frames[ firstFrameIndex ]
-  const secondFrame = frames[ secondFrameIndex ]
-  const balls = firstFrame.balls.map( ( firstBall, index ) =>
-  {
-    const secondBall = secondFrame.balls[ index ]
-    return {
-      position: {
-        x: lerp( firstBall.position.x, secondBall.position.x, interpolation ),
-        y: lerp( firstBall.position.y, secondBall.position.y, interpolation ),
-        z: lerp( firstBall.position.z, secondBall.position.z, interpolation ),
-      },
-      quaternion: slerpQuaternion(
-        firstBall.quaternion,
-        secondBall.quaternion,
-        interpolation,
-      ),
-      pocketDepth: lerp( firstBall.pocketDepth, secondBall.pocketDepth, interpolation ),
-      pocketed: firstBall.pocketed || secondBall.pocketed,
-      visibility: firstBall.visibility || secondBall.visibility,
-    }
-  } )
+  const balls = blendFrames( frames, breakProgress * milestoneFrame, milestoneFrame )
   const opacity = clamp(
     1 - ( progress - timing.exitStart ) /
       ( timing.exitEnd - timing.exitStart ),

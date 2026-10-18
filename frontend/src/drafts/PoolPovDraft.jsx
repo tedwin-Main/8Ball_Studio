@@ -6,6 +6,7 @@ import landscapePool from '../assets/drafts/pool-pov-landscape.webp'
 import portraitPool from '../assets/drafts/pool-pov-portrait.webp'
 import {
   getBreakSimulation,
+  sampleBreakTail,
   sampleCinematicBreakState,
 } from './poolBreakPhysics'
 import { STAGE } from '../storyStage'
@@ -421,6 +422,8 @@ export function PoolPovDraft ( { active, onController } )
     let world = null
     let isActive = active
     let progress = 0
+    // 0-1 while the finished table scrolls off screen; balls keep settling until it is gone
+    let tail = 0
     let resizePending = true
     let destroyed = false
     let renderFrame = () => {}
@@ -473,7 +476,8 @@ export function PoolPovDraft ( { active, onController } )
 
     const renderScene = () =>
     {
-      const state = sampleCinematicBreakState( progress, simulation )
+      // Tail only runs once the break has landed (progress holds at 1 there), so the two samplers meet at the milestone frame
+      const state = tail > 0 ? sampleBreakTail( tail, simulation ) : sampleCinematicBreakState( progress, simulation )
 
       if ( world )
       {
@@ -582,6 +586,13 @@ export function PoolPovDraft ( { active, onController } )
         // Skip identical playheads (progress holds at 1 on every later Page) so scrolling there costs no WebGL frames.
         if ( clamp( nextProgress ) === progress ) return
         updateScene( nextProgress )
+      },
+      setTail ( nextTail )
+      {
+        const next = clamp( nextTail )
+        if ( next === tail ) return
+        tail = next
+        requestRender()
       },
       setActive ( nextActive )
       {

@@ -49,7 +49,6 @@ export function flatDrumActive ( progress, count )
 export const DRAFTS = Object.freeze( {
   services: Object.freeze( { label: 'Services', options: SERVICES_STYLES, fallback: DEFAULT_SERVICES_STYLE } ),
   nav: Object.freeze( { label: 'Nav', options: NAV_STYLES, fallback: DEFAULT_NAV_STYLE } ),
-  wordmark: Object.freeze( { label: 'Wordmark', options: Object.freeze( { page: 'Page after hero', off: 'Off' } ), fallback: 'page' } ),
   manifesto: Object.freeze( { label: 'Manifesto', options: Object.freeze( { chalk: 'Chalk chapter', felt: 'Felt (original)' } ), fallback: 'chalk' } ),
   footer: Object.freeze( { label: 'Footer', options: Object.freeze( { grid: 'Contact grid', classic: 'Classic' } ), fallback: 'grid' } ),
 } )
