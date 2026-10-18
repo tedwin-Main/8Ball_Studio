@@ -42,7 +42,7 @@ export function StudioClock( { className = '' } ) {
 // rail draft: one cell per chapter on 8-col page grid; spans sum to 8. Brand owns hero
 export const RAIL_CHAPTERS = [
   { href: '#top', label: '8ightBall Studio', span: 2 },
-  { href: '#studio', label: 'Our Studio', span: 2 },
+  { href: '#studio', label: 'Title', span: 2 },
   { href: '#services', label: 'Our Services', span: 1 },
   { href: '#clients', label: 'Our Clients', span: 1 },
   { href: '#contact', label: 'Contact Us', span: 2, clock: true },
