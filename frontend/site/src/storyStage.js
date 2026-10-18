@@ -10,7 +10,6 @@ const VIEWPORTS_PER_UNIT = 3
 const APPROACH_END = 0.28
 const SCATTER = 0.22
 const EXIT = 0.16
-const POCKET_CUT_LEAD = 0.04
 const STUDIO_CUE_SCREENS = 1
 const STUDIO_HOLD = 0.17
 const HANDOFF_SCREENS = 1
@@ -40,7 +39,6 @@ export const STAGE = freeze( {
     approachEnd: APPROACH_END,
     impact: APPROACH_END,
     draft1: draft(),
-    draft2: draft( { pocketCut: transitionReady - POCKET_CUT_LEAD } ),
     studioCue: freeze( {
       duration: STUDIO_CUE_SCREENS / VIEWPORTS_PER_UNIT,
       durationProgress: STUDIO_CUE_SCREENS / VIEWPORTS_PER_UNIT / totalTimelineUnits,
@@ -49,8 +47,6 @@ export const STAGE = freeze( {
   pages: freeze( {
     studioStart: transitionReady,
     cinematicStudioStart: transitionReady,
-    // Draft 2 lights Studio a hair after its handoff starts, so the two never tie.
-    draft2StudioStart: transitionReady + 0.0005 * totalTimelineUnits,
     studioStable,
     handoffStart,
     handoffScreens: HANDOFF_SCREENS,
@@ -59,12 +55,6 @@ export const STAGE = freeze( {
     timelineEndEpsilon: 0.01,
   } ),
 } )
-
-// Timeline units ⇄ 0-1 progress through the pinned stage.
-export const toStoryProgress = ( units ) => clamp( units / totalTimelineUnits )
-export const toTimelineUnits = ( progress ) => clamp( progress ) * totalTimelineUnits
-
-const smoothstep = ( t ) => t * t * ( 3 - 2 * t )
 
 // The 8-ball's approach, weighted like a Lenis scroll push: quadratic ramp over the first ROLL_RAMP, then
 // constant speed into the rack so it hits with momentum. Pieces meet at equal speed, so no kink.
@@ -75,6 +65,3 @@ export function easeRollMomentum ( progress )
   if ( t < ROLL_RAMP ) return t * t / ( ROLL_RAMP * ( 2 - ROLL_RAMP ) )
   return ( 2 * t - ROLL_RAMP ) / ( 2 - ROLL_RAMP )
 }
-
-// Page glides: smooth-step in and out.
-export const easeStoryTransition = ( progress ) => smoothstep( clamp( progress ) )

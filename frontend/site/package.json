@@ -1,5 +1,5 @@
 {
-  "name": "@8ball/frontend",
+  "name": "@8ball/site",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -10,7 +10,6 @@
     "test": "node --test src/drafts/poolBreakPhysics.test.js src/drafts/cameraFraming.test.js src/drafts/demandFrameScheduler.test.js src/servicesStyle.test.js"
   },
   "dependencies": {
-    "@8ball/shared": "*",
     "@fontsource-variable/geist": "^5.2.8",
     "@phosphor-icons/react": "^2.1.10",
     "gsap": "^3.13.0",

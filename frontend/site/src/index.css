@@ -1407,8 +1407,7 @@ button:hover .roll-in {
 
 /* ---------- The Intro break: Draft 01's scene, copied from 8Ball_Studio's styles.css ---------- */
 .pool-pov-visual,
-.pool-pov-balls-canvas,
-.webgl-pool-canvas {
+.pool-pov-balls-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -1488,8 +1487,7 @@ button:hover .roll-in {
   }
 }
 
-.pool-pov-vignette,
-.webgl-vignette {
+.pool-pov-vignette {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -1501,22 +1499,6 @@ button:hover .roll-in {
 .pool-pov-vignette {
   /* Keep optical falloff above both the plate and the physically lit balls. */
   z-index: 4;
-}
-
-.webgl-vignette {
-  z-index: 2;
-}
-
-.webgl-pool-canvas {
-  display: block;
-  outline: none;
-}
-
-/* Optical falloff stays restrained because the scene now supplies its own depth and shadows. */
-.draft-layer-webgl .webgl-vignette {
-  background:
-    radial-gradient(circle at 50% 54%, transparent 12%, rgba(0, 0, 0, 0.05) 48%, rgba(0, 0, 0, 0.52) 112%),
-    linear-gradient(180deg, rgba(0, 0, 0, 0.1), transparent 22%, transparent 74%, rgba(0, 0, 0, 0.26));
 }
 
 

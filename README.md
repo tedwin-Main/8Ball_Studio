@@ -11,7 +11,17 @@ marquee and a call-to-action footer).
     npm test          # break engine unit tests
     npm run build
 
-## Where things live
+## Layout
+
+Tier-grouped npm workspaces: `frontend/*` is a container, each subfolder is one app.
+
+- `frontend/site/`: the public website (`@8ball/site`, Vite + React, deployed to Vercel).
+- `.github/workflows/ci.yml`: unit tests + build on push and PR to `main`.
+
+A new app (e.g. `frontend/admin/`) gets its own `package.json` and is picked up by the workspace glob.
+A backend would go in `backend/<app>/`, added to the root `workspaces` list.
+
+## Where things live (frontend/site)
 
 - `src/drafts/PoolPovDraft.jsx`: the break scene. Its controller takes `setProgress(0..1)`.
   `BreakHero.jsx` drives it from scroll.

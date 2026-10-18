@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ main, chore/restructure-monorepo ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 
@@ -24,6 +24,6 @@ jobs:
       - name: Run unit tests
         run: npm test
 
-      - name: Build frontend
-        run: npm --prefix frontend run build
+      - name: Build site
+        run: npm --prefix frontend/site run build
 

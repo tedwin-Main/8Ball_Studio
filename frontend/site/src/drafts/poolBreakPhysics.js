@@ -9,7 +9,6 @@ const CONTACT_EPSILON = 2e-6
 
 // The resolved intro branches already contain every sampler milestone; keep physics as a pure consumer.
 const LEGACY_BREAK_TIMING = STAGE.intro.draft1
-const DRAFT2_BREAK_TIMING = STAGE.intro.draft2
 
 // SI-unit defaults keep the deterministic break physically consistent with the rendered table.
 export const DEFAULT_BREAK_CONFIG = Object.freeze( {
@@ -865,7 +864,7 @@ export function createBreakSimulation ( suppliedConfig = {} )
   const launchDirection = normalize2( approachX, approachZ, 0, -1 )
   const approachDistance = magnitude2( approachX, approachZ )
   // Rolling axis follows the same world-space sign as omega = (v_z / R, 0, -v_x / R).
-  // Keep this aligned with sampleBreakState so the striker never flips spin at impact.
+  // Keep this aligned with sampleCinematicBreakState so the striker never flips spin at impact.
   const approachAxis = normalize2( approachZ, -approachX, 1, 0 )
   const impactQuaternion = quaternionFromAxisAngle(
     approachAxis.x,
@@ -1145,20 +1144,7 @@ const sampleBreakStateWithTiming =( suppliedProgress, simulation, timing ) =>
     phase: progress <= timing.exitStart ? 'break' : 'exit',
   } )
 }
-// Draft 1 and existing consumers retain the original cinematic timing.
-export function sampleBreakState ( suppliedProgress, simulation = getBreakSimulation() )
-{
-  return sampleBreakStateWithTiming( suppliedProgress, simulation, LEGACY_BREAK_TIMING )
-}
-
-// Draft 2 uses the shorter post-impact contract without changing Draft 1's frames or fade.
-export function sampleDraft2BreakState ( suppliedProgress, simulation = getBreakSimulation() )
-{
-  return sampleBreakStateWithTiming( suppliedProgress, simulation, DRAFT2_BREAK_TIMING )
-}
-
-
-// Draft 1 uses the same first-swipe sampler as Draft 2; only the resolved timing window differs.
+// Hero sampler: ball state at a scroll progress, on the cinematic intro timing.
 export function sampleCinematicBreakState (
   suppliedProgress,
   simulation = getBreakSimulation(),

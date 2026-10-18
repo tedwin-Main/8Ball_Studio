@@ -4,8 +4,6 @@ import { STAGE } from '../storyStage.js'
 import {
   createBreakSimulation,
   getBreakSimulation,
-  sampleBreakState,
-  sampleDraft2BreakState,
   sampleCinematicBreakState,
   sampleBreakTail,
 } from './poolBreakPhysics.js'
@@ -78,43 +76,6 @@ test( 'the cinematic timeline keeps the existing exit fade timing', () =>
 
   assert.equal( sampleCinematicBreakState( STAGE.intro.draft1.exitStart, simulation ).opacity, 1 )
   assert.equal( sampleCinematicBreakState( STAGE.intro.draft1.exitEnd, simulation ).opacity, 0 )
-} )
-
-
-test( 'Draft 2 maps the deterministic spread to a short, reversible handoff', () =>
-{
-  const simulation = getBreakSimulation()
-  const readyState = sampleDraft2BreakState( STAGE.intro.draft2.transitionReady, simulation )
-  const milestoneFrame = simulation.frames[ simulation.milestones.transitionReadyFrame ]
-  const afterReadyState = sampleDraft2BreakState( STAGE.intro.draft2.transitionReady + 0.001, simulation )
-  const handoffState = sampleDraft2BreakState( STAGE.intro.draft2.studioHandoff, simulation )
-
-  assert.equal( readyState.phase, 'break' )
-  assert.equal( readyState.opacity, 1 )
-  assert.deepEqual(
-    readyState.balls.map( ( ball ) => ball.position ),
-    milestoneFrame.balls.map( ( ball ) => ball.position ),
-  )
-  assert.equal( afterReadyState.phase, 'exit' )
-  assert.ok( afterReadyState.opacity < 1 )
-  assert.equal( handoffState.opacity, 0 )
-  assert.deepEqual( handoffState.balls, readyState.balls )
-} )
-
-test( 'sampleBreakState (Draft 2) rolls 8-ball forward immediately on first swipe and scatters rack', () =>
-{
-  const simulation = getBreakSimulation()
-  const startBall = sampleBreakState( 0, simulation ).balls[ 0 ]
-  const rollingBall = sampleBreakState( 0.15, simulation ).balls[ 0 ]
-  const scatterState = sampleBreakState( STAGE.intro.approachEnd + 0.05, simulation )
-
-  // 8-ball rolls forward immediately upon first scroll swipe
-  assert.ok( rollingBall.position.z < startBall.position.z )
-
-  // Rack balls scatter after 8-ball collision
-  const initialApex = simulation.frames[ 0 ].balls[ 1 ].position
-  const scatteredApex = scatterState.balls[ 1 ].position
-  assert.notDeepEqual( scatteredApex, initialApex )
 } )
 
 test( 'the retuned break scatters asymmetrically off the table centerline', () =>

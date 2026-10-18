@@ -16,10 +16,6 @@ import {
   resolveIntroCameraFraming,
   resolvePhotoHoverResponse,
 } from './cameraFraming'
-import {
-  isFramingDiagnosticsEnabled,
-  publishFramingDiagnostics,
-} from './framingDiagnostics'
 import { createDemandFrameScheduler } from './demandFrameScheduler'
 import {
   createContactShadowTexture,
@@ -93,48 +89,6 @@ const PLATE_CALIBRATIONS = Object.freeze( {
     ] ),
   } ),
 } )
-
-const adaptReferenceUv = ( uv, calibration, aspect ) => [
-  0.5 + ( uv[ 0 ] - 0.5 ) * calibration.referenceAspect / aspect,
-  uv[ 1 ],
-]
-
-// Keep the existing photo anchor measurement available to benchmark checks after camera sharing.
-const getPhotoRegistration = ( camera, simulation, radius, calibration, aspect, width, height ) =>
-{
-  const project = ( point ) =>
-  {
-    const projected = point.clone().project( camera )
-    return {
-      x: ( projected.x + 1 ) / 2,
-      y: ( 1 - projected.y ) / 2,
-    }
-  }
-  const rackApex = project( new THREE.Vector3(
-    simulation.config.rack.apexX,
-    radius,
-    simulation.config.rack.apexZ,
-  ) )
-  const strikerContact = project( new THREE.Vector3(
-    simulation.initial.strikerImpact.x,
-    radius,
-    simulation.initial.strikerImpact.z,
-  ) )
-  const expectedRackApex = adaptReferenceUv( calibration.projectedAnchors.rackApex, calibration, aspect )
-  const expectedStrikerContact = adaptReferenceUv( calibration.projectedAnchors.strikerContact, calibration, aspect )
-  const distance = ( actual, expected ) => Math.hypot(
-    ( actual.x - expected[ 0 ] ) * width,
-    ( actual.y - expected[ 1 ] ) * height,
-  )
-  return {
-    anchorError: Math.max(
-      distance( rackApex, expectedRackApex ),
-      distance( strikerContact, expectedStrikerContact ),
-    ),
-    rackApex,
-    strikerContact,
-  }
-}
 
 const createWarmEnvironment = ( renderer ) =>
 {
@@ -428,7 +382,6 @@ export function PoolPovDraft ( { active, onController } )
     let destroyed = false
     let renderFrame = () => {}
     let renderContinuation = false
-    const diagnosticsEnabled = isFramingDiagnosticsEnabled( window )
 
     const scheduler = createDemandFrameScheduler( {
       active: isActive,
@@ -528,36 +481,7 @@ export function PoolPovDraft ( { active, onController } )
         world.camera.lookAt( ...framing.target )
         world.camera.updateProjectionMatrix()
         world.camera.updateMatrixWorld( true )
-        if ( diagnosticsEnabled )
-        {
-          const width = Math.max( 1, canvas.clientWidth || window.innerWidth )
-          const height = Math.max( 1, canvas.clientHeight || window.innerHeight )
-          const calibration = PLATE_CALIBRATIONS[ canvas.dataset.plate ]
-          const photoRegistration = calibration
-            ? getPhotoRegistration(
-              world.camera,
-              simulation,
-              world.radius,
-              calibration,
-              world.camera.aspect,
-              width,
-              height,
-            )
-            : null
-          publishFramingDiagnostics(
-            canvas,
-            world.camera,
-            state.balls,
-            world.radius,
-            framing,
-            photoRegistration,
-            hoverResponse,
-          )
-        }
         world.render()
-        // Keep render-completion timing behind the existing benchmark seam so
-        // normal visitors pay no dataset mutation on each WebGL paint.
-        if ( diagnosticsEnabled ) root.dataset.webglRenderAt = performance.now().toFixed( 3 )
       }
 
       // Fade the photograph, lighting, and balls as one reversible composition.
