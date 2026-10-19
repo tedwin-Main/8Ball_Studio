@@ -1,6 +1,6 @@
 /**
  * FILE: frontend/components/services-index.jsx
- * PURPOSE: services index draft: big name rows, cursor shows Open/Close, click opens row media as stacked full-width strips
+ * PURPOSE: services index draft: big name rows, cursor shows Open/Close, click opens row media
  * UI: Site > Services (?services=index)
  * USED BY: app.jsx
  * KEY EXPORTS: ServicesIndex
@@ -13,12 +13,11 @@ import { SERVICES } from './site-content'
 import { useRiseTitle } from './title-motion'
 import { scaleFade } from './media-motion'
 
-// Services > Index > row media: open row stacks its media as full-width strips (first reel plays, rest stills/posters)
+// Services > Index > row media: open row shows its strip (first reel plays, rest stills/posters)
 function RowMedia( { service } ) {
   return (
     <div className="index-media">
-      {/* 3 strips max: stacked full width, more makes drawer too tall */}
-      { service.media.slice( 0, 3 ).map( ( piece, i ) => (
+      { service.media.slice( 0, 4 ).map( ( piece, i ) => (
         <figure className="index-media-tile" key={ i }>
           { piece.type === 'video' && i === 0
             ? <video src={ piece.src } poster={ piece.poster } muted autoPlay loop playsInline />
