@@ -27,7 +27,7 @@
   --logo-filter: grayscale(1) brightness(1.7);
   --logo-opacity: 0.7;
   --felt-soft: #0b1a14;
-  --lime: #b7d95b;
+  --accent: #b7d95b;
   --cream: #f2f1e9;
   --cream-dim: rgba(242, 241, 233, 0.66);
   --line: rgba(242, 241, 233, 0.14);
@@ -37,6 +37,32 @@
   --ui-font: "Geist Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
   --section-y: 6rem;
   --gutter: 1.25rem;
+}
+
+/* ?tune > Theme: luxury drafts, app.jsx sets html[data-theme]. Night ground + accent swap, chalk day stays ivory.
+   Grounds in hex: GSAP tweens --bg and cannot interpolate oklch() */
+:root[data-theme="noir"] {
+  /* black and ivory, no hue */
+  --felt: #0c0c0b;
+  --felt-soft: #161614;
+  --bg: #0c0c0b;
+  --accent: oklch(0.97 0.006 90);
+}
+
+:root[data-theme="midnight"] {
+  /* ink navy, bone ivory: tailoring house */
+  --felt: #0a0d14;
+  --felt-soft: #121722;
+  --bg: #0a0d14;
+  --accent: oklch(0.9 0.025 80);
+}
+
+:root[data-theme="platinum"] {
+  /* cool graphite, platinum silver */
+  --felt: #0e0f11;
+  --felt-soft: #17191c;
+  --bg: #0e0f11;
+  --accent: oklch(0.87 0.01 250);
 }
 
 @media (min-width: 768px) {
@@ -108,11 +134,11 @@ a {
 }
 
 :focus-visible {
-  outline: 2px solid var(--lime);
+  outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 
-/* ---------- Buttons: dark ground = cream text, lime ground = ink text, never invisible ---------- */
+/* ---------- Buttons: dark ground = cream text, accent ground = ink text, never invisible ---------- */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -128,8 +154,8 @@ a {
   transition: background-color 0.3s, color 0.3s;
 }
 
-.btn-lime {
-  background: var(--lime);
+.btn-accent {
+  background: var(--accent);
   color: var(--ink);
 }
 
@@ -183,7 +209,7 @@ a {
   padding: 0.5rem 0.5rem 0.5rem 0.75rem;
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: rgba(7, 17, 13, 0.55);
+  background: color-mix(in srgb, var(--felt) 55%, transparent);
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
 }
@@ -271,14 +297,14 @@ a {
   color: var(--cream);
 }
 
-/* Shell > Header > chapter meter: lime hairline, scaleX scrubbed by nav.jsx */
+/* Shell > Header > chapter meter: accent hairline, scaleX scrubbed by nav.jsx */
 .nav-meter {
   position: absolute;
   left: 0;
   right: 0;
   bottom: -0.45rem;
   height: 1px;
-  background: var(--lime);
+  background: var(--accent);
   transform: scaleX(0);
   transform-origin: left;
 }
@@ -517,12 +543,12 @@ button:hover .roll-in {
   height: 58px;
 }
 
-/* label state drops blend: lime chip with ink text stays legible on any ground */
+/* label state drops blend: accent chip with ink text stays legible on any ground */
 .cursor-ring.is-label {
   width: 84px;
   height: 84px;
   border-color: transparent;
-  background: var(--lime);
+  background: var(--accent);
   mix-blend-mode: normal;
 }
 
@@ -608,7 +634,7 @@ button:hover .roll-in {
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--line);
   border-radius: 20px;
-  background: rgba(7, 17, 13, 0.96);
+  background: color-mix(in srgb, var(--felt) 96%, transparent);
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
   animation: nav-tray-in 0.2s ease-out;
 }
@@ -698,7 +724,7 @@ button:hover .roll-in {
   .nav-pill {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
-    background: rgba(7, 17, 13, 0.92);
+    background: color-mix(in srgb, var(--felt) 92%, transparent);
   }
 
   [data-ground="chalk"] .nav-pill {
@@ -796,7 +822,7 @@ button:hover .roll-in {
   letter-spacing: 0.04em;
 }
 
-/* Hero > scroll cue: short rail, lime dot rolls down it on loop */
+/* Hero > scroll cue: short rail, accent dot rolls down it on loop */
 .break-cue {
   position: relative;
   width: 1px;
@@ -813,7 +839,7 @@ button:hover .roll-in {
   height: 5px;
   border-radius: 50%;
   content: "";
-  background: var(--lime);
+  background: var(--accent);
   animation: cue-roll 1.8s cubic-bezier(0.7, 0, 0.3, 1) infinite;
 }
 
@@ -873,7 +899,7 @@ button:hover .roll-in {
 }
 
 .rack-ball.is-eight.is-lit {
-  background: var(--lime);
+  background: var(--accent);
 }
 
 .preloader-foot {
@@ -1061,7 +1087,7 @@ button:hover .roll-in {
 }
 
 .bento-cta {
-  background: var(--lime);
+  background: var(--accent);
   border-color: transparent;
   color: var(--ink);
   transition: transform 0.7s ease-out;
@@ -1352,7 +1378,7 @@ button:hover .roll-in {
 }
 
 .marquee-track svg {
-  color: var(--lime);
+  color: var(--accent);
 }
 
 /* ---------- Action: footer ---------- */
@@ -1368,7 +1394,7 @@ button:hover .roll-in {
   letter-spacing: -0.05em;
   line-height: 0.95;
   /* Lime band in a cream fill. At rest (0%) only cream shows; the entrance (footer.jsx) sweeps the band across once. */
-  background: linear-gradient(90deg, var(--cream) 35%, var(--lime) 50%, var(--cream) 65%) 0% 0% / 300% 100%;
+  background: linear-gradient(90deg, var(--cream) 35%, var(--accent) 50%, var(--cream) 65%) 0% 0% / 300% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -1662,7 +1688,7 @@ button:hover .roll-in {
 
 .drum-strip-next:hover,
 .drum-strip-prev:hover {
-  background: var(--lime);
+  background: var(--accent);
 }
 
 .drum-strip-prev {
@@ -1914,7 +1940,7 @@ button:hover .roll-in {
   body.drum-in-view .nav-pill {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
-    background: rgba(7, 17, 13, 0.92);
+    background: color-mix(in srgb, var(--felt) 92%, transparent);
   }
 }
 
@@ -2063,12 +2089,12 @@ button:hover .roll-in {
 }
 
 .index-button:hover .index-arrow {
-  color: var(--lime);
+  color: var(--accent);
   transform: rotate(-45deg);
 }
 
 .index-row.is-open .index-arrow {
-  color: var(--lime);
+  color: var(--accent);
 }
 
 .index-row.is-open .index-arrow {
@@ -2093,23 +2119,21 @@ button:hover .roll-in {
 
 .index-media {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
   padding: 0 0 clamp(1.25rem, 3vw, 2.5rem);
 }
 
 .index-media-tile {
   margin: 0;
   overflow: hidden;
-  border-radius: 14px;
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 21 / 9;
   background: var(--felt-soft);
   animation: index-tile-in 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .index-media-tile:nth-child(2) { animation-delay: 0.06s; }
 .index-media-tile:nth-child(3) { animation-delay: 0.12s; }
-.index-media-tile:nth-child(4) { animation-delay: 0.18s; }
 
 @keyframes index-tile-in {
   from {
@@ -2147,8 +2171,8 @@ button:hover .roll-in {
     grid-column: 2;
   }
 
-  .index-media {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .index-media-tile {
+    aspect-ratio: 16 / 9;
   }
 }
 
@@ -2221,7 +2245,7 @@ button:hover .roll-in {
 
 .footer-top:hover {
   border-color: transparent;
-  background: var(--lime);
+  background: var(--accent);
   color: var(--ink);
 }
 
@@ -2273,7 +2297,7 @@ button:hover .roll-in {
   padding: 0 var(--gutter);
 }
 
-/* reference title (commit 7e9b949): condensed heavy caps, second line steps in lime */
+/* reference title (commit 7e9b949): condensed heavy caps, second line steps in accent */
 .wordmark {
   margin: 0;
   font-family: "Archivo", var(--ui-font);
@@ -2298,7 +2322,7 @@ button:hover .roll-in {
 
 .wordmark-line + .wordmark-line {
   padding-left: 15vw;
-  color: var(--lime);
+  color: var(--accent);
 }
 
 .wordmark-char {

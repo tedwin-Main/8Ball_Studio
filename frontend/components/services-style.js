@@ -44,6 +44,14 @@ export function flatDrumActive ( progress, count )
   return Math.min( count - 1, Math.max( 0, index ) )
 }
 
+// Accent palette drafts, ?tune only (?theme=<id> picks one directly). Visitors get 'lime'.
+export const THEME_STYLES = Object.freeze( {
+  lime: 'Lime (current)',
+  noir: 'Noir · black & ivory',
+  midnight: 'Midnight & bone',
+  platinum: 'Graphite & platinum',
+} )
+
 // Draft registry: every ?tune section, its options, its visitor default. ?<section>=<id> picks one directly.
 // New section drafts register here, so App state, URL sync and TuneSelect pick them up with no extra wiring.
 export const DRAFTS = Object.freeze( {
@@ -51,6 +59,7 @@ export const DRAFTS = Object.freeze( {
   nav: Object.freeze( { label: 'Nav', options: NAV_STYLES, fallback: DEFAULT_NAV_STYLE } ),
   manifesto: Object.freeze( { label: 'Manifesto', options: Object.freeze( { chalk: 'Chalk chapter', felt: 'Felt (original)' } ), fallback: 'chalk' } ),
   footer: Object.freeze( { label: 'Footer', options: Object.freeze( { grid: 'Contact grid', classic: 'Classic' } ), fallback: 'grid' } ),
+  theme: Object.freeze( { label: 'Theme', options: THEME_STYLES, fallback: 'lime' } ),
 } )
 
 // Resolves one section's query value to a known draft id, falling back to the visitor default.

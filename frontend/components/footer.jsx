@@ -17,12 +17,12 @@ const EMAIL = CONTACT_CHANNELS.find( ( channel ) => channel.title === 'Email' )
 const INSTAGRAM = CONTACT_CHANNELS.find( ( channel ) => channel.title === 'Instagram' )
 
 // Action: one massive call to action, then the links and the footer row.
-// The primary button is lime with ink text; the secondary ones are outlined with cream text.
+// The primary button is accent with ink text; the secondary ones are outlined with cream text.
 // variant: 'grid' (contact columns + clock) or 'classic' (original single row)
 export function Footer( { variant = 'grid' } ) {
   const titleRef = useRef( null )
 
-  // One lime sweep across the heading as it arrives, pointing at the button below. The gradient's resting
+  // One accent sweep across the heading as it arrives, pointing at the button below. The gradient's resting
   // position (index.css) is plain cream, so reduced-motion visitors simply see cream.
   useLayoutEffect( () => {
     if ( window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches ) return undefined
@@ -41,7 +41,7 @@ export function Footer( { variant = 'grid' } ) {
     <div className="section footer-cta" id="contact">
       <h2 className="cta-title" ref={ titleRef }>Contact us.</h2>
       <div className="cta-actions">
-        <a className="btn btn-lime btn-xl" href={ PRIMARY_CONTACT.href } target="_blank" rel="noreferrer">
+        <a className="btn btn-accent btn-xl" href={ PRIMARY_CONTACT.href } target="_blank" rel="noreferrer">
           <RollText>{ PRIMARY_CONTACT.label }</RollText>
         </a>
         { CONTACT_CHANNELS.map( ( channel ) => (

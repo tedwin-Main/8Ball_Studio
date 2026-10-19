@@ -189,7 +189,7 @@ function PillNav( { align, layoutKey } ) {
   const linksRef = useRef( null )
   const [ menuOpen, setMenuOpen ] = useMenu( wrapRef )
 
-  // Shell > Header > chapter links: lime meter under each link fills while its chapter scrolls by
+  // Shell > Header > chapter links: accent meter under each link fills while its chapter scrolls by
   useLayoutEffect( () => {
     const items = [ ...linksRef.current.querySelectorAll( 'li' ) ]
     const triggers = CHAPTERS.map( ( chapter, index ) => {
@@ -228,7 +228,7 @@ function PillNav( { align, layoutKey } ) {
         </ul>
         <div className="nav-end">
           <StudioClock className="nav-clock" />
-          <a className="btn btn-lime nav-cta" href={ PRIMARY_CONTACT.href } target="_blank" rel="noreferrer">
+          <a className="btn btn-accent nav-cta" href={ PRIMARY_CONTACT.href } target="_blank" rel="noreferrer">
             <RollText>WhatsApp</RollText>
           </a>
         </div>

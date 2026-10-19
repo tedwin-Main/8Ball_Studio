@@ -103,16 +103,24 @@ export default function App() {
     }
   }, [] )
 
+  // Site > ?tune > Theme: accent palette via html[data-theme]
+  useEffect( () => {
+    document.documentElement.dataset.theme = drafts.theme
+  }, [ drafts.theme ] )
+
   // Site > every [data-chapter] section: page ground swaps felt/chalk as chapter takes screen
   useEffect( () => {
     const root = document.documentElement
     const active = new Set()
     // reduced motion: ground cuts, no fade through mid grey
     const fade = window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches ? 0 : 0.8
+    // night ground follows ?tune theme: read from stylesheet, not inline value GSAP left on <html>
+    root.style.removeProperty( '--bg' )
+    const felt = { ...GROUNDS.felt, '--bg': getComputedStyle( root ).getPropertyValue( '--felt' ).trim() }
     const paint = () => {
       const ground = active.size ? 'chalk' : 'felt'
       root.dataset.ground = ground
-      gsap.to( root, { ...GROUNDS[ ground ], duration: fade, ease: 'power2.inOut', overwrite: true } )
+      gsap.to( root, { ...( ground === 'felt' ? felt : GROUNDS.chalk ), duration: fade, ease: 'power2.inOut', overwrite: true } )
     }
     const triggers = [ ...document.querySelectorAll( '[data-chapter="chalk"]' ) ].map( ( section ) => ScrollTrigger.create( {
       trigger: section,
@@ -127,7 +135,7 @@ export default function App() {
     } ) )
     return () => {
       triggers.forEach( ( trigger ) => trigger.kill() )
-      gsap.set( root, GROUNDS.felt )
+      gsap.set( root, felt )
       root.dataset.ground = 'felt'
     }
   }, [ drafts ] )
