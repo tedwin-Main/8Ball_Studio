@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "workspaces": [
-    "frontend/*"
+    "frontend"
   ],
   "scripts": {
     "dev": "npm run dev --workspace=@8ball/site",

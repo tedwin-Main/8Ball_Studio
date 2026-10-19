@@ -25,5 +25,5 @@ jobs:
         run: npm test
 
       - name: Build site
-        run: npm --prefix frontend/site run build
+        run: npm --prefix frontend run build
 
