@@ -27,7 +27,7 @@
   --logo-filter: grayscale(1) brightness(1.7);
   --logo-opacity: 0.7;
   --felt-soft: #0b1a14;
-  --accent: #b7d95b;
+  --accent: #d2ff00;
   --cream: #f2f1e9;
   --cream-dim: rgba(242, 241, 233, 0.66);
   --line: rgba(242, 241, 233, 0.14);
@@ -2050,7 +2050,7 @@ button:hover .roll-in {
 
 .index-button {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 18rem) auto;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   gap: 1.5rem;
   width: 100%;
@@ -2072,33 +2072,9 @@ button:hover .roll-in {
   transition: transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.4s;
 }
 
-.index-detail {
-  color: var(--cream-dim);
-  font-size: 0.95rem;
-  line-height: 1.4;
-}
-
-.index-arrow {
-  color: var(--cream-dim);
-  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.3s;
-}
-
 .index-button:hover .index-name,
 .index-row.is-open .index-name {
   transform: translateX(clamp(0.5rem, 1.5vw, 1.5rem));
-}
-
-.index-button:hover .index-arrow {
-  color: var(--accent);
-  transform: rotate(-45deg);
-}
-
-.index-row.is-open .index-arrow {
-  color: var(--accent);
-}
-
-.index-row.is-open .index-arrow {
-  transform: rotate(180deg);
 }
 
 /* Services > Index > drawer: grid rows 0fr to 1fr animates height without measuring */
@@ -2158,21 +2134,6 @@ button:hover .roll-in {
 }
 
 @media (max-width: 767px) {
-  .index-button {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 0.75rem;
-  }
-
-  .index-detail {
-    grid-column: 1 / 2;
-    font-size: 0.85rem;
-  }
-
-  .index-arrow {
-    grid-row: 1;
-    grid-column: 2;
-  }
-
   .index-media {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2180,8 +2141,7 @@ button:hover .roll-in {
 
 @media (prefers-reduced-motion: reduce) {
   .index-drawer,
-  .index-name,
-  .index-arrow {
+  .index-name {
     transition: none;
   }
 

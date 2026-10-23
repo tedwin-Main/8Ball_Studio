@@ -29,7 +29,7 @@ export function Footer( { variant = 'grid' } ) {
     const ctx = gsap.context( () => {
       gsap.fromTo( titleRef.current, { backgroundPosition: '100% 0%' }, {
         backgroundPosition: '0% 0%',
-        duration: 1.4,
+        duration: 1.6,
         ease: 'power2.inOut',
         scrollTrigger: { trigger: titleRef.current, start: 'top 75%', once: true },
       } )

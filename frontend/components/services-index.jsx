@@ -8,7 +8,6 @@
 
 import { useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
-import { ArrowDownRight } from '@phosphor-icons/react'
 import { SERVICES } from './site-content'
 import { useRiseTitle } from './title-motion'
 import { scaleFade } from './media-motion'
@@ -75,8 +74,6 @@ export function ServicesIndex() {
                 onClick={ () => setOpen( isOpen ? -1 : index ) }
               >
                 <span className="index-name">{ service.name }</span>
-                <span className="index-detail">{ service.detail.split( '\n' )[ 0 ] }</span>
-                <ArrowDownRight className="index-arrow" size={ 28 } weight="light" aria-hidden="true" />
               </button>
               <div className="index-drawer">
                 <div className="index-drawer-inner">{ isOpen && <RowMedia service={ service } /> }</div>
