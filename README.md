@@ -35,3 +35,5 @@ A backend would go in `backend/`, added to the root `workspaces` list.
 - `components/site-content.js`: all copy, services, clients and contact details (facts only, from the studio's PRODUCT.md).
 - `components/`: one component per section, plus helpers and content.
 - `index.css`: all styling. The break's rules are copied from 8Ball_Studio's `styles.css`.
+
+<!-- test change: Open Diff On Click extension check (revert with git checkout README.md) -->
