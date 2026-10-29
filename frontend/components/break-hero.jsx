@@ -15,7 +15,7 @@ import { intro, introDone } from './intro-state'
 import { useSplitTitle } from './title-motion'
 import { clamp } from './math-helpers'
 
-// Phones: the same query as the phone scroll-distance block in index.css (narrow screens and touch screens).
+// Phones: the same query as the phone block in scroll-distance.css (narrow screens and touch screens).
 const PHONE_QUERY = '(max-width: 767px), (hover: none) and (pointer: coarse)'
 const IS_PHONE = window.matchMedia( PHONE_QUERY ).matches
 // Share of the phone swipe spent on the roll (the rest is the scatter). Desktop keeps the stage's own split

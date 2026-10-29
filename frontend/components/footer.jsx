@@ -23,7 +23,7 @@ export function Footer( { variant = 'grid' } ) {
   const titleRef = useRef( null )
 
   // One accent sweep across the heading as it arrives, pointing at the button below. The gradient's resting
-  // position (index.css) is plain cream, so reduced-motion visitors simply see cream.
+  // position (footer.css) is plain cream, so reduced-motion visitors simply see cream.
   useLayoutEffect( () => {
     if ( window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches ) return undefined
     const ctx = gsap.context( () => {

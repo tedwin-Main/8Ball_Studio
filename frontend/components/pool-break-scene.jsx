@@ -45,7 +45,7 @@ const waitForIntroReady = ( root, hasWorld ) =>
   const plate = root.querySelector( '.pool-pov-photo' )
   const plateReady = plate?.decode ? plate.decode().catch( () => {} ) : Promise.resolve()
   const ready = Promise.all( [ plateReady, firstFrame ] ).then( () => {} )
-  return { ready, markFirstFrame: () => markFirstFrame() }
+  return { ready, markFirstFrame }
 }
 
 const placeBallsAndShadows = ( world, balls ) =>
@@ -158,7 +158,7 @@ const createSceneController = ( { root, canvas, active, onController } ) =>
 
   const updateScene = ( nextProgress ) =>
   {
-    progress = clamp( nextProgress )
+    progress = nextProgress
     // Keep the selected Draft's Story playhead observable even while its render is demand-driven.
     root.dataset.webglProgress = progress.toFixed( 4 )
     requestRender()
@@ -175,8 +175,9 @@ const createSceneController = ( { root, canvas, active, onController } ) =>
     setProgress ( nextProgress )
     {
       // Skip identical playheads (progress holds at 1 on every later Page) so scrolling there costs no WebGL frames.
-      if ( clamp( nextProgress ) === progress ) return
-      updateScene( nextProgress )
+      const next = clamp( nextProgress )
+      if ( next === progress ) return
+      updateScene( next )
     },
     setTail ( nextTail )
     {

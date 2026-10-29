@@ -17,7 +17,7 @@ const INTERACTIVE = 'a, button, select, label, [role="button"]'
 
 const magnetBody = ( el ) => ( el.dataset.magnet === 'inner' ? el.firstElementChild ?? el : el )
 
-// Site > any link/button: label rolls up, copy below takes its place (pure CSS, see .roll in index.css)
+// Site > any link/button: label rolls up, copy below takes its place (pure CSS, see .roll in roll-text.css)
 export function RollText( { children } ) {
   return (
     <span className="roll">

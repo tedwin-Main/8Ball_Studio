@@ -26,6 +26,7 @@ import { Cursor } from './components/cursor'
 import { Preloader } from './components/preloader'
 import { intro, introDone } from './components/intro-state'
 import { normalizeDraft, readDrafts } from './components/services-style'
+import { clamp } from './components/math-helpers'
 
 gsap.registerPlugin( ScrollTrigger )
 
@@ -47,7 +48,7 @@ const GROUNDS = {
 }
 
 // glide length scales with distance
-const glideSeconds = ( distance ) => Math.min( 4.5, Math.max( 1.2, 0.9 + distance / 2500 ) )
+const glideSeconds = ( distance ) => clamp( 0.9 + distance / 2500, 1.2, 4.5 )
 
 // Site > Root Shell > App: root container and Lenis scroll engine
 export default function App() {

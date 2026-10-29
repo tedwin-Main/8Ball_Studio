@@ -7,7 +7,7 @@ const freeze = ( value ) => Object.freeze( value )
 
 const VIEWPORTS_PER_UNIT = 3
 // Where the 8-ball hits the rack. 0 → APPROACH_END is the roll, so raising it lengthens the roll's scroll.
-// .break's height in index.css (--scroll-break) is the whole run, so the roll and scatter scale with it.
+// .break's height in scroll-distance.css (--scroll-break) is the whole run, so the roll and scatter scale with it.
 const APPROACH_END = 0.28
 const SCATTER = 0.22
 const EXIT = 0.16

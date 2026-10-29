@@ -1,3 +1,5 @@
+import { clamp } from './math-helpers.js'
+
 // Services layouts. Visitors get the index rows; ?tune adds a select for the accordion and the two flat drums
 // (?services=<id> picks one directly). Each drum lists the six services in one vertical column
 // that the scroll slides past a fixed centre line: flat, no cylinder, the active row at the centre.
@@ -41,7 +43,7 @@ export function flatDrumRow ( offset, { rowPx, visible } )
 export function flatDrumActive ( progress, count )
 {
   const index = Math.round( progress * ( count - 1 ) )
-  return Math.min( count - 1, Math.max( 0, index ) )
+  return clamp( index, 0, count - 1 )
 }
 
 // Accent palette drafts, ?tune only (?theme=<id> picks one directly). Visitors get 'lime'.

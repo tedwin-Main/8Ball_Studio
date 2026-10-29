@@ -2,7 +2,6 @@
 // their own scene units while keeping the same viewport composition.
 import { clamp, lerp, smoothstep } from './math-helpers.js'
 
-
 // Draft 2 uses this scale to turn the physics table (2.54m) into its 19.2-unit scene.
 // Keeping it here makes the normalized camera contract explicit for Draft 1's photo plate.
 export const DRAFT2_SCENE_SCALE = 19.2 / 2.54

@@ -8,68 +8,68 @@ import {
   createNumberedBallTexture,
 } from './pool-surface-textures.js'
 import { BALL_COLORS, RACK_BALL_NUMBERS } from './rack-layout.js'
+import { freezeDeep } from './freeze-deep.js'
 
-// Match Draft 2's maximum backing density so Retina desktops do not pay excess fill rate.
-const DRAFT1_PIXEL_RATIO_CAP = 1.5
 // Phones redraw the full-screen scene on every scroll frame with a mobile GPU, so they render at 1x
 // (MSAA stays on: without it the ball edges stair-step), with lighter spheres and no clearcoat pass.
 const IS_TOUCH = typeof window !== 'undefined' && window.matchMedia( '(hover: none) and (pointer: coarse)' ).matches
-const PIXEL_RATIO_CAP = IS_TOUCH ? 1 : DRAFT1_PIXEL_RATIO_CAP
+// Desktop caps at 1.5 so Retina screens do not pay excess fill rate.
+const PIXEL_RATIO_CAP = IS_TOUCH ? 1 : 1.5
 
 // Each plate stores its table, light, rail, and projected pocket measurements together.
-const PLATE_CALIBRATIONS = Object.freeze( {
-  landscape: Object.freeze( {
+const PLATE_CALIBRATIONS = freezeDeep( {
+  landscape: {
     referenceAspect: 1.6,
-    tablePlane: Object.freeze( {
-      position: Object.freeze( [ 0, 0, 0 ] ),
-      rotation: Object.freeze( [ 0, 0, 0 ] ),
+    tablePlane: {
+      position: [ 0, 0, 0 ],
+      rotation: [ 0, 0, 0 ],
       scale: 1,
-    } ),
-    farRailAnchors: Object.freeze( {
-      left: Object.freeze( [ 0.08433, 0.35152 ] ),
-      right: Object.freeze( [ 0.91567, 0.35152 ] ),
-    } ),
-    projectedAnchors: Object.freeze( {
-      rackApex: Object.freeze( [ 0.5, 0.38488 ] ),
-      strikerContact: Object.freeze( [ 0.49807, 0.38747 ] ),
-    } ),
-    lightPosition: Object.freeze( [ -0.42, 1.42, -0.46 ] ),
-    pocketProjection: Object.freeze( [
-      Object.freeze( [ 0.08104, 0.35087 ] ),
-      Object.freeze( [ 0.91896, 0.35087 ] ),
-      Object.freeze( [ -0.12216, 0.55379 ] ),
-      Object.freeze( [ 1.12216, 0.55379 ] ),
-      Object.freeze( [ -0.69365, 1.13194 ] ),
-      Object.freeze( [ 1.69365, 1.13194 ] ),
-    ] ),
-  } ),
-  portrait: Object.freeze( {
+    },
+    farRailAnchors: {
+      left: [ 0.08433, 0.35152 ],
+      right: [ 0.91567, 0.35152 ],
+    },
+    projectedAnchors: {
+      rackApex: [ 0.5, 0.38488 ],
+      strikerContact: [ 0.49807, 0.38747 ],
+    },
+    lightPosition: [ -0.42, 1.42, -0.46 ],
+    pocketProjection: [
+      [ 0.08104, 0.35087 ],
+      [ 0.91896, 0.35087 ],
+      [ -0.12216, 0.55379 ],
+      [ 1.12216, 0.55379 ],
+      [ -0.69365, 1.13194 ],
+      [ 1.69365, 1.13194 ],
+    ],
+  },
+  portrait: {
     referenceAspect: 390 / 844,
-    tablePlane: Object.freeze( {
-      position: Object.freeze( [ 0, 0, 0 ] ),
-      rotation: Object.freeze( [ 0, 0, 0 ] ),
+    tablePlane: {
+      position: [ 0, 0, 0 ],
+      rotation: [ 0, 0, 0 ],
       scale: 1,
-    } ),
-    // Rail and pockets as placed by the portrait .pool-pov-photo rule in styles.css (the plate zoomed
+    },
+    // Rail and pockets as placed by the portrait .pool-pov-photo rule in intro-break.css (the plate zoomed
     // 1.28x from its top edge, which brings the far cushion down onto the rack's back row).
-    farRailAnchors: Object.freeze( {
-      left: Object.freeze( [ -0.16149, 0.39523 ] ),
-      right: Object.freeze( [ 1.16149, 0.39523 ] ),
-    } ),
-    projectedAnchors: Object.freeze( {
-      rackApex: Object.freeze( [ 0.5, 0.38488 ] ),
-      strikerContact: Object.freeze( [ 0.49331, 0.38747 ] ),
-    } ),
-    lightPosition: Object.freeze( [ 0, 1.82, -0.52 ] ),
-    pocketProjection: Object.freeze( [
-      Object.freeze( [ -0.16673, 0.39418 ] ),
-      Object.freeze( [ 1.16673, 0.39418 ] ),
-      Object.freeze( [ -0.48481, 0.71959 ] ),
-      Object.freeze( [ 1.48481, 0.71959 ] ),
-      Object.freeze( [ -1.36103, 1.62792 ] ),
-      Object.freeze( [ 2.36103, 1.62792 ] ),
-    ] ),
-  } ),
+    farRailAnchors: {
+      left: [ -0.16149, 0.39523 ],
+      right: [ 1.16149, 0.39523 ],
+    },
+    projectedAnchors: {
+      rackApex: [ 0.5, 0.38488 ],
+      strikerContact: [ 0.49331, 0.38747 ],
+    },
+    lightPosition: [ 0, 1.82, -0.52 ],
+    pocketProjection: [
+      [ -0.16673, 0.39418 ],
+      [ 1.16673, 0.39418 ],
+      [ -0.48481, 0.71959 ],
+      [ 1.48481, 0.71959 ],
+      [ -1.36103, 1.62792 ],
+      [ 2.36103, 1.62792 ],
+    ],
+  },
 } )
 
 const createWarmEnvironment = ( renderer ) =>
@@ -117,16 +117,16 @@ const createBallMaterial = ( color, texture ) => IS_TOUCH
     envMapIntensity: 0.9,
   } )
   : new THREE.MeshPhysicalMaterial( {
-  color: texture ? '#ffffff' : color,
-  map: texture,
-  roughness: 0.075,
-  metalness: 0,
-  clearcoat: 1,
-  clearcoatRoughness: 0.035,
-  ior: 1.54,
-  reflectivity: 0.82,
-  envMapIntensity: 0.78,
-} )
+    color: texture ? '#ffffff' : color,
+    map: texture,
+    roughness: 0.075,
+    metalness: 0,
+    clearcoat: 1,
+    clearcoatRoughness: 0.035,
+    ior: 1.54,
+    reflectivity: 0.82,
+    envMapIntensity: 0.78,
+  } )
 
 
 const createRenderer = ( canvas ) =>
@@ -201,8 +201,6 @@ const createStriker = ( ballGeometry, radius, logoTexture ) =>
 {
   const material = createBallMaterial( '#070807', null )
   const mesh = new THREE.Mesh( ballGeometry, material )
-  mesh.castShadow = false
-  mesh.receiveShadow = false
   mesh.updateMatrixWorld()
 
   const decalMaterial = createDecalMaterial( logoTexture )
@@ -236,17 +234,13 @@ const createRackBall = ( number, ballGeometry, maximumAnisotropy, requestRender,
   )
   disposableTextures.add( texture )
   const material = createBallMaterial( BALL_COLORS[ number - 1 ], texture )
-  const mesh = new THREE.Mesh( ballGeometry, material )
-  mesh.castShadow = false
-  mesh.receiveShadow = false
-  return mesh
+  return new THREE.Mesh( ballGeometry, material )
 }
 
 // The pendant supplies warm specular light while the contact planes anchor balls to the photo plate.
 const addLights = ( scene, rackApexZ ) =>
 {
   const pendantSpot = new THREE.SpotLight( '#ffe5b5', 18, 7, Math.PI / 3.1, 0.82, 1.35 )
-  pendantSpot.castShadow = false
   pendantSpot.target.position.set( 0, 0, rackApexZ )
   scene.add( pendantSpot, pendantSpot.target )
 
@@ -352,16 +346,17 @@ export const buildWorld = ( canvas, simulation, requestRender ) =>
   const logoTexture = createLogoTexture( maximumAnisotropy, requestRender )
   disposableTextures.add( logoTexture )
   const striker = createStriker( ballGeometry, radius, logoTexture )
-  tableRoot.add( striker.group )
-  const ballMeshes = [ striker.group ]
-  shadows.add()
-
+  const ballMeshes = []
+  const addBall = ( object ) =>
+  {
+    tableRoot.add( object )
+    ballMeshes.push( object )
+    shadows.add()
+  }
+  addBall( striker.group )
   RACK_BALL_NUMBERS.forEach( ( number ) =>
   {
-    const mesh = createRackBall( number, ballGeometry, maximumAnisotropy, requestRender, disposableTextures )
-    tableRoot.add( mesh )
-    ballMeshes.push( mesh )
-    shadows.add()
+    addBall( createRackBall( number, ballGeometry, maximumAnisotropy, requestRender, disposableTextures ) )
   } )
 
   const pendantSpot = addLights( scene, simulation.config.rack.apexZ )
@@ -372,7 +367,6 @@ export const buildWorld = ( canvas, simulation, requestRender ) =>
     radius,
     ballMeshes,
     ballShadows: shadows.meshes,
-    renderer,
     resize: () => resizeToViewport( { canvas, camera, renderer, tableRoot, hover, shadowCount: shadows.meshes.length } ),
     render: () => renderer.render( scene, camera ),
     setHoverResponse: hover.setHoverResponse,

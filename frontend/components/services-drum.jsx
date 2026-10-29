@@ -107,7 +107,7 @@ export function ServicesDrum( { variant } ) {
     // Phone address-bar show/hide must not trigger a ScrollTrigger refresh (re-measure) mid-scroll.
     ScrollTrigger.config( { ignoreMobileResize: true } )
     const reduced = window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches
-    // Phones step between rows instead of scrubbing (same breakpoint as the phone CSS in index.css).
+    // Phones step between rows instead of scrubbing (same breakpoint as the phone CSS in services-drum.css).
     const stepped = window.matchMedia( '(max-width: 767px)' ).matches
     root.classList.toggle( 'is-stepped', stepped && !reduced )
     const state = playback.current
@@ -177,7 +177,7 @@ export function ServicesDrum( { variant } ) {
       end: 'bottom top',
       onToggle: ( self ) => {
         state.inView = self.isActive
-        // The phone nav goes solid while the drum is on screen (body.drum-in-view rule in index.css).
+        // The phone nav goes solid while the drum is on screen (body.drum-in-view rule in services-drum.css).
         document.body.classList.toggle( 'drum-in-view', self.isActive )
         syncPlayback()
       },

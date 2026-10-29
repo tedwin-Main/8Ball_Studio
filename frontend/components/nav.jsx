@@ -11,6 +11,7 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { List, X } from '@phosphor-icons/react'
 import { PRIMARY_CONTACT, STUDIO } from './site-content'
+import { progressBetween } from './math-helpers'
 import { RollText } from './cursor'
 import brandLogo from '../images/8ball-logo.jpg'
 
@@ -135,7 +136,7 @@ function RailNav( { layoutKey } ) {
       const y = self.scroll()
       let next = 0
       bounds.forEach( ( [ from, to ], i ) => {
-        fills[ i ]( to > from ? Math.min( 1, Math.max( 0, ( y - from ) / ( to - from ) ) ) : Number( y >= to ) )
+        fills[ i ]( to > from ? progressBetween( from, to, y ) : Number( y >= to ) )
         if ( y >= from && to > from ) next = i
       } )
       if ( next !== current ) {

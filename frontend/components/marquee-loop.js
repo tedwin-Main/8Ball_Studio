@@ -11,7 +11,7 @@ export const MARQUEE_SPEED = 120
 
 // Drives an endless row. The track holds two identical copies, so moving it by one copy's width loops with no gap.
 // `reverse` runs the row to the right instead of the left. Returns a cleanup that stops the loop.
-// CSS animation (marquee-loop in index.css), not a GSAP tween: transform keyframes run on compositor, so phone
+// CSS animation (marquee-loop in client-loop.css), not a GSAP tween: transform keyframes run on compositor, so phone
 // touch scroll and busy main thread (WebGL break, scroll handlers) never stall the row.
 export function startMarqueeLoop( track, { reverse = false } = {} ) {
   // Run engine: one copy per duration, so duration = copy width / speed
