@@ -1,0 +1,72 @@
+/* Styles the full-screen studio wordmark page after the hero. */
+/* ---------- Studio wordmark page: full-screen 8ightBall after hero ---------- */
+/* tall section, sticky stage: hold length is section height minus one screen */
+.wordmark-page {
+  position: relative;
+  height: 180svh;
+}
+
+.wordmark-stage {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(1.5rem, 4vh, 3rem);
+  height: 100svh;
+  overflow: hidden;
+}
+
+.wordmark-frame {
+  padding: 0 var(--gutter);
+}
+
+/* reference title (commit 7e9b949): condensed heavy caps, second line steps in accent */
+.wordmark {
+  margin: 0;
+  font-family: "Archivo", var(--ui-font);
+  font-size: clamp(76px, 17vw, 280px);
+  font-stretch: 62%;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 0.8;
+  text-transform: uppercase;
+}
+
+/* each line is mask letters rise out of */
+.wordmark-line {
+  display: block;
+  overflow: hidden;
+  padding: 0 0.08em 0.1em 0;
+}
+
+.wordmark-line > span {
+  white-space: nowrap;
+}
+
+.wordmark-line + .wordmark-line {
+  padding-left: 15vw;
+  color: var(--accent);
+}
+
+.wordmark-char {
+  display: inline-block;
+}
+
+.wordmark-char.is-joined-cap {
+  margin-left: 0.07em;
+}
+
+@media (max-width: 767px) {
+  .wordmark-page {
+    height: 150svh;
+  }
+
+  .wordmark {
+    font-size: clamp(72px, 22vw, 140px);
+  }
+
+  .wordmark-line + .wordmark-line {
+    padding-left: 7vw;
+  }
+}

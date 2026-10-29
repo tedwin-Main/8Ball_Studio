@@ -1,0 +1,67 @@
+/* Defines fonts, color and spacing tokens, and ?tune theme drafts. */
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("/space-grotesk-latin-var.woff2") format("woff2");
+  font-weight: 300 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Archivo";
+  src: url("/archivo-latin-var.woff2") format("woff2");
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-display: swap;
+}
+
+:root {
+  --ink: #070908;
+  --felt: #07110d;
+  /* Client logos, in the statement bento and the clients loop: one black-and-white treatment for both. */
+  --logo-filter: grayscale(1) brightness(1.7);
+  --logo-opacity: 0.7;
+  --felt-soft: #0b1a14;
+  --accent: #d2ff00;
+  --cream: #f2f1e9;
+  --cream-dim: rgba(242, 241, 233, 0.66);
+  --line: rgba(242, 241, 233, 0.14);
+  /* page ground: app.jsx tweens these when a chalk chapter takes the screen */
+  --bg: #07110d;
+  --fg: #f2f1e9;
+  --ui-font: "Geist Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --section-y: 6rem;
+  --gutter: 1.25rem;
+}
+
+/* ?tune > Theme: luxury drafts, app.jsx sets html[data-theme]. Night ground + accent swap, chalk day stays ivory.
+   Grounds in hex: GSAP tweens --bg and cannot interpolate oklch() */
+:root[data-theme="noir"] {
+  /* black and ivory, no hue */
+  --felt: #0c0c0b;
+  --felt-soft: #161614;
+  --bg: #0c0c0b;
+  --accent: oklch(0.97 0.006 90);
+}
+
+:root[data-theme="midnight"] {
+  /* ink navy, bone ivory: tailoring house */
+  --felt: #0a0d14;
+  --felt-soft: #121722;
+  --bg: #0a0d14;
+  --accent: oklch(0.9 0.025 80);
+}
+
+:root[data-theme="platinum"] {
+  /* cool graphite, platinum silver */
+  --felt: #0e0f11;
+  --felt-soft: #17191c;
+  --bg: #0e0f11;
+  --accent: oklch(0.87 0.01 250);
+}
+
+@media (min-width: 768px) {
+  :root {
+    --section-y: 9rem;
+    --gutter: 2rem;
+  }
+}

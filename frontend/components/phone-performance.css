@@ -1,0 +1,24 @@
+/* Drops film grain and nav blur on phones to keep scroll frames cheap. */
+/* Phones: the fixed film grain and the nav's backdrop blur are re-composited over the WebGL break and
+   every moving section on each scroll frame, so phones get a plain, near-solid pill and no grain. */
+@media (max-width: 767px) {
+  body::after {
+    display: none;
+  }
+
+  .nav-pill {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: color-mix(in srgb, var(--felt) 92%, transparent);
+  }
+
+  [data-ground="chalk"] .nav-pill {
+    background: rgba(242, 241, 233, 0.95);
+  }
+
+  /* The vignette's multiply blend forces the canvas layer to be blended again every frame; a plain overlay
+     of the same gradient reads almost the same on the dark plate. */
+  .draft-layer-2d::after {
+    mix-blend-mode: normal;
+  }
+}

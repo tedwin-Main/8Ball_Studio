@@ -1,0 +1,19 @@
+/* Sets how far each scroll-driven section runs on desktop and phones. */
+/* ---------- Scroll distance: how far each scroll-driven section runs ----------
+   Desktop scrolls in wheel notches (Lenis smooths them); phones fling, and one swipe travels much further, so
+   phones get longer paragraph and drum sections. The break is the exception: on phones it is short, about two
+   swipes (one rolls the ball into the rack, the next scatters it), so the hero never feels like a chore. */
+:root {
+  --scroll-break: 490svh;
+  --scroll-manifesto: 260svh;
+  --scroll-drum-row: 80vh;
+}
+
+@media (max-width: 767px), (hover: none) and (pointer: coarse) {
+  :root {
+    /* Keep the phone query in step with PHONE_QUERY in break-hero.jsx. */
+    --scroll-break: 250svh;
+    --scroll-manifesto: 320svh;
+    --scroll-drum-row: 100vh;
+  }
+}

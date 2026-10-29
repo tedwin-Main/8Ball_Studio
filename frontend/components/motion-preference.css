@@ -1,0 +1,10 @@
+/* Turns off motion for reduced-motion visitors. */
+/* ---------- Motion preference ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .bento-media video,
+  .slice,
+  .slice-detail,
+  .btn {
+    transition: none;
+  }
+}

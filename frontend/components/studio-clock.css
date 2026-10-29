@@ -1,0 +1,26 @@
+/* Styles the studio clock. */
+/* ---------- Studio clock ---------- */
+.studio-clock {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45em;
+  font-family: "Space Grotesk", var(--ui-font);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.studio-clock-city {
+  color: var(--cream-dim);
+}
+
+.studio-clock-colon {
+  animation: clock-tick 1s steps(1, end) infinite;
+}
+
+@keyframes clock-tick {
+  50% {
+    opacity: 0.2;
+  }
+}
