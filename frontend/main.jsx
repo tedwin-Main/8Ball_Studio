@@ -1,3 +1,4 @@
+// Mounts the React app with the Geist font and global styles.
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 // Geist Variable: the site's UI and display face (self-hosted through npm, no network font request).

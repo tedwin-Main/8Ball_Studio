@@ -1,3 +1,4 @@
+// Tests Services style selection, flat drum math, and URL draft registry.
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { SERVICES_STYLES, flatDrumActive, flatDrumRow, normalizeDraft, normalizeServicesStyle, readDrafts } from './services-style.js'

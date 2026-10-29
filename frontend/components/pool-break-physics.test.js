@@ -1,3 +1,4 @@
+// Tests the pool break simulation: roll, scatter, tail sampling, exit timing.
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { STAGE } from './story-stage.js'

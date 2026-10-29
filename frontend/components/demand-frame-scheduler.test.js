@@ -1,3 +1,4 @@
+// Tests the demand-driven frame scheduler: coalescing, continuation, cancel, destroy.
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createDemandFrameScheduler } from './demand-frame-scheduler.js'

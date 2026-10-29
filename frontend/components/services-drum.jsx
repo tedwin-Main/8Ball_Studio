@@ -1,3 +1,4 @@
+// Renders Services as a scroll-driven drum of rows with media strips (?tune variants).
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { CaretLeft, CaretRight } from '@phosphor-icons/react'

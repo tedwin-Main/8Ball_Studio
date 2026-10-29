@@ -1,3 +1,4 @@
+// Tests intro camera framing, pointer parallax, and photo hover response.
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {

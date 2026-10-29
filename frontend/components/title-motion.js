@@ -1,3 +1,4 @@
+// Provides heading entrance hooks: split text, rise on scroll, replay triggers.
 import { useLayoutEffect } from 'react'
 import gsap from 'gsap'
 import { SplitText } from 'gsap/SplitText'

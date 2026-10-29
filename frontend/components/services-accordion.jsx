@@ -1,3 +1,4 @@
+// Renders Services as six vertical slices; hover, focus or tap opens one.
 import { useLayoutEffect, useRef, useState } from 'react'
 import { SERVICES } from './site-content'
 import { useRiseTitle } from './title-motion'
