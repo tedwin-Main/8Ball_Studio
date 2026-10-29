@@ -1497,7 +1497,7 @@ button:hover .roll-in {
    edge (27.9% down the photo) lands at 35.7% of the screen height, right on the rack's back row as on
    the wide plate. Phones zoom the photo from its top edge (128% of the screen height, top edge kept
    covered); wider portrait screens, whose cover fit is already taller than that, shift it up instead.
-   The 3D balls do not move. PLATE_CALIBRATIONS.portrait in pool-pov-draft.jsx holds the plate's
+   The 3D balls do not move. PLATE_CALIBRATIONS.portrait in pool-break-world.js holds the plate's
    measurements after this placement. */
 @media (orientation: portrait) {
   .draft-layer-2d .pool-pov-visual {

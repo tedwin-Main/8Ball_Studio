@@ -9,7 +9,7 @@
 import { useCallback, useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { PoolPovDraft } from './pool-pov-draft'
+import { PoolBreakScene } from './pool-break-scene'
 import { STAGE } from './story-stage'
 import { intro, introDone } from './intro-state'
 import { useSplitTitle } from './title-motion'
@@ -48,7 +48,7 @@ export function BreakHero() {
     return tl
   } )
 
-  // PoolPovDraft hands its controller up on mount and null on unmount.
+  // PoolBreakScene hands its controller up on mount and null on unmount.
   const registerController = useCallback( ( controller ) => {
     controllerRef.current = controller
   }, [] )
@@ -97,7 +97,7 @@ export function BreakHero() {
   return (
     <section className="break" ref={ sectionRef } aria-label="Intro: the 8-ball breaks the rack" data-cursor-hint="Scroll to break">
       <div className="break-stage">
-        <PoolPovDraft active onController={ registerController } />
+        <PoolBreakScene active onController={ registerController } />
 
         <div className="break-copy" ref={ copyRef }>
           <h1 className="break-title" ref={ titleRef }>Roll with us.</h1>

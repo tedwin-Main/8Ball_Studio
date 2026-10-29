@@ -849,33 +849,11 @@ const maximumUnresolvedOverlap = ( balls, diameter, radius, tableGeometry ) =>
 }
 
 // Precompute one deterministic break. The returned graph is deeply frozen for exact reverse sampling.
-export function createBreakSimulation ( suppliedConfig = {} )
+// Striker (index 0) starts at impact with launch speed and roll spin; rack balls start at rest.
+const createStartingBalls = ( initialPositions, config, launchDirection, impactQuaternion ) =>
 {
-  const config = mergeConfig( suppliedConfig )
   const { radius } = config.ball
-  const diameter = radius * 2
-  const rackPositions = createRackPositions( config )
-  const offsetX = config.striker.impactOffsetX
-  const impactZ = config.rack.apexZ + Math.sqrt( diameter * diameter - offsetX * offsetX )
-  const approachX = offsetX - config.striker.startX
-  const approachZ = impactZ - config.striker.startZ
-  const launchDirection = normalize2( approachX, approachZ, 0, -1 )
-  const approachDistance = magnitude2( approachX, approachZ )
-  // Rolling axis follows the same world-space sign as omega = (v_z / R, 0, -v_x / R).
-  // Keep this aligned with sampleCinematicBreakState so the striker never flips spin at impact.
-  const approachAxis = normalize2( approachZ, -approachX, 1, 0 )
-  const impactQuaternion = quaternionFromAxisAngle(
-    approachAxis.x,
-    0,
-    approachAxis.z,
-    approachDistance / radius,
-  )
-
-  const initialPositions = [
-    { x: offsetX, z: impactZ },
-    ...rackPositions,
-  ]
-  const balls = initialPositions.map( ( position, index ) => ( {
+  return initialPositions.map( ( position, index ) => ( {
     x: position.x,
     y: radius,
     z: position.z,
@@ -893,21 +871,19 @@ export function createBreakSimulation ( suppliedConfig = {} )
     // Ball 0 is the 8-ball; contact with it re-syncs its roll spin (see resolveBallCollision).
     checksUp: index === 0,
   } ) )
-  const tableGeometry = createTableGeometry( config )
-  const rackBounds = {
-    minX: Math.min( ...rackPositions.map( ( position ) => position.x ) ) - radius,
-    maxX: Math.max( ...rackPositions.map( ( position ) => position.x ) ) + radius,
-    minZ: Math.min( ...rackPositions.map( ( position ) => position.z ) ) - radius,
-    maxZ: Math.max( ...rackPositions.map( ( position ) => position.z ) ) + radius,
-  }
-  const diagnostics = {
-    ballImpacts: 0,
-    cushionImpacts: 0,
-    invalidCushionRebounds: 0,
-    pocketCaptures: 0,
-    maxCorrectedOverlap: 0,
-    maxEnergyCorrection: 0,
-  }
+}
+
+const measureRackBounds = ( rackPositions, radius ) => ( {
+  minX: Math.min( ...rackPositions.map( ( position ) => position.x ) ) - radius,
+  maxX: Math.max( ...rackPositions.map( ( position ) => position.x ) ) + radius,
+  minZ: Math.min( ...rackPositions.map( ( position ) => position.z ) ) - radius,
+  maxZ: Math.max( ...rackPositions.map( ( position ) => position.z ) ) + radius,
+} )
+
+// Steps the full duration, recording every frame and the first frame where the rack has spread enough.
+const runUntilMilestone = ( balls, initialPositions, tableGeometry, config, diagnostics ) =>
+{
+  const { radius } = config.ball
   const frames = [ createFrame( balls, 0, radius ) ]
   const totalSteps = Math.round( config.duration / config.timestep )
   let milestoneFrameIndex = -1
@@ -944,16 +920,71 @@ export function createBreakSimulation ( suppliedConfig = {} )
     milestoneMetrics = measureSpread( balls, initialPositions, config )
   }
 
-  const finalBalls = frames[ frames.length - 1 ].balls
-  const milestones = {
-    transitionReadyFrame: milestoneFrameIndex,
-    transitionReadyTime: frames[ milestoneFrameIndex ].time,
-    naturalMilestone,
-    ballsOutsideRack: milestoneMetrics.ballsOutsideRack,
-    rmsSpread: milestoneMetrics.rmsSpread,
-    rmsBallDiameters: milestoneMetrics.rmsBallDiameters,
+  return {
+    frames,
+    milestones: {
+      transitionReadyFrame: milestoneFrameIndex,
+      transitionReadyTime: frames[ milestoneFrameIndex ].time,
+      naturalMilestone,
+      ballsOutsideRack: milestoneMetrics.ballsOutsideRack,
+      rmsSpread: milestoneMetrics.rmsSpread,
+      rmsBallDiameters: milestoneMetrics.rmsBallDiameters,
+    },
   }
-  const result = {
+}
+
+const summarizeDiagnostics = ( diagnostics, finalBalls, diameter, radius, tableGeometry ) => ( {
+  ...diagnostics,
+  unresolvedOverlap: maximumUnresolvedOverlap( finalBalls.map( ( ball ) => ( {
+    x: ball.position.x,
+    z: ball.position.z,
+    pocketed: ball.pocketed,
+  } ) ), diameter, radius, tableGeometry ),
+  pocketedBallIndices: finalBalls
+    .map( ( ball, index ) => ball.pocketed ? index : -1 )
+    .filter( ( index ) => index >= 0 ),
+} )
+
+export function createBreakSimulation ( suppliedConfig = {} )
+{
+  const config = mergeConfig( suppliedConfig )
+  const { radius } = config.ball
+  const diameter = radius * 2
+  const rackPositions = createRackPositions( config )
+  const offsetX = config.striker.impactOffsetX
+  const impactZ = config.rack.apexZ + Math.sqrt( diameter * diameter - offsetX * offsetX )
+  const approachX = offsetX - config.striker.startX
+  const approachZ = impactZ - config.striker.startZ
+  const launchDirection = normalize2( approachX, approachZ, 0, -1 )
+  const approachDistance = magnitude2( approachX, approachZ )
+  // Rolling axis follows the same world-space sign as omega = (v_z / R, 0, -v_x / R).
+  // Keep this aligned with sampleCinematicBreakState so the striker never flips spin at impact.
+  const approachAxis = normalize2( approachZ, -approachX, 1, 0 )
+  const impactQuaternion = quaternionFromAxisAngle(
+    approachAxis.x,
+    0,
+    approachAxis.z,
+    approachDistance / radius,
+  )
+
+  const initialPositions = [
+    { x: offsetX, z: impactZ },
+    ...rackPositions,
+  ]
+  const balls = createStartingBalls( initialPositions, config, launchDirection, impactQuaternion )
+  const tableGeometry = createTableGeometry( config )
+  const diagnostics = {
+    ballImpacts: 0,
+    cushionImpacts: 0,
+    invalidCushionRebounds: 0,
+    pocketCaptures: 0,
+    maxCorrectedOverlap: 0,
+    maxEnergyCorrection: 0,
+  }
+  const { frames, milestones } = runUntilMilestone( balls, initialPositions, tableGeometry, config, diagnostics )
+  const finalBalls = frames[ frames.length - 1 ].balls
+
+  return freezeDeep( {
     config,
     frames,
     milestones,
@@ -962,23 +993,11 @@ export function createBreakSimulation ( suppliedConfig = {} )
       strikerStart: { x: config.striker.startX, y: radius, z: config.striker.startZ },
       strikerImpact: { x: offsetX, y: radius, z: impactZ },
       strikerImpactQuaternion: impactQuaternion,
-      rackBounds,
+      rackBounds: measureRackBounds( rackPositions, radius ),
     },
     table: tableGeometry,
-    diagnostics: {
-      ...diagnostics,
-      unresolvedOverlap: maximumUnresolvedOverlap( finalBalls.map( ( ball ) => ( {
-        x: ball.position.x,
-        z: ball.position.z,
-        pocketed: ball.pocketed,
-      } ) ), diameter, radius, tableGeometry ),
-      pocketedBallIndices: finalBalls
-        .map( ( ball, index ) => ball.pocketed ? index : -1 )
-        .filter( ( index ) => index >= 0 ),
-    },
-  }
-
-  return freezeDeep( result )
+    diagnostics: summarizeDiagnostics( diagnostics, finalBalls, diameter, radius, tableGeometry ),
+  } )
 }
 
 let defaultSimulation = null
