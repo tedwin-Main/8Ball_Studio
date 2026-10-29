@@ -1,8 +1,8 @@
 /**
- * FILE: frontend/components/marquee-loop.js
+ * FILE: frontend/lib/marquee-loop.js
  * PURPOSE: endless marquee row driver, CSS compositor animation sized to constant px speed
  * UI: Site > Clients loop, Services marquee
- * USED BY: components/client-loop.jsx, components/marquee.jsx
+ * USED BY: sections/client-loop.jsx, sections/marquee.jsx
  * KEY EXPORTS: startMarqueeLoop, MARQUEE_SPEED
  */
 

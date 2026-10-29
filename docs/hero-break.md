@@ -69,8 +69,8 @@ the finished table scrolls up and the next section comes in. The title fades out
 |---|---|---|---|
 | `--scroll-break` (desktop) | `index.css` | `490svh` | Total height of the hero, i.e. how much scroll the whole thing takes |
 | `--scroll-break` (phones) | `index.css` | `590svh` | Same, for phones and touch screens |
-| `APPROACH_END` | `components/story-stage.js` | `0.28` | Size of the **roll** slice |
-| `SCATTER` | `components/story-stage.js` | `0.22` | Size of the **scatter** slice |
+| `APPROACH_END` | `pool-break/story-stage.js` | `0.28` | Size of the **roll** slice |
+| `SCATTER` | `pool-break/story-stage.js` | `0.22` | Size of the **scatter** slice |
 
 `APPROACH_END` and `SCATTER` are **shares**, not distances. Only their ratio matters:
 0.28 : 0.22 means the roll gets 56% of the animated scroll and the scatter gets 44%.
@@ -86,7 +86,7 @@ Three things stack together to make the ball feel like it has mass.
 
 Picture pushing a heavy bowling ball. At first it barely moves; once it gets going, it keeps going.
 
-- `ROLL_RAMP = 0.35` in `components/story-stage.js`.
+- `ROLL_RAMP = 0.35` in `pool-break/story-stage.js`.
 - For the first 35% of the roll's scroll, the ball speeds up gradually. It covers only about 21% of
   the distance.
 - For the remaining 65%, it rolls at a steady full speed **straight into the rack**. It never slows
@@ -117,7 +117,7 @@ xychart-beta
 
 ### b) The catch-up delay (`scrub`)
 
-In `components/break-hero.jsx`:
+In `sections/break-hero.jsx`:
 
 | Device | Value | Meaning |
 |---|---|---|
@@ -154,7 +154,7 @@ that's what you want.
 Speed = how far the ball travels ÷ how much you scroll.
 
 - **Distance is fixed.** The 8-ball starts at `startZ: 0.5` and the front of the rack is at
-  `apexZ: -0.9` (`components/pool-break-physics.js`), roughly 1.3 m of table.
+  `apexZ: -0.9` (`pool-break/pool-break-physics.js`), roughly 1.3 m of table.
 - **Why the ball can't start farther back:** the camera is locked to the table photo. Any farther
   back and the ball is behind the camera, so the first screen would show an empty table with no "8".
 - **So to change speed, change scroll.** More roll scroll = slower ball, less roll scroll = faster ball.
@@ -178,7 +178,7 @@ flowchart TD
     D --> E([Your scroll flips<br/>through the film])
 ```
 
-Physics settings (`components/pool-break-physics.js`):
+Physics settings (`pool-break/pool-break-physics.js`):
 
 | Setting | Value | Plain meaning |
 |---|---|---|

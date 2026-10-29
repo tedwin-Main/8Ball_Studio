@@ -1,4 +1,5 @@
-import { clamp } from './math-helpers.js'
+// Defines services/nav style presets and normalizes style picks from the URL query.
+import { clamp } from '../lib/math-helpers.js'
 
 // Services layouts. Visitors get the index rows; ?tune adds a select for the accordion and the two flat drums
 // (?services=<id> picks one directly). Each drum lists the six services in one vertical column

@@ -1,8 +1,8 @@
 /**
- * FILE: frontend/components/intro-state.js
+ * FILE: frontend/lib/intro-state.js
  * PURPOSE: intro state shared by preloader, scroll engine and hero title; decides skip once at load
  * UI: Site > Preloader, Hero
- * USED BY: components/preloader.jsx, components/break-hero.jsx, app.jsx
+ * USED BY: sections/preloader.jsx, sections/break-hero.jsx, app.jsx
  * KEY EXPORTS: intro, introDone, finishIntro
  */
 

@@ -1,5 +1,5 @@
 /**
- * FILE: frontend/components/nav.jsx
+ * FILE: frontend/sections/nav.jsx
  * PURPOSE: header nav pill, chapter links with scroll meters, live studio clock, WhatsApp cta, mobile drawer menu
  * UI: Shell > Header > Navigation
  * USED BY: app.jsx
@@ -10,8 +10,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { List, X } from '@phosphor-icons/react'
-import { PRIMARY_CONTACT, STUDIO } from './site-content'
-import { progressBetween } from './math-helpers'
+import { PRIMARY_CONTACT, STUDIO } from '../lib/site-content'
+import { progressBetween } from '../lib/math-helpers'
 import { RollText } from './cursor'
 import brandLogo from '../images/8ball-logo.jpg'
 

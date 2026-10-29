@@ -1,5 +1,5 @@
 /**
- * FILE: frontend/components/manifesto.jsx
+ * FILE: frontend/sections/manifesto.jsx
  * PURPOSE: sticky scrubbed paragraph, words light up with scroll; chalk draft swaps to day ground
  * UI: Site > Manifesto
  * USED BY: app.jsx
@@ -8,7 +8,7 @@
 
 import { Fragment, useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'
-import { MANIFESTO } from './site-content'
+import { MANIFESTO } from '../lib/site-content'
 
 // Manifesto > sticky paragraph: words scrub 0.1 to 1 across tall section
 // variant: 'chalk' (day chapter) or 'felt' (original night ground)

@@ -1,8 +1,8 @@
 // Renders Services as six vertical slices; hover, focus or tap opens one.
 import { useLayoutEffect, useRef, useState } from 'react'
-import { SERVICES } from './site-content'
-import { useRiseTitle } from './title-motion'
-import { scaleFade } from './media-motion'
+import { SERVICES } from '../lib/site-content'
+import { useRiseTitle } from '../lib/title-motion'
+import { scaleFade } from '../lib/media-motion'
 
 // Desire: six vertical slices side by side. The open slice widens to show its reel; the rest keep their stills.
 // Hover, focus and tap all open a slice, so keyboard and touch get the same behaviour.

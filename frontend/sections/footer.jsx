@@ -1,5 +1,5 @@
 /**
- * FILE: frontend/components/footer.jsx
+ * FILE: frontend/sections/footer.jsx
  * PURPOSE: closing call to action; grid draft adds contact columns, live clock and back-to-top
  * UI: Site > Footer (Contact)
  * USED BY: app.jsx
@@ -9,7 +9,7 @@
 import { useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { ArrowUp } from '@phosphor-icons/react'
-import { CONTACT_CHANNELS, PRIMARY_CONTACT, STUDIO } from './site-content'
+import { CONTACT_CHANNELS, PRIMARY_CONTACT, STUDIO } from '../lib/site-content'
 import { RollText } from './cursor'
 import { StudioClock } from './nav'
 

@@ -1,5 +1,5 @@
 /**
- * FILE: frontend/components/break-hero.jsx
+ * FILE: frontend/sections/break-hero.jsx
  * PURPOSE: scroll-driven pool break hero, title, scroll hint
  * UI: Site > Hero
  * USED BY: app.jsx
@@ -9,11 +9,11 @@
 import { useCallback, useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { PoolBreakScene } from './pool-break-scene'
-import { STAGE } from './story-stage'
-import { intro, introDone } from './intro-state'
-import { useSplitTitle } from './title-motion'
-import { clamp } from './math-helpers'
+import { PoolBreakScene } from '../pool-break/pool-break-scene'
+import { STAGE } from '../pool-break/story-stage'
+import { intro, introDone } from '../lib/intro-state'
+import { useSplitTitle } from '../lib/title-motion'
+import { clamp } from '../lib/math-helpers'
 
 // Phones: the same query as the phone block in scroll-distance.css (narrow screens and touch screens).
 const PHONE_QUERY = '(max-width: 767px), (hover: none) and (pointer: coarse)'

@@ -1,5 +1,5 @@
 /**
- * FILE: frontend/components/wordmark-page.jsx
+ * FILE: frontend/sections/wordmark-page.jsx
  * PURPOSE: full-screen studio title page after hero; 8ightBall / Studio letters rise from line masks, scrubbed
  * UI: Site > Studio
  * USED BY: app.jsx
@@ -9,7 +9,7 @@
 import { useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { STUDIO } from './site-content'
+import { STUDIO } from '../lib/site-content'
 
 gsap.registerPlugin( ScrollTrigger )
 

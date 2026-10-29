@@ -1,7 +1,7 @@
 // The pinned stage's fixed choreography, in timeline units: the Intro break runs 0 → 1 (Studio is lit
 // at 1), Studio holds, then Services rises over it. Not settings: the dials are in src/storyTiming.js.
 
-import { clamp } from './math-helpers.js'
+import { clamp } from '../lib/math-helpers.js'
 
 const freeze = ( value ) => Object.freeze( value )
 

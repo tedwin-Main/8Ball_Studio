@@ -1,7 +1,7 @@
 // Pool hero canvas textures: contact shadow, logo decal, numbered balls. Color maps are sRGB.
 import * as THREE from 'three'
 import brandLogo from '../images/8ball-logo.jpg'
-import { smoothstepBetween } from './math-helpers.js'
+import { smoothstepBetween } from '../lib/math-helpers.js'
 
 // Soft radial Gaussian gradient for ball contact shadows and ambient occlusion.
 export const createContactShadowTexture = ( anisotropy = 1 ) =>

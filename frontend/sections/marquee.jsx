@@ -1,8 +1,8 @@
 // Renders the endless service-name marquee with icons between names.
 import { useLayoutEffect, useRef } from 'react'
-import { startMarqueeLoop } from './marquee-loop'
+import { startMarqueeLoop } from '../lib/marquee-loop'
 import { ChartLineUp, Browser, ChatsCircle, PenNib, Sparkle, VideoCamera } from '@phosphor-icons/react'
-import { SERVICES } from './site-content'
+import { SERVICES } from '../lib/site-content'
 
 const ICONS = [ VideoCamera, PenNib, ChartLineUp, ChatsCircle, Browser, Sparkle ]
 

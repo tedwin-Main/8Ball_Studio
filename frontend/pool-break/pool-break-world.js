@@ -8,7 +8,7 @@ import {
   createNumberedBallTexture,
 } from './pool-surface-textures.js'
 import { BALL_COLORS, RACK_BALL_NUMBERS } from './rack-layout.js'
-import { freezeDeep } from './freeze-deep.js'
+import { freezeDeep } from '../lib/freeze-deep.js'
 
 // Phones redraw the full-screen scene on every scroll frame with a mobile GPU, so they render at 1x
 // (MSAA stays on: without it the ball edges stair-step), with lighter spheres and no clearcoat pass.

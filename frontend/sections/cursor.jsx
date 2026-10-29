@@ -1,8 +1,8 @@
 /**
- * FILE: frontend/components/cursor.jsx
+ * FILE: frontend/sections/cursor.jsx
  * PURPOSE: custom cursor (dot + lagging ring + label + side hint), magnetic pull on buttons, roll-text link label
  * UI: Site > every screen (fine pointer only)
- * USED BY: app.jsx, components/nav.jsx, components/footer.jsx
+ * USED BY: app.jsx, sections/nav.jsx, sections/footer.jsx
  * KEY EXPORTS: Cursor, RollText
  */
 
@@ -16,6 +16,35 @@ const PULL = 0.32
 const INTERACTIVE = 'a, button, select, label, [role="button"]'
 
 const magnetBody = ( el ) => ( el.dataset.magnet === 'inner' ? el.firstElementChild ?? el : el )
+
+// x/y quickTo pair, called together with one point
+const quickXY = ( el, duration ) => {
+  const x = gsap.quickTo( el, 'x', { duration, ease: 'power3' } )
+  const y = gsap.quickTo( el, 'y', { duration, ease: 'power3' } )
+  return ( point ) => {
+    x( point.x )
+    y( point.y )
+  }
+}
+
+// adds listener, returns its remover
+const listen = ( target, type, handler, options ) => {
+  target.addEventListener( type, handler, options )
+  return () => target.removeEventListener( type, handler )
+}
+
+// pulls magnet toward pointer by PULL share of offset from its centre
+const pullMagnet = ( magnet, moveTo, pointer ) => {
+  const body = magnetBody( magnet )
+  const box = magnet.getBoundingClientRect()
+  // own translate removed from rect so pull settles instead of chasing itself
+  const ownX = body === magnet ? gsap.getProperty( body, 'x' ) : 0
+  const ownY = body === magnet ? gsap.getProperty( body, 'y' ) : 0
+  moveTo( {
+    x: ( pointer.x - ( box.left - ownX + box.width / 2 ) ) * PULL,
+    y: ( pointer.y - ( box.top - ownY + box.height / 2 ) ) * PULL,
+  } )
+}
 
 // Site > any link/button: label rolls up, copy below takes its place (pure CSS, see .roll in roll-text.css)
 export function RollText( { children } ) {
@@ -48,14 +77,11 @@ export function Cursor() {
     root.classList.add( 'has-cursor' )
     gsap.set( [ dot, ring ], { xPercent: -50, yPercent: -50, autoAlpha: 0 } )
 
-    const dotX = gsap.quickTo( dot, 'x', { duration: 0.1, ease: 'power3' } )
-    const dotY = gsap.quickTo( dot, 'y', { duration: 0.1, ease: 'power3' } )
-    const ringX = gsap.quickTo( ring, 'x', { duration: 0.55, ease: 'power3' } )
-    const ringY = gsap.quickTo( ring, 'y', { duration: 0.55, ease: 'power3' } )
+    const dotTo = quickXY( dot, 0.1 )
+    const ringTo = quickXY( ring, 0.55 )
     // own tweens (not ring's): ring is centred on pointer, hint sits beside it
     gsap.set( hint, { yPercent: -50 } )
-    const hintX = gsap.quickTo( hint, 'x', { duration: 0.55, ease: 'power3' } )
-    const hintY = gsap.quickTo( hint, 'y', { duration: 0.55, ease: 'power3' } )
+    const hintTo = quickXY( hint, 0.55 )
 
     let pointer = null
     let magnet = null
@@ -78,20 +104,9 @@ export function Cursor() {
       if ( nextMagnet !== magnet ) {
         release( magnet )
         magnet = nextMagnet
-        magnetTo = magnet && {
-          x: gsap.quickTo( magnetBody( magnet ), 'x', { duration: 0.6, ease: 'power3' } ),
-          y: gsap.quickTo( magnetBody( magnet ), 'y', { duration: 0.6, ease: 'power3' } ),
-        }
+        magnetTo = magnet && quickXY( magnetBody( magnet ), 0.6 )
       }
-      if ( magnet ) {
-        const body = magnetBody( magnet )
-        const box = magnet.getBoundingClientRect()
-        // own translate removed from rect so pull settles instead of chasing itself
-        const ownX = body === magnet ? gsap.getProperty( body, 'x' ) : 0
-        const ownY = body === magnet ? gsap.getProperty( body, 'y' ) : 0
-        magnetTo.x( ( pointer.x - ( box.left - ownX + box.width / 2 ) ) * PULL )
-        magnetTo.y( ( pointer.y - ( box.top - ownY + box.height / 2 ) ) * PULL )
-      }
+      if ( magnet ) pullMagnet( magnet, magnetTo, pointer )
       const labelled = hit?.closest( '[data-cursor]' )
       const text = labelled?.dataset.cursor ?? ''
       if ( text !== shownLabel ) {
@@ -118,12 +133,9 @@ export function Cursor() {
         gsap.to( [ dot, ring ], { autoAlpha: 1, duration: 0.3 } )
       }
       pointer = { x: event.clientX, y: event.clientY }
-      dotX( pointer.x )
-      dotY( pointer.y )
-      ringX( pointer.x )
-      ringY( pointer.y )
-      hintX( pointer.x )
-      hintY( pointer.y )
+      dotTo( pointer )
+      ringTo( pointer )
+      hintTo( pointer )
       queueSync()
     }
     const onLeave = () => {
@@ -137,20 +149,18 @@ export function Cursor() {
     const onDown = () => ring.classList.add( 'is-down' )
     const onUp = () => ring.classList.remove( 'is-down' )
 
-    window.addEventListener( 'pointermove', onMove, { passive: true } )
-    window.addEventListener( 'scroll', queueSync, { passive: true } )
-    document.documentElement.addEventListener( 'pointerleave', onLeave )
-    window.addEventListener( 'pointerdown', onDown )
-    window.addEventListener( 'pointerup', onUp )
+    const unlisten = [
+      listen( window, 'pointermove', onMove, { passive: true } ),
+      listen( window, 'scroll', queueSync, { passive: true } ),
+      listen( root, 'pointerleave', onLeave ),
+      listen( window, 'pointerdown', onDown ),
+      listen( window, 'pointerup', onUp ),
+    ]
 
     return () => {
       cancelAnimationFrame( frame )
       release( magnet )
-      window.removeEventListener( 'pointermove', onMove )
-      window.removeEventListener( 'scroll', queueSync )
-      document.documentElement.removeEventListener( 'pointerleave', onLeave )
-      window.removeEventListener( 'pointerdown', onDown )
-      window.removeEventListener( 'pointerup', onUp )
+      unlisten.forEach( ( remove ) => remove() )
       root.classList.remove( 'has-cursor' )
     }
   }, [] )

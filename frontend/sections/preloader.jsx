@@ -1,5 +1,5 @@
 /**
- * FILE: frontend/components/preloader.jsx
+ * FILE: frontend/sections/preloader.jsx
  * PURPOSE: rack preloader, 15 balls fill triangle with 0-100 counter, break scatters them, panel lifts into hero
  * UI: Site > Preloader
  * USED BY: app.jsx
@@ -8,8 +8,8 @@
 
 import { useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
-import { finishIntro, intro } from './intro-state'
-import { STUDIO } from './site-content'
+import { finishIntro, intro } from '../lib/intro-state'
+import { STUDIO } from '../lib/site-content'
 
 // rack rows, apex first: 1 + 2 + 3 + 4 + 5 = 15 balls
 const RACK = [ 1, 2, 3, 4, 5 ]

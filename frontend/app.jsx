@@ -10,23 +10,23 @@ import { useEffect, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Lenis from 'lenis'
-import { Nav } from './components/nav'
-import { BreakHero } from './components/break-hero'
-import { WordmarkPage } from './components/wordmark-page'
-import { Statement } from './components/statement'
-import { Manifesto } from './components/manifesto'
-import { ServicesAccordion } from './components/services-accordion'
-import { ServicesDrum } from './components/services-drum'
-import { ServicesIndex } from './components/services-index'
-import { TuneSelect } from './components/tune-select'
-import { ClientLoop } from './components/client-loop'
-import { Marquee } from './components/marquee'
-import { Footer } from './components/footer'
-import { Cursor } from './components/cursor'
-import { Preloader } from './components/preloader'
-import { intro, introDone } from './components/intro-state'
-import { normalizeDraft, readDrafts } from './components/services-style'
-import { clamp } from './components/math-helpers'
+import { Nav } from './sections/nav'
+import { BreakHero } from './sections/break-hero'
+import { WordmarkPage } from './sections/wordmark-page'
+import { Statement } from './sections/statement'
+import { Manifesto } from './sections/manifesto'
+import { ServicesAccordion } from './sections/services-accordion'
+import { ServicesDrum } from './sections/services-drum'
+import { ServicesIndex } from './sections/services-index'
+import { TuneSelect } from './sections/tune-select'
+import { ClientLoop } from './sections/client-loop'
+import { Marquee } from './sections/marquee'
+import { Footer } from './sections/footer'
+import { Cursor } from './sections/cursor'
+import { Preloader } from './sections/preloader'
+import { intro, introDone } from './lib/intro-state'
+import { normalizeDraft, readDrafts } from './sections/services-style'
+import { clamp } from './lib/math-helpers'
 
 gsap.registerPlugin( ScrollTrigger )
 
@@ -50,11 +50,9 @@ const GROUNDS = {
 // glide length scales with distance
 const glideSeconds = ( distance ) => clamp( 0.9 + distance / 2500, 1.2, 4.5 )
 
-// Site > Root Shell > App: root container and Lenis scroll engine
-export default function App() {
+// Site > ?tune > any select: drafts from URL; swap keeps URL in step so reload or shared link shows same page
+function useDrafts() {
   const [ drafts, setDrafts ] = useState( () => readDrafts( window.location.search ) )
-
-  // Site > ?tune > any select: swap one section's draft, URL kept in step so reload or shared link shows same page
   const switchDraft = ( section, next ) => {
     const value = normalizeDraft( section, next )
     const url = new URL( window.location.href )
@@ -64,10 +62,31 @@ export default function App() {
     // drafts differ in scroll length, so ScrollTrigger must re-measure page
     requestAnimationFrame( () => ScrollTrigger.refresh() )
   }
+  return [ drafts, switchDraft ]
+}
 
+// In-page links (nav, brand, footer) glide to their section through Lenis instead of the browser's instant jump.
+function createAnchorGlide( lenis ) {
+  return ( event ) => {
+    const link = event.target.closest?.( 'a[href^="#"]' )
+    if ( !link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey ) return
+    const hash = link.getAttribute( 'href' )
+    const target = hash === '#' || hash === '#top' ? 0 : document.querySelector( hash )
+    if ( target === null ) return
+    event.preventDefault()
+    // negative offset keeps fixed nav pill clear of target heading
+    const offset = target === 0 ? 0 : -88
+    const targetY = target === 0 ? 0 : target.getBoundingClientRect().top + lenis.scroll + offset
+    lenis.scrollTo( target, { offset, duration: glideSeconds( Math.abs( targetY - lenis.scroll ) ), easing: easeGlide } )
+    // keep URL in step
+    window.history.pushState( null, '', hash )
+  }
+}
+
+// Lenis gives the page a weighted smooth scroll. Its position feeds ScrollTrigger and the GSAP ticker drives it.
+// Reduced-motion visitors keep native scroll.
+function useLenisScroll() {
   useEffect( () => {
-    // Lenis gives the page a weighted smooth scroll. Its position feeds ScrollTrigger and the GSAP ticker drives it.
-    // Reduced-motion visitors keep native scroll.
     if ( window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches ) return undefined
     const lenis = new Lenis( { lerp: 0.1 } )
     // page holds still under preloader, released as panel lifts
@@ -80,21 +99,7 @@ export default function App() {
     gsap.ticker.add( tick )
     gsap.ticker.lagSmoothing( 0 )
 
-    // In-page links (nav, brand, footer) glide to their section through Lenis instead of the browser's instant jump.
-    const glideToAnchor = ( event ) => {
-      const link = event.target.closest?.( 'a[href^="#"]' )
-      if ( !link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey ) return
-      const hash = link.getAttribute( 'href' )
-      const target = hash === '#' || hash === '#top' ? 0 : document.querySelector( hash )
-      if ( target === null ) return
-      event.preventDefault()
-      // negative offset keeps fixed nav pill clear of target heading
-      const offset = target === 0 ? 0 : -88
-      const targetY = target === 0 ? 0 : target.getBoundingClientRect().top + lenis.scroll + offset
-      lenis.scrollTo( target, { offset, duration: glideSeconds( Math.abs( targetY - lenis.scroll ) ), easing: easeGlide } )
-      // keep URL in step
-      window.history.pushState( null, '', hash )
-    }
+    const glideToAnchor = createAnchorGlide( lenis )
     document.addEventListener( 'click', glideToAnchor )
 
     return () => {
@@ -103,13 +108,10 @@ export default function App() {
       lenis.destroy()
     }
   }, [] )
+}
 
-  // Site > ?tune > Theme: accent palette via html[data-theme]
-  useEffect( () => {
-    document.documentElement.dataset.theme = drafts.theme
-  }, [ drafts.theme ] )
-
-  // Site > every [data-chapter] section: page ground swaps felt/chalk as chapter takes screen
+// Site > every [data-chapter] section: page ground swaps felt/chalk as chapter takes screen
+function useChapterGrounds( drafts ) {
   useEffect( () => {
     const root = document.documentElement
     const active = new Set()
@@ -140,6 +142,19 @@ export default function App() {
       root.dataset.ground = 'felt'
     }
   }, [ drafts ] )
+}
+
+// Site > Root Shell > App: root container and Lenis scroll engine
+export default function App() {
+  const [ drafts, switchDraft ] = useDrafts()
+  useLenisScroll()
+
+  // Site > ?tune > Theme: accent palette via html[data-theme]
+  useEffect( () => {
+    document.documentElement.dataset.theme = drafts.theme
+  }, [ drafts.theme ] )
+
+  useChapterGrounds( drafts )
 
   return (
     <main id="top">

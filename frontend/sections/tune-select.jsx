@@ -1,5 +1,5 @@
 /**
- * FILE: frontend/components/tune-select.jsx
+ * FILE: frontend/sections/tune-select.jsx
  * PURPOSE: ?tune review panel, one select per registered draft section
  * UI: Site > ?tune panel
  * USED BY: app.jsx

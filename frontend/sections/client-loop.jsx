@@ -1,5 +1,5 @@
 /**
- * FILE: frontend/components/client-loop.jsx
+ * FILE: frontend/sections/client-loop.jsx
  * PURPOSE: client logo loop with popping title
  * UI: Site > Clients
  * USED BY: app.jsx
@@ -8,9 +8,9 @@
 
 import { useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'
-import { startMarqueeLoop } from './marquee-loop'
-import { CLIENTS } from './site-content'
-import { useSplitTitle } from './title-motion'
+import { startMarqueeLoop } from '../lib/marquee-loop'
+import { CLIENTS } from '../lib/site-content'
+import { useSplitTitle } from '../lib/title-motion'
 
 // How many times the client logos repeat inside one group, so one group is always wider than a wide screen.
 const REPEATS = 3

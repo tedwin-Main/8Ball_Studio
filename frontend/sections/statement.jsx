@@ -1,5 +1,5 @@
 /**
- * FILE: frontend/components/statement.jsx
+ * FILE: frontend/sections/statement.jsx
  * PURPOSE: scrambled statement heading, gapless bento grid
  * UI: Site > Statement, Bento
  * USED BY: app.jsx
@@ -9,9 +9,9 @@
 import { useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { ScrambleTextPlugin } from 'gsap/ScrambleTextPlugin'
-import { CLIENTS, PRIMARY_CONTACT, SERVICES } from './site-content'
-import { useSplitTitle } from './title-motion'
-import { scaleFade } from './media-motion'
+import { CLIENTS, PRIMARY_CONTACT, SERVICES } from '../lib/site-content'
+import { useSplitTitle } from '../lib/title-motion'
+import { scaleFade } from '../lib/media-motion'
 
 gsap.registerPlugin( ScrambleTextPlugin )
 

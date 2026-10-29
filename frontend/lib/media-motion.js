@@ -1,8 +1,8 @@
 /**
- * FILE: frontend/components/media-motion.js
+ * FILE: frontend/lib/media-motion.js
  * PURPOSE: scroll scale-and-fade for media blocks: grow in from smaller, darken and fade as they leave
  * UI: Site > Statement bento reel, Services (accordion, drums, index), Clients
- * USED BY: components/statement.jsx, components/services-accordion.jsx, components/services-drum.jsx, components/services-index.jsx
+ * USED BY: sections/statement.jsx, sections/services-accordion.jsx, sections/services-drum.jsx, sections/services-index.jsx
  * KEY EXPORTS: scaleFade
  */
 

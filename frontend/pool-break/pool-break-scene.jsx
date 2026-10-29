@@ -16,7 +16,7 @@ import {
 } from './camera-framing'
 import { createDemandFrameScheduler } from './demand-frame-scheduler'
 import { buildWorld } from './pool-break-world.js'
-import { clamp } from './math-helpers.js'
+import { clamp } from '../lib/math-helpers.js'
 
 // The photo remains visible if WebGL setup fails, so the opening is still usable.
 const tryBuildWorld = ( root, canvas, simulation, requestRender ) =>
@@ -36,7 +36,7 @@ const tryBuildWorld = ( root, canvas, simulation, requestRender ) =>
 }
 
 // Ready once the photographic plate is decoded and the first ball frame is drawn, so the
-// preloader (components/preloader.jsx) lifts on a finished Intro, never on a blank one.
+// preloader (sections/preloader.jsx) lifts on a finished Intro, never on a blank one.
 // Without WebGL the plate alone is the Intro, so only the plate is awaited.
 const waitForIntroReady = ( root, hasWorld ) =>
 {
