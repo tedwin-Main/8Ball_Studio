@@ -1,8 +1,7 @@
 // Draft 2's camera is the source of truth. Consumers scale this contract into
 // their own scene units while keeping the same viewport composition.
-const clamp = ( value, min = 0, max = 1 ) => Math.min( max, Math.max( min, value ) )
-const lerp = ( start, end, progress ) => start + ( end - start ) * progress
-const smoothstep = ( progress ) => progress * progress * ( 3 - 2 * progress )
+import { clamp, lerp, smoothstep } from './math-helpers.js'
+
 
 // Draft 2 uses this scale to turn the physics table (2.54m) into its 19.2-unit scene.
 // Keeping it here makes the normalized camera contract explicit for Draft 1's photo plate.

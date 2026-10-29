@@ -23,9 +23,7 @@ import {
   createNumberedBallTexture,
 } from './pool-surface-textures.js'
 import { BALL_COLORS, RACK_BALL_NUMBERS } from './rack-layout.js'
-
-const clamp = ( value, min = 0, max = 1 ) => Math.min( max, Math.max( min, value ) )
-const lerp = ( start, end, progress ) => start + ( end - start ) * progress
+import { clamp, lerp } from './math-helpers.js'
 
 // Match Draft 2's maximum backing density so Retina desktops do not pay excess fill rate.
 const DRAFT1_PIXEL_RATIO_CAP = 1.5

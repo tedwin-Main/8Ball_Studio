@@ -13,8 +13,7 @@ import { PoolPovDraft } from './pool-pov-draft'
 import { STAGE } from './story-stage'
 import { intro, introDone } from './intro-state'
 import { useSplitTitle } from './title-motion'
-
-const clamp = ( value ) => Math.min( 1, Math.max( 0, value ) )
+import { clamp } from './math-helpers'
 
 // Phones: the same query as the phone scroll-distance block in index.css (narrow screens and touch screens).
 const PHONE_QUERY = '(max-width: 767px), (hover: none) and (pointer: coarse)'

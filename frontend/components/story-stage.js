@@ -1,8 +1,9 @@
 // The pinned stage's fixed choreography, in timeline units: the Intro break runs 0 → 1 (Studio is lit
 // at 1), Studio holds, then Services rises over it. Not settings: the dials are in src/storyTiming.js.
 
+import { clamp } from './math-helpers.js'
+
 const freeze = ( value ) => Object.freeze( value )
-const clamp = ( value ) => Math.min( 1, Math.max( 0, value ) )
 
 const VIEWPORTS_PER_UNIT = 3
 // Where the 8-ball hits the rack. 0 → APPROACH_END is the roll, so raising it lengthens the roll's scroll.

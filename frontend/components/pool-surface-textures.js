@@ -1,6 +1,7 @@
 // Pool hero canvas textures: contact shadow, logo decal, numbered balls. Color maps are sRGB.
 import * as THREE from 'three'
 import brandLogo from '../images/8ball-logo.jpg'
+import { smoothstepBetween } from './math-helpers.js'
 
 // Soft radial Gaussian gradient for ball contact shadows and ambient occlusion.
 export const createContactShadowTexture = ( anisotropy = 1 ) =>
@@ -22,12 +23,6 @@ export const createContactShadowTexture = ( anisotropy = 1 ) =>
   texture.minFilter = THREE.LinearMipmapLinearFilter
   texture.magFilter = THREE.LinearFilter
   return texture
-}
-
-const smoothstep = ( edge0, edge1, value ) =>
-{
-  const t = Math.min( 1, Math.max( 0, ( value - edge0 ) / ( edge1 - edge0 ) ) )
-  return t * t * ( 3 - 2 * t )
 }
 
 // Brand 8-ball decal: only the white glyph is kept so the ball's own resin shows around it.
@@ -62,7 +57,7 @@ export const createLogoTexture = ( anisotropy = 16, requestRender = () => {} ) =
     for ( let index = 0; index < data.length; index += 4 )
     {
       const luminance = ( data[ index ] * 0.2126 + data[ index + 1 ] * 0.7152 + data[ index + 2 ] * 0.0722 ) / 255
-      data[ index + 3 ] = Math.round( data[ index + 3 ] * smoothstep( 0.35, 0.75, luminance ) )
+      data[ index + 3 ] = Math.round( data[ index + 3 ] * smoothstepBetween( 0.35, 0.75, luminance ) )
       data[ index ] = data[ index + 1 ] = data[ index + 2 ] = 255
     }
     context.putImageData( pixels, 0, 0 )

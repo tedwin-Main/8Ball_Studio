@@ -1,9 +1,7 @@
 // This module has no DOM or renderer dependency, so the cached break can be tested in Node.
 import { STAGE, easeRollMomentum } from './story-stage.js'
+import { clamp, lerp, smoothstep } from './math-helpers.js'
 
-const clamp = ( value, min = 0, max = 1 ) => Math.min( max, Math.max( min, value ) )
-const lerp = ( start, end, progress ) => start + ( end - start ) * progress
-const smoothstep = ( progress ) => progress * progress * ( 3 - 2 * progress )
 const EPSILON = 1e-9
 const CONTACT_EPSILON = 2e-6
 
