@@ -1,10 +1,4 @@
-/**
- * FILE: src/features/cursor/cursor.jsx
- * PURPOSE: custom cursor (dot + lagging ring + label + side hint), magnetic pull on buttons, roll-text link label
- * UI: Site > every screen (fine pointer only)
- * USED BY: app.jsx, features/navigation/nav.jsx, features/footer/footer.jsx
- * KEY EXPORTS: Cursor, RollText
- */
+// Renders custom cursor with magnetic pull and roll-text link label.
 
 import { useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'

@@ -1,10 +1,4 @@
-/**
- * FILE: src/features/marquee/marquee-loop.js
- * PURPOSE: endless marquee row driver, CSS compositor animation sized to constant px speed
- * UI: Site > Clients loop, Services marquee
- * USED BY: features/clients/client-loop.jsx, features/marquee/marquee.jsx
- * KEY EXPORTS: startMarqueeLoop, MARQUEE_SPEED
- */
+// Drives endless marquee row with constant pixel speed CSS animation.
 
 // Pixels per second that every marquee row moves at. One value keeps the services and client rows in step.
 export const MARQUEE_SPEED = 120

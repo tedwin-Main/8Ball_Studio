@@ -1,10 +1,4 @@
-/**
- * FILE: src/app.jsx
- * PURPOSE: root shell, Lenis scroll controller, layout variants, section tree
- * UI: Site > Root Shell
- * USED BY: main.jsx
- * KEY EXPORTS: default (App)
- */
+// Renders root shell, Lenis scroll controller, layout variants, and section tree.
 
 import { useEffect, useState } from 'react'
 import gsap from 'gsap'

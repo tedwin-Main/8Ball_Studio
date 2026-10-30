@@ -1,10 +1,4 @@
-/**
- * FILE: src/features/manifesto/manifesto.jsx
- * PURPOSE: sticky scrubbed paragraph, words light up with scroll; chalk draft swaps to day ground
- * UI: Site > Manifesto
- * USED BY: app.jsx
- * KEY EXPORTS: Manifesto
- */
+// Renders sticky scrubbed paragraph with scroll word highlights.
 
 import { Fragment, useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'

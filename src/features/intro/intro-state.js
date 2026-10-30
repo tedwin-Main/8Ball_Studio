@@ -1,10 +1,4 @@
-/**
- * FILE: src/features/intro/intro-state.js
- * PURPOSE: intro state shared by preloader, scroll engine and hero title; decides skip once at load
- * UI: Site > Preloader, Hero
- * USED BY: features/intro/preloader.jsx, features/intro/break-hero.jsx, app.jsx
- * KEY EXPORTS: intro, introDone, finishIntro
- */
+// Manages intro state shared by preloader, scroll engine, and hero title.
 
 const SEEN_KEY = '8b-intro-seen'
 

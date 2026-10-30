@@ -1,10 +1,4 @@
-/**
- * FILE: src/common/utils/media-motion.js
- * PURPOSE: scroll scale-and-fade for media blocks: grow in from smaller, darken and fade as they leave
- * UI: Site > Statement bento reel, Services (accordion, drums, index), Clients
- * USED BY: features/manifesto/statement.jsx, features/services/services-accordion.jsx, features/services/services-drum.jsx, features/services/services-index.jsx
- * KEY EXPORTS: scaleFade
- */
+// Handles scroll scale-and-fade animations for media blocks.
 
 import gsap from 'gsap'
 

@@ -1,10 +1,4 @@
-/**
- * FILE: src/features/manifesto/statement.jsx
- * PURPOSE: scrambled statement heading, gapless bento grid
- * UI: Site > Statement, Bento
- * USED BY: app.jsx
- * KEY EXPORTS: Statement
- */
+// Renders scrambled statement heading and gapless bento grid.
 
 import { useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'

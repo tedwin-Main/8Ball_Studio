@@ -1,10 +1,4 @@
-/**
- * FILE: src/features/navigation/nav.jsx
- * PURPOSE: header nav pill, chapter links with scroll meters, live studio clock, WhatsApp cta, mobile drawer menu
- * UI: Shell > Header > Navigation
- * USED BY: app.jsx
- * KEY EXPORTS: Nav, StudioClock, RAIL_CHAPTERS
- */
+// Renders header nav pill, chapter links, studio clock, and mobile drawer menu.
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'

@@ -1,10 +1,4 @@
-/**
- * FILE: src/features/services/services-index.jsx
- * PURPOSE: services index draft: big name rows, cursor shows Open/Close, click opens row media
- * UI: Site > Services (?services=index)
- * USED BY: app.jsx
- * KEY EXPORTS: ServicesIndex
- */
+// Renders services index with expandable row media.
 
 import { useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'

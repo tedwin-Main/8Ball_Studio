@@ -1,10 +1,4 @@
-/**
- * FILE: src/features/intro/break-hero.jsx
- * PURPOSE: scroll-driven pool break hero, title, scroll hint
- * UI: Site > Hero
- * USED BY: app.jsx
- * KEY EXPORTS: BreakHero
- */
+// Renders scroll-driven pool break hero, title, and scroll hint.
 
 import { useCallback, useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'

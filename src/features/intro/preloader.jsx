@@ -1,10 +1,4 @@
-/**
- * FILE: src/features/intro/preloader.jsx
- * PURPOSE: rack preloader, 15 balls fill triangle with 0-100 counter, break scatters them, panel lifts into hero
- * UI: Site > Preloader
- * USED BY: app.jsx
- * KEY EXPORTS: Preloader
- */
+// Renders rack preloader animation with 0-100 counter and break scatter.
 
 import { useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'

@@ -1,10 +1,4 @@
-/**
- * FILE: src/features/footer/footer.jsx
- * PURPOSE: closing call to action; grid draft adds contact columns, live clock and back-to-top
- * UI: Site > Footer (Contact)
- * USED BY: app.jsx
- * KEY EXPORTS: Footer
- */
+// Renders closing call to action with contact columns, live clock, and back-to-top.
 
 import { useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'

@@ -1,10 +1,4 @@
-/**
- * FILE: src/features/wordmark/wordmark-page.jsx
- * PURPOSE: full-screen studio title page after hero; 8ightBall / Studio letters rise from line masks, scrubbed
- * UI: Site > Studio
- * USED BY: app.jsx
- * KEY EXPORTS: WordmarkPage
- */
+// Renders full-screen studio title page with scrubbed rising letter masks.
 
 import { useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'

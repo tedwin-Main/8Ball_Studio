@@ -1,10 +1,4 @@
-/**
- * FILE: src/features/clients/client-loop.jsx
- * PURPOSE: client logo loop with popping title
- * UI: Site > Clients
- * USED BY: app.jsx
- * KEY EXPORTS: ClientLoop
- */
+// Renders client logo marquee loop with popping title.
 
 import { useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'

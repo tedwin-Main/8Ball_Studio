@@ -1,10 +1,4 @@
-/**
- * FILE: src/features/services/tune-select.jsx
- * PURPOSE: ?tune review panel, one select per registered draft section
- * UI: Site > ?tune panel
- * USED BY: app.jsx
- * KEY EXPORTS: TuneSelect
- */
+// Renders tune review panel with section selectors.
 
 import { DRAFTS } from './services-style'
 
