@@ -21,5 +21,6 @@
 @import './features/pool-break/intro-break.css';
 @import './features/services/services-drum.css';
 @import './features/services/services-index.css';
+@import './features/reel-sound/sound-toggle.css';
 @import './features/footer/footer-grid.css';
 @import './features/wordmark/wordmark-page.css';

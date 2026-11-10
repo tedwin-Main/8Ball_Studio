@@ -1,0 +1,37 @@
+/* Reel sound: whole tile is the tap target, speaker badge sits bottom-right like Instagram reels. */
+.reel-sound-toggle {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 12px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.reel-sound-badge {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  transition: transform 0.2s ease-out, background 0.2s ease-out;
+}
+
+.reel-sound-toggle:hover .reel-sound-badge,
+.reel-sound-toggle:focus-visible .reel-sound-badge {
+  transform: scale(1.08);
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.reel-sound-toggle:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -4px;
+}

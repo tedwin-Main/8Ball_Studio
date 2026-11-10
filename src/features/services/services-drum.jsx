@@ -6,6 +6,7 @@ import { SERVICES } from '../../config/site-content'
 import { flatDrumActive, flatDrumRow } from './services-style'
 import { useRiseTitle } from '../../common/utils/title-motion'
 import { scaleFade } from '../../common/utils/media-motion'
+import { SoundToggle, releaseTheme, requestTheme } from '../reel-sound/index'
 
 // How many rows from the centre a row has faded out (the window's mask fades its edges on top of this).
 const VISIBLE_ROWS = 2.4
@@ -13,7 +14,8 @@ const VISIBLE_ROWS = 2.4
 const SETTLE_MS = 180
 
 // The five pieces of one service, shown to the right of the names. Only the first reel mounts a <video>
-// (the drum's one-reel rule); the other reels show their poster until the strip is wider than the screen.
+// (the drum's one-reel rule) with its sound toggle; the other reels show their poster. Tiles without the toggle
+// are decorative (aria-hidden), so the toggle stays reachable.
 // Keyed by service in the parent, so the strip remounts and its entrance replays on each new active row.
 function MediaStrip( { service, hasReel, reelRef } ) {
   const stripRef = useRef( null )
@@ -38,9 +40,9 @@ function MediaStrip( { service, hasReel, reelRef } ) {
   }
 
   return (
-    <div className="drum-strip" aria-hidden="true" ref={ stripRef } onScroll={ markEdges }>
+    <div className="drum-strip" ref={ stripRef } onScroll={ markEdges }>
       {/* Zero-width anchor stuck to the strip's left edge; the arrow hangs off it over the first visible tile. */}
-      <span className="drum-strip-prev-anchor">
+      <span className="drum-strip-prev-anchor" aria-hidden="true">
         <button type="button" className="drum-strip-prev" aria-label="Previous" tabIndex={ -1 } data-magnet="inner" onClick={ () => step( -1 ) }>
           <CaretLeft size={ 18 } weight="bold" aria-hidden="true" />
         </button>
@@ -49,16 +51,16 @@ function MediaStrip( { service, hasReel, reelRef } ) {
         const playable = piece.type === 'video' && hasReel && !reelUsed
         if ( playable ) reelUsed = true
         return (
-          <figure className="drum-strip-tile" style={ { '--n': index } } key={ `${ service.name }-${ index }` }>
+          <figure className="drum-strip-tile" style={ { '--n': index } } key={ `${ service.name }-${ index }` } aria-hidden={ playable ? undefined : 'true' }>
             { playable
-              ? <video ref={ reelRef } src={ piece.src } poster={ piece.poster } muted loop playsInline preload="auto" />
+              ? <><video ref={ reelRef } src={ piece.src } poster={ piece.poster } muted loop playsInline preload="auto" aria-hidden="true" />{ service.theme && <SoundToggle /> }</>
               : <img src={ piece.type === 'video' ? piece.poster : piece.src } alt="" loading="lazy" decoding="async" /> }
           </figure>
         )
       } ) }
       {/* Zero-width anchor stuck to the strip's right edge; the arrow hangs off it over the last visible tile. */}
-      <span className="drum-strip-next-anchor">
-        {/* The strip is decorative (aria-hidden), so the arrow is a mouse/touch aid only, kept out of the tab order. */}
+      <span className="drum-strip-next-anchor" aria-hidden="true">
+        {/* The arrow is a mouse/touch aid only (aria-hidden), kept out of the tab order. */}
         <button type="button" className="drum-strip-next" aria-label="Next" tabIndex={ -1 } data-magnet="inner" onClick={ () => step( 1 ) }>
           <CaretRight size={ 18 } weight="bold" aria-hidden="true" />
         </button>
@@ -119,28 +121,38 @@ function createScrollPause( state, syncPlayback, onSettle ) {
   }
 }
 
-// Playback state lives in a ref, so scroll frames never re-render the drum. The one mounted reel plays only
-// when playback is allowed, the drum is on screen, and the scroll is at rest.
+// Playback state lives in a ref, so scroll frames never re-render the drum. The one mounted reel and its
+// service theme play only when playback is allowed, the drum is on screen, and the scroll is at rest.
 function useReelPlayback( reelRef, reelIndex ) {
-  const playback = useRef( { allowed: true, inView: false, scrolling: false, timer: 0 } )
+  const playback = useRef( { allowed: true, inView: false, scrolling: false, timer: 0, theme: SERVICES[ 0 ].theme } )
+  const pauseReel = useCallback( () => {
+    pauseReel()
+    releaseTheme( playback.current.theme )
+  }, [ reelRef ] )
   const syncPlayback = useCallback( () => {
     const video = reelRef.current
     if ( !video ) return
-    const { allowed, inView, scrolling } = playback.current
-    if ( allowed && inView && !scrolling ) video.play()?.catch( () => {} )
-    else video.pause()
-  }, [ reelRef ] )
+    const { allowed, inView, scrolling, theme } = playback.current
+    if ( !allowed || !inView || scrolling ) {
+      pauseReel()
+      return
+    }
+    video.play()?.catch( () => {} )
+    requestTheme( theme )
+  }, [ reelRef, pauseReel ] )
 
-  // A new active row mounts a new <video>; start it if it should be playing.
+  // A new active row mounts a new <video> and swaps the theme; start both if they should be playing.
   useEffect( () => {
+    releaseTheme( playback.current.theme )
+    playback.current.theme = SERVICES[ reelIndex ].theme
     syncPlayback()
   }, [ reelIndex, syncPlayback ] )
 
-  return { playback, syncPlayback }
+  return { playback, syncPlayback, pauseReel }
 }
 
 // Scroll engine: pins stage, slides rows past centre line, tracks active row, pauses reel mid-scroll.
-function useDrumScroll( { rootRef, reelRef, variant, playback, syncPlayback, setActiveIndex, setReelIndex } ) {
+function useDrumScroll( { rootRef, variant, playback, syncPlayback, pauseReel, setActiveIndex, setReelIndex } ) {
   useLayoutEffect( () => {
     const root = rootRef.current
     const windowEl = root.querySelector( '.drum-window' )
@@ -168,7 +180,7 @@ function useDrumScroll( { rootRef, reelRef, variant, playback, syncPlayback, set
       if ( next === active ) return
       active = next
       // The reel stops as soon as the title changes; the next reel waits for the scroll to settle.
-      reelRef.current?.pause()
+      pauseReel()
       setActiveIndex( next )
     }
 
@@ -190,7 +202,7 @@ function useDrumScroll( { rootRef, reelRef, variant, playback, syncPlayback, set
       return () => {
         viewTrigger.kill()
         document.body.classList.remove( 'drum-in-view' )
-        reelRef.current?.pause()
+        pauseReel()
       }
     }
 
@@ -220,9 +232,9 @@ function useDrumScroll( { rootRef, reelRef, variant, playback, syncPlayback, set
       document.body.classList.remove( 'drum-in-view' )
       root.classList.remove( 'is-stepped' )
       state.inView = false
-      reelRef.current?.pause()
+      pauseReel()
     }
-  }, [ variant, syncPlayback ] )
+  }, [ variant, syncPlayback, pauseReel ] )
 }
 
 function DrumRow( { service, isActive, withStrip, hasReel, reelRef } ) {
@@ -251,8 +263,8 @@ export function ServicesDrum( { variant } ) {
   // The row whose <video> is mounted. It only catches up to activeIndex once the scroll rests, so a
   // video is never created or decoded mid-scroll (that was the phone lag).
   const [ reelIndex, setReelIndex ] = useState( 0 )
-  const { playback, syncPlayback } = useReelPlayback( reelRef, reelIndex )
-  useDrumScroll( { rootRef, reelRef, variant, playback, syncPlayback, setActiveIndex, setReelIndex } )
+  const { playback, syncPlayback, pauseReel } = useReelPlayback( reelRef, reelIndex )
+  useDrumScroll( { rootRef, variant, playback, syncPlayback, pauseReel, setActiveIndex, setReelIndex } )
 
   return (
     <section

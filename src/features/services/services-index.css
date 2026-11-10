@@ -91,6 +91,7 @@
 }
 
 .index-media-tile {
+  position: relative;
   margin: 0;
   overflow: hidden;
   border-radius: 14px;

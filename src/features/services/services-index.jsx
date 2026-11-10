@@ -5,15 +5,30 @@ import gsap from 'gsap'
 import { SERVICES } from '../../config/site-content'
 import { useRiseTitle } from '../../common/utils/title-motion'
 import { scaleFade } from '../../common/utils/media-motion'
+import { SoundToggle, useReelTheme } from '../reel-sound/index'
 
-// Services > Index > row media: open row shows its strip (first reel plays, rest stills/posters)
+// Theme plays only while the open row's media is on screen. Starts true: the row was just opened by a tap,
+// and play() must run inside that tap. The observer tracks the drawer growing and rows above shifting.
+function useThemeOnScreen( mediaRef, theme ) {
+  const [ onScreen, setOnScreen ] = useState( true )
+  useReelTheme( theme, onScreen )
+  useLayoutEffect( () => {
+    const observer = new IntersectionObserver( ( [ entry ] ) => setOnScreen( entry.isIntersecting ) )
+    observer.observe( mediaRef.current )
+    return () => observer.disconnect()
+  }, [ mediaRef ] )
+}
+
+// Services > Index > row media: open row shows its strip (first reel plays with its theme, rest stills/posters)
 function RowMedia( { service } ) {
+  const mediaRef = useRef( null )
+  useThemeOnScreen( mediaRef, service.theme )
   return (
-    <div className="index-media">
+    <div className="index-media" ref={ mediaRef }>
       { service.media.slice( 0, 4 ).map( ( piece, i ) => (
         <figure className="index-media-tile" key={ i }>
           { piece.type === 'video' && i === 0
-            ? <video src={ piece.src } poster={ piece.poster } muted autoPlay loop playsInline />
+            ? <><video src={ piece.src } poster={ piece.poster } muted autoPlay loop playsInline />{ service.theme && <SoundToggle /> }</>
             : <img src={ piece.type === 'video' ? piece.poster : piece.src } alt="" loading="lazy" decoding="async" /> }
         </figure>
       ) ) }

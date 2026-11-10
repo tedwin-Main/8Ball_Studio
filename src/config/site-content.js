@@ -4,6 +4,9 @@
 // Service media lives in src/images (sample pieces, see docs/service-media-sources.json). Vite resolves the URLs at build time.
 const MEDIA = import.meta.glob( '../images/{ai,design,marketing,social,video,web}-*.{mp4,webp}', { eager: true, import: 'default' } )
 const media = ( name ) => MEDIA[ `../images/${name}` ]
+// Theme music per service lives in src/audio (Pixabay Frutiger Aero loops, see docs/service-media-sources.json).
+const THEMES = import.meta.glob( '../audio/*-theme.m4a', { eager: true, import: 'default' } )
+const theme = ( slug ) => THEMES[ `../audio/${slug}-theme.m4a` ]
 // A reel piece for a strip tile: the clip plus its poster. A still piece is one image.
 const reelPiece = ( name ) => ( { type: 'video', src: media( `${name}.mp4` ), poster: media( `${name}-poster.webp` ) } )
 const stillPiece = ( name ) => ( { type: 'image', src: media( `${name}.webp` ) } )
@@ -18,6 +21,7 @@ export const SERVICES = [
     reel: { src: media( 'video-reel.mp4' ), poster: media( 'video-reel-poster.webp' ) },
     still: media( 'video-still.webp' ),
     media: serviceMedia( 'video', [ 'reel-3', 'still', 'reel', 'still-2', 'reel-2' ] ),
+    theme: theme( 'video' ),
   },
   {
     name: 'Graphic design',
@@ -25,6 +29,7 @@ export const SERVICES = [
     reel: { src: media( 'design-reel.mp4' ), poster: media( 'design-reel-poster.webp' ) },
     still: media( 'design-still.webp' ),
     media: serviceMedia( 'design', [ 'still', 'reel', 'still-3', 'reel-2', 'still-2' ] ),
+    theme: theme( 'design' ),
   },
   {
     name: 'Performance marketing',
@@ -32,6 +37,7 @@ export const SERVICES = [
     reel: { src: media( 'marketing-reel.mp4' ), poster: media( 'marketing-reel-poster.webp' ) },
     still: media( 'marketing-still.webp' ),
     media: serviceMedia( 'marketing', [ 'reel', 'still', 'reel-3', 'still-2', 'reel-2' ] ),
+    theme: theme( 'marketing' ),
   },
   {
     name: 'Social media management',
@@ -39,6 +45,7 @@ export const SERVICES = [
     reel: { src: media( 'social-reel.mp4' ), poster: media( 'social-reel-poster.webp' ) },
     still: media( 'social-still.webp' ),
     media: serviceMedia( 'social', [ 'reel', 'still', 'reel-3', 'still-2', 'reel-2' ] ),
+    theme: theme( 'social' ),
   },
   {
     name: 'Web design',
@@ -46,6 +53,7 @@ export const SERVICES = [
     reel: { src: media( 'web-reel.mp4' ), poster: media( 'web-reel-poster.webp' ) },
     still: media( 'web-still.webp' ),
     media: serviceMedia( 'web', [ 'still', 'reel', 'still-3', 'reel-2', 'still-2' ] ),
+    theme: theme( 'web' ),
   },
   {
     name: 'AI generated content',
@@ -53,6 +61,7 @@ export const SERVICES = [
     reel: { src: media( 'ai-reel.mp4' ), poster: media( 'ai-reel-poster.webp' ) },
     still: media( 'ai-still.webp' ),
     media: serviceMedia( 'ai', [ 'reel', 'still', 'reel-3', 'still-2', 'reel-2' ] ),
+    theme: theme( 'ai' ),
   },
 ]
 
